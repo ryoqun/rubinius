@@ -17,7 +17,7 @@ namespace rubinius {
 namespace jit {
 
   void BlockBuilder::setup() {
-    std::vector<const Type*> ftypes;
+    std::vector<Type*> ftypes;
     ftypes.push_back(ls_->ptr_type("VM"));
     ftypes.push_back(ls_->ptr_type("CallFrame"));
     ftypes.push_back(ls_->ptr_type("BlockEnvironment"));
@@ -316,7 +316,7 @@ namespace jit {
       b().CreateStore(
           b().CreateLoad(
             b().CreateGEP(arg_ary, loop_val)),
-          b().CreateGEP(vars, idx2, idx2+3));
+          b().CreateGEP(vars, idx2));
 
       // *loop_i = loop_val + 1
       b().CreateStore(
@@ -375,7 +375,7 @@ namespace jit {
       b().CreateStore(
           b().CreateLoad(
             b().CreateGEP(arg_ary, loop_val)),
-          b().CreateGEP(vars, idx2, idx2+3));
+          b().CreateGEP(vars, idx2));
 
       // *loop_i = loop_val + 1
       b().CreateStore(
@@ -432,7 +432,7 @@ namespace jit {
       b().CreateStore(
           b().CreateLoad(
             b().CreateGEP(arg_ary, loop_val)),
-          b().CreateGEP(vars, idx2, idx2+3));
+          b().CreateGEP(vars, idx2));
 
       // *loop_i = loop_val + 1
       b().CreateStore(
@@ -474,7 +474,7 @@ namespace jit {
         cint(vmm_->splat_position)
       };
 
-      Value* pos = b().CreateGEP(vars, idx3, idx3+3, "splat_pos");
+      Value* pos = b().CreateGEP(vars, idx3, "splat_pos");
       b().CreateStore(splat_val, pos);
     }
   }

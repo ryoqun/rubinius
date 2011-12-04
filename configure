@@ -645,8 +645,8 @@ Unsupported language version requested: #{ver}. Options are #{@supported_version
       api_version = ("%d%02d" % parts[0..1]).to_i
       if `#{@perl} #{config} --cxxflags`.index("-fno-rtti")
         @log.write "incorrectly configured llvm (rtti is off)"
-      elsif api_version != 208 and api_version != 209
-        @log.write "only LLVM 2.8 and 2.9 are supported"
+      elsif api_version != 300
+        @log.write "only LLVM 3.0 is supported"
       else
         @log.write "found! (version #{version})"
         @llvm_configure = config

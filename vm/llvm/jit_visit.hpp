@@ -40,13 +40,13 @@ namespace rubinius {
       , func_(0)
     {}
 
-    void resolve(const char* name, const Type* rt) {
+    void resolve(const char* name, Type* rt) {
       ret_type_ = rt;
       func_ = function(name);
     }
 
     Value* call(Value** start, int size, const char* inst_name, IRBuilder<>& b) {
-      return b.CreateCall(func_, start, start+size, inst_name);
+      return b.CreateCall(func_, ArrayRef<Value*>(start, size), inst_name);
     }
   };
 
@@ -286,7 +286,7 @@ namespace rubinius {
       /////
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "possible_break");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "possible_break");
       phi->addIncoming(val, orig);
       phi->addIncoming(crv, push_break_val);
 
@@ -657,7 +657,7 @@ namespace rubinius {
       };
 
       Value* execute_pos = b().CreateGEP(cache_const,
-          execute_pos_idx, execute_pos_idx+2, "execute_pos");
+          execute_pos_idx, "execute_pos");
 
       Value* execute = b().CreateLoad(execute_pos, "execute");
 
@@ -669,7 +669,7 @@ namespace rubinius {
       };
 
       flush_ip();
-      return b().CreateCall(execute, call_args, call_args+4, "ic_send");
+      return b().CreateCall(execute, call_args, "ic_send");
     }
 
     Value* inline_cache_send(int args, InlineCache* cache) {
@@ -691,7 +691,7 @@ namespace rubinius {
       };
 
       Value* execute_pos = b().CreateGEP(cache_const,
-          execute_pos_idx, execute_pos_idx+2, "execute_pos");
+          execute_pos_idx, "execute_pos");
 
       Value* execute = b().CreateLoad(execute_pos, "execute");
 
@@ -705,7 +705,7 @@ namespace rubinius {
       };
 
       flush_ip();
-      return b().CreateCall(execute, call_args, call_args+4, "ic_send");
+      return b().CreateCall(execute, call_args, "ic_send");
     }
 
     Value* splat_send(Symbol* name, int args, bool priv=false) {
@@ -824,7 +824,7 @@ namespace rubinius {
 
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "equal_value");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "equal_value");
       phi->addIncoming(called_value, send_block);
       phi->addIncoming(imm_value, fast);
 
@@ -861,7 +861,7 @@ namespace rubinius {
 
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "equal_value");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "equal_value");
       phi->addIncoming(called_value, send_block);
       phi->addIncoming(imm_value, fast);
 
@@ -897,7 +897,7 @@ namespace rubinius {
 
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "addition");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "addition");
       phi->addIncoming(called_value, send_bb);
       phi->addIncoming(imm_value, fast);
 
@@ -933,7 +933,7 @@ namespace rubinius {
 
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "compare");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "compare");
       phi->addIncoming(called_value, send_bb);
       phi->addIncoming(imm_value, fast);
 
@@ -961,11 +961,11 @@ namespace rubinius {
 
       set_block(fast);
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
       types.push_back(FixnumTy);
       types.push_back(FixnumTy);
 
-      std::vector<const Type*> struct_types;
+      std::vector<Type*> struct_types;
       struct_types.push_back(FixnumTy);
       struct_types.push_back(ls_->Int1Ty);
 
@@ -978,7 +978,7 @@ namespace rubinius {
       Value* recv_int = tag_strip(recv);
       Value* arg_int = tag_strip(arg);
       Value* call_args[] = { recv_int, arg_int };
-      Value* res = b().CreateCall(func, call_args, call_args+2, "add.overflow");
+      Value* res = b().CreateCall(func, call_args, "add.overflow");
 
       Value* sum = b().CreateExtractValue(res, 0, "sum");
       Value* dof = b().CreateExtractValue(res, 1, "did_overflow");
@@ -993,7 +993,7 @@ namespace rubinius {
 
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "addition");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "addition");
       phi->addIncoming(called_value, send_bb);
       phi->addIncoming(imm_value, tagnow);
 
@@ -1021,11 +1021,11 @@ namespace rubinius {
 
       set_block(fast);
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
       types.push_back(FixnumTy);
       types.push_back(FixnumTy);
 
-      std::vector<const Type*> struct_types;
+      std::vector<Type*> struct_types;
       struct_types.push_back(FixnumTy);
       struct_types.push_back(ls_->Int1Ty);
 
@@ -1038,7 +1038,7 @@ namespace rubinius {
       Value* recv_int = tag_strip(recv);
       Value* arg_int = tag_strip(arg);
       Value* call_args[] = { recv_int, arg_int };
-      Value* res = b().CreateCall(func, call_args, call_args+2, "sub.overflow");
+      Value* res = b().CreateCall(func, call_args, "sub.overflow");
 
       Value* sum = b().CreateExtractValue(res, 0, "sub");
       Value* dof = b().CreateExtractValue(res, 1, "did_overflow");
@@ -1054,7 +1054,7 @@ namespace rubinius {
 
       set_block(cont);
 
-      PHINode* phi = b().CreatePHI(ObjType, "subtraction");
+      PHINode* phi = b().CreatePHI(ObjType, 2, "subtraction");
       phi->addIncoming(called_value, send_bb);
       phi->addIncoming(imm_value, tagnow);
 
@@ -1079,7 +1079,7 @@ namespace rubinius {
         cint(which)
       };
 
-      gep = b().CreateGEP(lits, idx2, idx2+3, "literal_pos");
+      gep = b().CreateGEP(lits, idx2, "literal_pos");
       return b().CreateLoad(gep, "literal");
     }
 
@@ -1095,7 +1095,7 @@ namespace rubinius {
     }
 
     void visit_string_dup() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -1111,7 +1111,7 @@ namespace rubinius {
         stack_pop()
       };
 
-      Value* dup = b().CreateCall(func, call_args, call_args+3, "string_dup");
+      Value* dup = b().CreateCall(func, call_args, "string_dup");
       check_for_exception(dup);
       stack_push(dup, type::KnownType::instance(ls_->string_class_id()));
     }
@@ -1134,7 +1134,7 @@ namespace rubinius {
         cint(which)
       };
 
-      return b().CreateGEP(vars, idx2, idx2+3, "local_pos");
+      return b().CreateGEP(vars, idx2, "local_pos");
     }
 
     void visit_push_stack_local(opcode which) {
@@ -1154,7 +1154,7 @@ namespace rubinius {
         cint(which)
       };
 
-      Value* pos = b().CreateGEP(vars_, idx2, idx2+3, "local_pos");
+      Value* pos = b().CreateGEP(vars_, idx2, "local_pos");
 
       if(LocalInfo* bli = current_jbb_->get_local(which)) {
         type::KnownType kt = bli->known_type();
@@ -1210,13 +1210,13 @@ namespace rubinius {
         cint(which)
       };
 
-      Value* pos = b().CreateGEP(vars_, idx2, idx2+3, "local_pos");
+      Value* pos = b().CreateGEP(vars_, idx2, "local_pos");
 
       Value* val;
 
       JITStackArgs* inline_args = incoming_args();
       if(inline_args && current_hint() == cHintLazyBlockArgs) {
-        std::vector<const Type*> types;
+        std::vector<Type*> types;
         types.push_back(ls_->ptr_type("VM"));
         types.push_back(ls_->Int32Ty);
 
@@ -1242,7 +1242,7 @@ namespace rubinius {
           }
         }
 
-        val = b().CreateCall(func, outgoing_args.begin(), outgoing_args.end(), "ary");
+        val = b().CreateCall(func, outgoing_args, "ary");
       } else {
         val = stack_top();
       }
@@ -1425,7 +1425,7 @@ namespace rubinius {
           clong(reinterpret_cast<uintptr_t>(invoker)),
           llvm::PointerType::getUnqual(sig.type()));
 
-      Value* call = b().CreateCall(ptr, call_args, call_args + 4, "invoked_prim");
+      Value* call = b().CreateCall(ptr, call_args, "invoked_prim");
       stack_remove(args);
 
       check_for_exception(call);
@@ -1437,7 +1437,7 @@ namespace rubinius {
 
         set_block(fin);
 
-        PHINode* phi = b().CreatePHI(ObjType, "object_class");
+        PHINode* phi = b().CreatePHI(ObjType, 2, "object_class");
         phi->addIncoming(inline_klass, inline_body);
         phi->addIncoming(call, cur);
 
@@ -1503,7 +1503,7 @@ namespace rubinius {
             b().CreateBr(cont);
 
             set_block(cont);
-            PHINode* phi = b().CreatePHI(ObjType, "send_result");
+            PHINode* phi = b().CreatePHI(ObjType, 2, "send_result");
             phi->addIncoming(inl.result(), inline_block);
             phi->addIncoming(send_res, failure);
 
@@ -1611,7 +1611,7 @@ namespace rubinius {
 
       emit_delayed_create_block();
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
       types.push_back(VMTy);
 
       // we use stack_set_top here because we always have a placeholder
@@ -1648,9 +1648,9 @@ namespace rubinius {
         }
 
         if(push) {
-          stack_push(b().CreateCall(func, call_args.begin(), call_args.end(), "create_block"));
+          stack_push(b().CreateCall(func, call_args, "create_block"));
         } else {
-          stack_set_top(b().CreateCall(func, call_args.begin(), call_args.end(), "create_block"));
+          stack_set_top(b().CreateCall(func, call_args, "create_block"));
         }
         return;
       };
@@ -1669,9 +1669,9 @@ namespace rubinius {
       };
 
       if(push) {
-        stack_push(b().CreateCall(func, call_args, call_args+3, "create_block"));
+        stack_push(b().CreateCall(func, call_args, "create_block"));
       } else {
-        stack_set_top(b().CreateCall(func, call_args, call_args+3, "create_block"));
+        stack_set_top(b().CreateCall(func, call_args, "create_block"));
       }
     }
 
@@ -1739,7 +1739,7 @@ namespace rubinius {
         BasicBlock* failure = new_block("fallback");
         BasicBlock* cont = new_block("continue");
         BasicBlock* cleanup = new_block("send_done");
-        PHINode* send_result = b().CreatePHI(ObjType, "send_result");
+        PHINode* send_result = b().CreatePHI(ObjType, 1, "send_result");
 
         Inliner inl(context(), *this, cache, args, failure);
 
@@ -1857,7 +1857,7 @@ use_send:
     }
 
     void visit_cast_array() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -1873,13 +1873,13 @@ use_send:
         stack_pop()
       };
 
-      Value* val = b().CreateCall(func, call_args, call_args+3, "cast_array");
+      Value* val = b().CreateCall(func, call_args, "cast_array");
       check_for_exception(val);
       stack_push(val);
     }
 
     void visit_cast_multi_value() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -1895,7 +1895,7 @@ use_send:
         stack_pop()
       };
 
-      Value* val = b().CreateCall(func, call_args, call_args+3, "cast_multi_value");
+      Value* val = b().CreateCall(func, call_args, "cast_multi_value");
       check_for_exception(val);
       stack_push(val);
     }
@@ -2008,7 +2008,7 @@ use_send:
     }
 
     void visit_add_scope() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2024,7 +2024,7 @@ use_send:
         stack_pop()
       };
 
-      b().CreateCall(func, call_args, call_args+3);
+      b().CreateCall(func, call_args);
     }
 
     Object* current_literal(opcode which) {
@@ -2073,7 +2073,7 @@ use_send:
         set_block(use_call);
       }
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2096,7 +2096,7 @@ use_send:
         cint(cache)
       };
 
-      CallInst* ret = b().CreateCall(func, call_args, call_args+4,
+      CallInst* ret = b().CreateCall(func, call_args,
                                        "push_const_fast");
 
       ret->setOnlyReadsMemory(true);
@@ -2109,7 +2109,7 @@ use_send:
         b().CreateBr(cont);
         set_block(cont);
 
-        PHINode* phi = b().CreatePHI(ObjType, "constant");
+        PHINode* phi = b().CreatePHI(ObjType, 2, "constant");
         phi->addIncoming(cached_value, cached_block);
         phi->addIncoming(ret, ret_block);
 
@@ -2120,7 +2120,7 @@ use_send:
     }
 
     void visit_push_const(opcode name) {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2138,7 +2138,7 @@ use_send:
         constant(as<Symbol>(literal(name)))
       };
 
-      Value* ret = b().CreateCall(func, call_args, call_args+3, "push_const_fast");
+      Value* ret = b().CreateCall(func, call_args, "push_const_fast");
       check_for_exception(ret);
       stack_push(ret);
     }
@@ -2146,7 +2146,7 @@ use_send:
     void visit_set_const(opcode name) {
       set_has_side_effects();
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2164,13 +2164,13 @@ use_send:
         stack_top()
       };
 
-      b().CreateCall(func, call_args, call_args+4);
+      b().CreateCall(func, call_args);
     }
 
     void visit_set_const_at(opcode name) {
       set_has_side_effects();
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(ObjType);
@@ -2188,7 +2188,7 @@ use_send:
         val
       };
 
-      b().CreateCall(func, call_args, call_args+4);
+      b().CreateCall(func, call_args);
 
       stack_push(val);
     }
@@ -2196,7 +2196,7 @@ use_send:
     void visit_set_literal(opcode which) {
       set_has_side_effects();
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2214,7 +2214,7 @@ use_send:
         stack_top()
       };
 
-      b().CreateCall(func, call_args, call_args+4);
+      b().CreateCall(func, call_args);
     }
 
     void visit_push_variables() {
@@ -2271,7 +2271,7 @@ use_send:
           stack_push(inline_args->at(0));
           break;
         default: {
-          std::vector<const Type*> types;
+          std::vector<Type*> types;
           types.push_back(ls_->ptr_type("VM"));
           types.push_back(ls_->Int32Ty);
 
@@ -2288,12 +2288,12 @@ use_send:
           }
 
           Value* ary =
-            b().CreateCall(func, outgoing_args.begin(), outgoing_args.end(), "ary");
+            b().CreateCall(func, outgoing_args, "ary");
           stack_push(ary);
          }
         }
       } else {
-        std::vector<const Type*> types;
+        std::vector<Type*> types;
 
         types.push_back(VMTy);
         types.push_back(ptr_type("Arguments"));
@@ -2307,7 +2307,7 @@ use_send:
           args_
         };
 
-        stack_push(b().CreateCall(func, call_args, call_args+2, "cfsba"));
+        stack_push(b().CreateCall(func, call_args, "cfsba"));
       }
     }
 
@@ -2315,7 +2315,7 @@ use_send:
       JITStackArgs* inline_args = incoming_args();
       if(inline_args) {
         if(inline_args->size() == 1) {
-          std::vector<const Type*> types;
+          std::vector<Type*> types;
           types.push_back(ls_->ptr_type("VM"));
           types.push_back(CallFrameTy);
           types.push_back(ls_->Int32Ty);
@@ -2334,7 +2334,7 @@ use_send:
           }
 
           Value* ary =
-            b().CreateCall(func, outgoing_args.begin(), outgoing_args.end(), "ary");
+            b().CreateCall(func, outgoing_args, "ary");
           check_for_exception(ary);
           stack_push(ary);
         } else {
@@ -2366,7 +2366,7 @@ use_send:
         // If the arguments came from an unboxed array, we have to put them
         // back in the array before splatting them.
         if(inline_args->from_unboxed_array()) {
-          std::vector<const Type*> types;
+          std::vector<Type*> types;
           types.push_back(ls_->ptr_type("VM"));
           types.push_back(ls_->Int32Ty);
 
@@ -2383,7 +2383,7 @@ use_send:
           }
 
           Value* ary =
-            b().CreateCall(func, outgoing_args.begin(), outgoing_args.end(), "ary");
+            b().CreateCall(func, outgoing_args, "ary");
 
           Value* outargs2[] = {
             vm(),
@@ -2391,10 +2391,10 @@ use_send:
             ary
           };
 
-          Value* wrapped = b().CreateCall(func, outargs2, outargs2 + 3, "splat_ary");
+          Value* wrapped = b().CreateCall(func, outargs2, "splat_ary");
           stack_push(wrapped);
         } else {
-          std::vector<const Type*> types;
+          std::vector<Type*> types;
           types.push_back(ls_->ptr_type("VM"));
           types.push_back(CallFrameTy);
           types.push_back(ls_->Int32Ty);
@@ -2413,7 +2413,7 @@ use_send:
           }
 
           Value* ary =
-            b().CreateCall(func, outgoing_args.begin(), outgoing_args.end(), "ary");
+            b().CreateCall(func, outgoing_args, "ary");
           check_for_exception(ary);
           stack_push(ary);
         }
@@ -2466,7 +2466,7 @@ use_send:
           };
 
           Value* varscope = b().CreateLoad(
-              b().CreateGEP(vars_, idx, idx+2), "scope.parent");
+              b().CreateGEP(vars_, idx), "scope.parent");
           */
 
           Signature sig(ls_, ObjType);
@@ -2501,7 +2501,7 @@ use_send:
           cint(offset::vars_parent)
         };
 
-        Value* gep = b().CreateGEP(vars_, idx, idx+2, "parent_pos");
+        Value* gep = b().CreateGEP(vars_, idx, "parent_pos");
 
         Value* parent = b().CreateLoad(gep, "scope.parent");
         set_scope_local(parent, index);
@@ -2511,7 +2511,7 @@ use_send:
 
       // Handle depth > 1
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2531,7 +2531,7 @@ use_send:
         cint(index)
       };
 
-      Value* val = b().CreateCall(func, call_args, call_args+5, "sld");
+      Value* val = b().CreateCall(func, call_args, "sld");
       check_for_exception(val);
       stack_push(val);
     }
@@ -2578,7 +2578,7 @@ use_send:
           };
 
           Value* varscope = b().CreateLoad(
-              b().CreateGEP(vars_, idx, idx+2), "scope.parent");
+              b().CreateGEP(vars_, idx), "scope.parent");
               */
 
           Signature sig(ls_, ObjType);
@@ -2615,7 +2615,7 @@ use_send:
           cint(offset::vars_parent)
         };
 
-        Value* gep = b().CreateGEP(vars_, idx, idx+2, "parent_pos");
+        Value* gep = b().CreateGEP(vars_, idx, "parent_pos");
 
         Value* parent = b().CreateLoad(gep, "scope.parent");
         push_scope_local(parent, index);
@@ -2624,7 +2624,7 @@ use_send:
       */
 
       // Handle depth > 1
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2642,7 +2642,7 @@ use_send:
         cint(index)
       };
 
-      Value* val = b().CreateCall(func, call_args, call_args+4, "pld");
+      Value* val = b().CreateCall(func, call_args, "pld");
       check_for_exception(val);
       stack_push(val);
     }
@@ -2804,7 +2804,7 @@ use_send:
     }
 
     void visit_check_interrupts() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -2824,7 +2824,7 @@ use_send:
         call_frame_
       };
 
-      Value* ret = b().CreateCall(func, call_args, call_args+2, "ci");
+      Value* ret = b().CreateCall(func, call_args, "ci");
       check_for_exception(ret, false);
     }
 
@@ -2889,7 +2889,7 @@ use_send:
         cint(offset::vars_self)
       };
 
-      Value* pos = b().CreateGEP(vars_, idx, idx+2, "self_pos");
+      Value* pos = b().CreateGEP(vars_, idx, "self_pos");
 
       Value* self = b().CreateLoad(pos, "self");
 
@@ -2903,7 +2903,7 @@ use_send:
         cint(i / sizeof(Object*))
       };
 
-      pos = b().CreateGEP(cst, idx2, idx2+1, "field_pos");
+      pos = b().CreateGEP(cst, idx2, "field_pos");
 
       stack_push(b().CreateLoad(pos, "field"));
     }
@@ -2923,7 +2923,7 @@ use_send:
         code = new_block("is_exception");
         set_block(code);
 
-        std::vector<const Type*> types;
+        std::vector<Type*> types;
         types.push_back(VMTy);
 
         FunctionType* ft = FunctionType::get(ls_->Int1Ty, types, false);
@@ -2931,7 +2931,7 @@ use_send:
             module_->getOrInsertFunction("rbx_raising_exception", ft));
 
         Value* call_args[] = { vm_ };
-        Value* isit = b().CreateCall(func, call_args, call_args+1, "rae");
+        Value* isit = b().CreateCall(func, call_args, "rae");
 
         // Chain to an existing handler.
         BasicBlock* next = 0;
@@ -3057,7 +3057,7 @@ use_send:
     }
 
     void visit_push_current_exception() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
 
@@ -3067,13 +3067,13 @@ use_send:
 
       Value* call_args[] = { vm_ };
 
-      stack_push(b().CreateCall(func, call_args, call_args+1, "ce"));
+      stack_push(b().CreateCall(func, call_args, "ce"));
     }
 
     void visit_clear_exception() {
       set_has_side_effects();
 
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
 
@@ -3083,11 +3083,11 @@ use_send:
 
       Value* call_args[] = { vm_ };
 
-      b().CreateCall(func, call_args, call_args+1);
+      b().CreateCall(func, call_args);
     }
 
     void visit_push_exception_state() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
 
@@ -3097,11 +3097,11 @@ use_send:
 
       Value* call_args[] = { vm_ };
 
-      stack_push(b().CreateCall(func, call_args, call_args+1));
+      stack_push(b().CreateCall(func, call_args));
     }
 
     void visit_restore_exception_state() {
-      std::vector<const Type*> types;
+      std::vector<Type*> types;
 
       types.push_back(VMTy);
       types.push_back(CallFrameTy);
@@ -3113,7 +3113,7 @@ use_send:
 
       Value* call_args[] = { vm_, call_frame_, stack_pop() };
 
-      b().CreateCall(func, call_args, call_args+3);
+      b().CreateCall(func, call_args);
     }
 
     void visit_find_const(opcode which) {
