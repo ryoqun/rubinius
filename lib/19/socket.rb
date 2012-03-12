@@ -346,11 +346,9 @@ class Socket < BasicSocket
               err = _getnameinfo(sockaddr_p, sockaddr.length,
                                  node, Socket::Constants::NI_MAXHOST, nil, 0, 0)
 
-              unless err == 0 then
-                raise SocketError, gai_strerror(err)
+              if err == 0 then
+                name_info[2] = node.read_string
               end
-
-              name_info[2] = node.read_string
             end
 
             err = _getnameinfo(sockaddr_p, sockaddr.length,
