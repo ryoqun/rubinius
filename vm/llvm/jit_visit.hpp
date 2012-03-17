@@ -60,13 +60,13 @@ namespace rubinius {
       , clear_raise_value(ls)
     {
       return_to_here
-        << "VM"
+        << "State"
         << "CallFrame";
 
       return_to_here.resolve("rbx_return_to_here", ls->Int1Ty);
 
       clear_raise_value
-        << "VM";
+        << "State";
 
       clear_raise_value.resolve("rbx_clear_raise_value", ls->object());
     }
@@ -252,7 +252,7 @@ namespace rubinius {
       set_block(is_break);
 
       Signature brk(ls_, ls_->Int1Ty);
-      brk << VMTy;
+      brk << StateTy;
       brk << CallFrameTy;
 
       Value* call_args[] = {
@@ -278,7 +278,7 @@ namespace rubinius {
       set_block(push_break_val);
 
       Signature clear(ls_, ObjType);
-      clear << VMTy;
+      clear << StateTy;
       Value* crv = clear.call("rbx_clear_raise_value", &vm_, 1, "crv", b());
 
       b().CreateBr(cont);
@@ -343,7 +343,7 @@ namespace rubinius {
 
       Signature sig(ls_, "Object");
 
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << ls_->Int32Ty;
       sig << ls_->IntPtrTy;
@@ -427,7 +427,7 @@ namespace rubinius {
       // we're calling something that returns an Object
       Signature sig(ls_, ObjType);
       // given a system state and a 32bit int
-      sig << VMTy;
+      sig << StateTy;
       sig << ls_->Int32Ty;
 
       // the actual values of which are the calling arguments
@@ -578,7 +578,7 @@ namespace rubinius {
     void visit_check_frozen() {
       Signature sig(ls_, "Object");
 
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << "Object";
 
@@ -627,7 +627,7 @@ namespace rubinius {
     }
 
     void add_send_args(Signature& sig) {
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
       sig << ls_->IntPtrTy;
@@ -712,7 +712,7 @@ namespace rubinius {
       sends_done_++;
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
       sig << ls_->IntPtrTy;
@@ -739,7 +739,7 @@ namespace rubinius {
 
     Value* super_send(Symbol* name, int args, bool splat=false) {
       Signature sig(ls_, ObjType);
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
       sig << ls_->IntPtrTy;
@@ -773,7 +773,7 @@ namespace rubinius {
       Value* recv = stack_top();
 
       Signature sig(ls_, "Object");
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << "InlineCache";
       sig << "Object";
@@ -1097,7 +1097,7 @@ namespace rubinius {
     void visit_string_dup() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
 
@@ -1217,7 +1217,7 @@ namespace rubinius {
       JITStackArgs* inline_args = incoming_args();
       if(inline_args && current_hint() == cHintLazyBlockArgs) {
         std::vector<Type*> types;
-        types.push_back(ls_->ptr_type("VM"));
+        types.push_back(ls_->ptr_type("State"));
         types.push_back(ls_->Int32Ty);
 
         FunctionType* ft = FunctionType::get(ls_->ptr_type("Object"), types, true);
@@ -1329,7 +1329,7 @@ namespace rubinius {
 
       Signature sig(ls_, "Object");
 
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << ls_->Int32Ty;
       sig << ls_->IntPtrTy;
@@ -1412,7 +1412,7 @@ namespace rubinius {
       }
 
       Signature sig(ls_, "Object");
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << ObjArrayTy;
       sig << ls_->Int32Ty;
@@ -1573,7 +1573,7 @@ namespace rubinius {
           assert(creator);
 
           Signature sig(ls_, ObjType);
-          sig << VMTy;
+          sig << StateTy;
           sig << CallFrameTy;
           sig << ls_->Int32Ty;
 
@@ -1612,7 +1612,7 @@ namespace rubinius {
       emit_delayed_create_block();
 
       std::vector<Type*> types;
-      types.push_back(VMTy);
+      types.push_back(StateTy);
 
       // we use stack_set_top here because we always have a placeholder
       // on the stack that we're going to just replace.
@@ -1859,7 +1859,7 @@ use_send:
     void visit_cast_array() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
 
@@ -1881,7 +1881,7 @@ use_send:
     void visit_cast_multi_value() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
 
@@ -1931,7 +1931,7 @@ use_send:
       set_has_side_effects();
 
       Signature sig(ls_, ObjType);
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
 
       Value* args[] = {
@@ -1996,7 +1996,7 @@ use_send:
       InlineCache* cache = reinterpret_cast<InlineCache*>(which);
 
       Signature sig(ls_, ObjType);
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
       sig << ObjType;
@@ -2021,7 +2021,7 @@ use_send:
     void visit_add_scope() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
 
@@ -2088,7 +2088,7 @@ use_send:
 
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
       types.push_back(ls_->Int32Ty);
@@ -2135,7 +2135,7 @@ use_send:
     void visit_push_const(opcode name) {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
 
@@ -2161,7 +2161,7 @@ use_send:
 
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
       types.push_back(ObjType);
@@ -2185,7 +2185,7 @@ use_send:
 
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(ObjType);
       types.push_back(ObjType);
 
@@ -2211,7 +2211,7 @@ use_send:
 
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ls_->Int32Ty);
       types.push_back(ObjType);
@@ -2234,7 +2234,7 @@ use_send:
       set_has_side_effects();
 
       Signature sig(ls_, ObjType);
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
 
       Value* args[] = {
@@ -2285,7 +2285,7 @@ use_send:
           break;
         default: {
           std::vector<Type*> types;
-          types.push_back(ls_->ptr_type("VM"));
+          types.push_back(ls_->ptr_type("State"));
           types.push_back(ls_->Int32Ty);
 
           FunctionType* ft = FunctionType::get(ls_->ptr_type("Object"), types, true);
@@ -2308,7 +2308,7 @@ use_send:
       } else {
         std::vector<Type*> types;
 
-        types.push_back(VMTy);
+        types.push_back(StateTy);
         types.push_back(ptr_type("Arguments"));
 
         FunctionType* ft = FunctionType::get(ObjType, types, false);
@@ -2329,7 +2329,7 @@ use_send:
       if(inline_args) {
         if(inline_args->size() == 1) {
           std::vector<Type*> types;
-          types.push_back(ls_->ptr_type("VM"));
+          types.push_back(ls_->ptr_type("State"));
           types.push_back(CallFrameTy);
           types.push_back(ls_->Int32Ty);
 
@@ -2356,7 +2356,7 @@ use_send:
         }
       } else {
         Signature sig(ls_, ObjType);
-        sig << VMTy;
+        sig << StateTy;
         sig << CallFrameTy;
         sig << ptr_type("Arguments");
 
@@ -2380,7 +2380,7 @@ use_send:
         // back in the array before splatting them.
         if(inline_args->from_unboxed_array()) {
           std::vector<Type*> types;
-          types.push_back(ls_->ptr_type("VM"));
+          types.push_back(ls_->ptr_type("State"));
           types.push_back(ls_->Int32Ty);
 
           FunctionType* ft = FunctionType::get(ls_->ptr_type("Object"), types, true);
@@ -2408,7 +2408,7 @@ use_send:
           stack_push(wrapped);
         } else {
           std::vector<Type*> types;
-          types.push_back(ls_->ptr_type("VM"));
+          types.push_back(ls_->ptr_type("State"));
           types.push_back(CallFrameTy);
           types.push_back(ls_->Int32Ty);
 
@@ -2432,7 +2432,7 @@ use_send:
         }
       } else {
         Signature sig(ls_, ObjType);
-        sig << VMTy;
+        sig << StateTy;
         sig << CallFrameTy;
         sig << ptr_type("Arguments");
 
@@ -2483,7 +2483,7 @@ use_send:
           */
 
           Signature sig(ls_, ObjType);
-          sig << VMTy;
+          sig << StateTy;
           sig << "CallFrame";
           sig << ObjType;
           sig << ls_->Int32Ty;
@@ -2526,7 +2526,7 @@ use_send:
 
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
       types.push_back(ls_->Int32Ty);
@@ -2595,7 +2595,7 @@ use_send:
               */
 
           Signature sig(ls_, ObjType);
-          sig << VMTy;
+          sig << StateTy;
           sig << "CallFrame";
           sig << ls_->Int32Ty;
           sig << ls_->Int32Ty;
@@ -2639,7 +2639,7 @@ use_send:
       // Handle depth > 1
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ls_->Int32Ty);
       types.push_back(ls_->Int32Ty);
@@ -2759,7 +2759,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << "Object";
       sig << ls_->Int32Ty;
@@ -2790,7 +2790,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << "Object";
       sig << ls_->Int32Ty;
@@ -2819,7 +2819,7 @@ use_send:
     void visit_check_interrupts() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
 
       FunctionType* ft = FunctionType::get(ObjType, types, false);
@@ -2843,7 +2843,7 @@ use_send:
 
     void visit_check_serial(opcode index, opcode serial) {
       Signature sig(ls_, "Object");
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << "InlineCache";
       sig << ls_->Int32Ty;
@@ -2868,7 +2868,7 @@ use_send:
 
     void visit_check_serial_private(opcode index, opcode serial) {
       Signature sig(ls_, "Object");
-      sig << "VM";
+      sig << "State";
       sig << "CallFrame";
       sig << "InlineCache";
       sig << ls_->Int32Ty;
@@ -2937,7 +2937,7 @@ use_send:
         set_block(code);
 
         std::vector<Type*> types;
-        types.push_back(VMTy);
+        types.push_back(StateTy);
 
         FunctionType* ft = FunctionType::get(ls_->Int1Ty, types, false);
         Function* func = cast<Function>(
@@ -3005,7 +3005,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
 
@@ -3022,7 +3022,7 @@ use_send:
     void visit_ensure_return() {
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
 
@@ -3055,7 +3055,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjType;
 
@@ -3072,7 +3072,7 @@ use_send:
     void visit_push_current_exception() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
 
       FunctionType* ft = FunctionType::get(ObjType, types, false);
       Function* func = cast<Function>(
@@ -3088,7 +3088,7 @@ use_send:
 
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
 
       FunctionType* ft = FunctionType::get(ObjType, types, false);
       Function* func = cast<Function>(
@@ -3102,7 +3102,7 @@ use_send:
     void visit_push_exception_state() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
 
       FunctionType* ft = FunctionType::get(ObjType, types, false);
       Function* func = cast<Function>(
@@ -3116,7 +3116,7 @@ use_send:
     void visit_restore_exception_state() {
       std::vector<Type*> types;
 
-      types.push_back(VMTy);
+      types.push_back(StateTy);
       types.push_back(CallFrameTy);
       types.push_back(ObjType);
 
@@ -3132,7 +3132,7 @@ use_send:
     void visit_find_const(opcode which) {
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ls_->Int32Ty;
       sig << ObjType;
@@ -3154,7 +3154,7 @@ use_send:
     void visit_instance_of() {
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ObjType;
       sig << ObjType;
 
@@ -3173,7 +3173,7 @@ use_send:
     void visit_kind_of() {
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ObjType;
       sig << ObjType;
 
@@ -3243,7 +3243,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ls_->Int32Ty;
       sig << ObjArrayTy;
 
@@ -3265,7 +3265,7 @@ use_send:
 
         Signature sig(ls_, ObjType);
 
-        sig << VMTy;
+        sig << StateTy;
         sig << CallFrameTy;
         sig << ls_->Int32Ty;
         sig << ObjArrayTy;
@@ -3299,7 +3299,7 @@ use_send:
       } else {
         Signature sig(ls_, ObjType);
 
-        sig << VMTy;
+        sig << StateTy;
         sig << "Arguments";
         sig << ls_->Int32Ty;
 
@@ -3317,7 +3317,7 @@ use_send:
     void visit_passed_blockarg(opcode count) {
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << "Arguments";
       sig << ls_->Int32Ty;
 
@@ -3343,7 +3343,7 @@ use_send:
       // we're calling something that returns an Object
       Signature sig(ls_, ObjType);
       // given a system state and a 32bit int
-      sig << VMTy;
+      sig << StateTy;
       sig << ls_->Int32Ty;
 
       // the actual values of which are the calling arguments
@@ -3427,7 +3427,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ObjType;
       sig << ObjType;
 
@@ -3492,7 +3492,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << "CallFrame";
       sig << ObjType;
       sig << ObjType;
@@ -3515,7 +3515,7 @@ use_send:
     void visit_push_my_field(opcode which) {
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ObjType;
       sig << ls_->Int32Ty;
 
@@ -3537,7 +3537,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ObjType;
       sig << ls_->Int32Ty;
       sig << ObjType;
@@ -3568,7 +3568,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ObjArrayTy;
 
@@ -3587,7 +3587,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << ObjType;
       sig << ObjType;
 
@@ -3609,7 +3609,7 @@ use_send:
 
       Signature sig(ls_, ObjType);
 
-      sig << VMTy;
+      sig << StateTy;
       sig << CallFrameTy;
       sig << ls_->Int32Ty;
       sig << ObjArrayTy;
