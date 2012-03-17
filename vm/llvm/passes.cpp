@@ -32,7 +32,7 @@ namespace {
 
     virtual bool doInitialization(Module& mod) {
       float_type_ = PointerType::getUnqual(
-          mod.getTypeByName("struct.rubinius::Float"));
+          mod.getTypeByName("class.rubinius::Float"));
 
       return false;
     }
@@ -320,16 +320,16 @@ namespace {
 
     virtual bool doInitialization(Module& mod) {
       class_type_ = PointerType::getUnqual(
-          mod.getTypeByName("struct.rubinius::Class"));
+          mod.getTypeByName("class.rubinius::Class"));
 
       object_type_ = PointerType::getUnqual(
-          mod.getTypeByName("struct.rubinius::Object"));
+          mod.getTypeByName("class.rubinius::Object"));
 
       args_type_ = PointerType::getUnqual(
-          mod.getTypeByName("struct.rubinius::Arguments"));
+          mod.getTypeByName("class.rubinius::Arguments"));
 
       float_type_ = PointerType::getUnqual(
-          mod.getTypeByName("struct.rubinius::Float"));
+          mod.getTypeByName("class.rubinius::Float"));
 
       return false;
     }

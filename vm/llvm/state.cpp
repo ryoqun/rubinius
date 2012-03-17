@@ -126,7 +126,7 @@ namespace rubinius {
   }
 
   llvm::Type* LLVMState::ptr_type(std::string name) {
-    std::string full_name = std::string("struct.rubinius::") + name;
+    std::string full_name = std::string("class.rubinius::") + name;
     llvm::StructType* type = module_->getTypeByName(full_name.c_str());
     if(!type) {
       rubinius::bug((std::string("failed to get a type: ") + full_name).c_str());
@@ -136,7 +136,7 @@ namespace rubinius {
   }
 
   llvm::Type* LLVMState::type(std::string name) {
-    std::string full_name = std::string("struct.rubinius::") + name;
+    std::string full_name = std::string("class.rubinius::") + name;
     llvm::StructType* type = module_->getTypeByName(full_name.c_str());
     if(!type) {
       rubinius::bug((std::string("failed to get a type: ") + full_name).c_str());

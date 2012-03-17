@@ -25,9 +25,9 @@ namespace jit {
     , runtime_data_(0)
   {
     llvm::Module* mod = ls->module();
-    cf_type = mod->getTypeByName("struct.rubinius::CallFrame");
-    vars_type = mod->getTypeByName("struct.rubinius::VariableScope");
-    stack_vars_type = mod->getTypeByName("struct.rubinius::StackVariables");
+    cf_type = mod->getTypeByName("class.rubinius::CallFrame");
+    vars_type = mod->getTypeByName("class.rubinius::VariableScope");
+    stack_vars_type = mod->getTypeByName("class.rubinius::StackVariables");
     obj_type = ls->ptr_type("Object");
     obj_ary_type = llvm::PointerType::getUnqual(obj_type);
   }

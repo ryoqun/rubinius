@@ -257,13 +257,13 @@ namespace rubinius {
     // Type resolution and manipulation
     //
     llvm::Type* ptr_type(std::string name) {
-      std::string full_name = std::string("struct.rubinius::") + name;
+      std::string full_name = std::string("class.rubinius::") + name;
       return llvm::PointerType::getUnqual(
           module_->getTypeByName(full_name.c_str()));
     }
 
     llvm::Type* type(std::string name) {
-      std::string full_name = std::string("struct.rubinius::") + name;
+      std::string full_name = std::string("class.rubinius::") + name;
       return module_->getTypeByName(full_name.c_str());
     }
 
