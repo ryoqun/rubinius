@@ -1,40 +1,34 @@
 # -*- encoding: us-ascii -*-
 
 module Rubinius
-  class Generator
-    include GeneratorMethods
+  class Slot
+    attr_accessor :instruction
+    attr_reader :labels
 
-    ##
-    # Jump label for the branch instructions. The use scenarios for labels:
-    #   1. Used and then set
-    #        g.gif label
-    #        ...
-    #        label.set!
-    #   2. Set and then used
-    #        label.set!
-    #        ...
-    #        g.git label
-    #   3. 1, 2
-    #
-    # Many labels are only used once. This class employs two small
-    # optimizations. First, for the case where a label is used once then set,
-    # the label merely records the point it was used and updates that location
-    # to the concrete IP when the label is set. In the case where the label is
-    # used multiple times, it records each location and updates them to an IP
-    # when the label is set. In both cases, once the label is set, each use
-    # after that updates the instruction stream with a concrete IP at the
-    # point the label is used. This avoids the need to ever record all the
-    # labels or search through the stream later to change symbolic labels into
-    # concrete IP's.
+    def initialize
+      @instruction = nil
+      @labels = []
+    end
 
+    def materialize
+      if @instruction
+        @instruction[:ip]
+      else
+        100000
+      end
+    end
+  end
+
+  class InstructionList
     class Label
-      attr_accessor :position
-      attr_reader :used, :basic_block
+      attr_accessor :position, :basic_block
+      attr_reader :used
       alias_method :used?, :used
 
       def initialize(generator)
         @generator   = generator
         @basic_block = generator.new_basic_block
+
         @position    = nil
         @used        = false
         @location    = nil
@@ -43,27 +37,27 @@ module Rubinius
 
       def set!
         @position = @generator.ip
+
         if @locations
-          @locations.each { |x| @generator.stream[x] = @position }
+          @locations.each do |location|
+            location[:position] = @position
+          end
         elsif @location
-          @generator.stream[@location] = @position
+          @location[:position] = @position
         end
 
-        @generator.current_block.left = @basic_block
-        @generator.current_block.close
-        @generator.current_block = @basic_block
-        @basic_block.open
+        @generator.set_label(self)
       end
 
-      def used_at(ip)
+      def used_at(instruction)
         if @position
-          @generator.stream[ip] = @position
+          instruction[:position] = @position
         elsif !@location
-          @location = ip
+          @location = instruction
         elsif @locations
-          @locations << ip
+          @locations << instruction
         else
-          @locations = [@location, ip]
+          @locations = [@location, instruction]
         end
         @used = true
       end
@@ -101,81 +95,24 @@ module Rubinius
         @ip = @generator.ip
       end
 
-      def close(record_exit=false)
+      def close(instruction=false)
         @closed = true
 
-        if record_exit
+        if instruction
           @exit_size = @stack
-          @exit_ip = @generator.ip - 1
+          @exit_ip = instruction[:ip]
         end
       end
 
       def location(ip=nil)
         ip ||= @ip
-        line = @generator.ip_to_line(ip)
-        "#{@generator.name}: line: #{line}, IP: #{ip}"
+        line = nil #@generator.ip_to_line(ip)
+        "#name: line: #{line}, IP: #{ip}"
       end
 
       SEPARATOR_SIZE = 40
 
       def invalid(message)
-        if $DEBUG
-          puts message
-          name = @generator.name.inspect
-          size = (SEPARATOR_SIZE - name.size - 2) / 2
-          size = 1 if size <= 0
-          puts "\n#{"=" * size} #{name} #{"=" * (size + name.size % 2)}"
-
-          literals = @generator.literals
-          names = @generator.local_names
-          stream = @generator.stream
-          i = 0
-          n = stream.size
-          stack = 0
-
-          while i < n
-            insn = InstructionSet[stream[i]]
-            printf "[%3d] %04d  %-28s" % [stack, i, insn.opcode.inspect]
-
-            args = stream[i+1, insn.size-1]
-            if insn.size > 1
-              insn.args.each_with_index do |kind, index|
-                arg = args[index]
-                case kind
-                when :literal
-                  printf "%s " % literals[arg].inspect
-                when :local
-                  printf "%s " % (names ? names[arg] : arg)
-                else
-                  printf "%d " % arg
-                end
-              end
-            end
-
-            puts
-
-            if insn.variable_stack?
-              use = insn.stack_consumed
-              if use.kind_of? Array
-                use = args[use[1] - 1] + use[0]
-              end
-
-              pro = insn.stack_produced
-              if pro.kind_of? Array
-                pro = (args[pro[1] - 1] * pro[2]) + pro[0]
-              end
-
-              stack += pro - use
-            else
-              stack += insn.stack_difference
-            end
-
-            i += insn.size
-          end
-
-          puts "-" * SEPARATOR_SIZE
-        end
-
         raise CompileError, message
       end
 
@@ -241,126 +178,19 @@ module Rubinius
     end
 
     def initialize
-      @stream = []
-      @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
-      @literals = []
-      @ip = 0
+      @list = [Slot.new]
+
+      initialize_modifiers
+      initialize_stack
+    end
+
+    attr_accessor :break, :redo, :next, :retry
+    def initialize_modifiers
       @modstack = []
       @break = nil
       @redo = nil
       @next = nil
       @retry = nil
-      @last_line = nil
-      @file = nil
-      @lines = []
-      @primitive = nil
-      @instruction = nil
-      @for_block = nil
-
-      @required_args = 0
-      @post_args = 0
-      @total_args = 0
-
-      @detected_args = 0
-      @detected_locals = 0
-
-      @splat_index = nil
-      @local_names = nil
-      @local_count = 0
-
-      @state = []
-      @generators = []
-
-      @stack_locals = 0
-
-      @enter_block = new_basic_block
-      @current_block = @enter_block
-      @max_stack = 0
-    end
-
-    attr_reader   :ip, :stream, :iseq, :literals
-    attr_accessor :break, :redo, :next, :retry, :file, :name,
-                  :required_args, :post_args, :total_args, :splat_index,
-                  :local_count, :local_names, :primitive, :for_block,
-                  :current_block, :detected_args, :detected_locals
-
-    def execute(node)
-      node.bytecode self
-    end
-
-    alias_method :run, :execute
-
-    # Formalizers
-
-    def encode
-      @iseq = InstructionSequence.new @stream.to_tuple
-
-      begin
-        # Validate the stack and calculate the max depth
-        @enter_block.validate_stack
-      rescue Exception => e
-        if $DEBUG
-          puts "Error computing stack for #{@name}: #{e.message} (#{e.class})"
-        end
-        raise e
-      end
-
-      @generators.each { |x| @literals[x].encode }
-    end
-
-    def package(klass)
-      @generators.each { |x| @literals[x] = @literals[x].package klass }
-
-      cm = klass.new
-      cm.iseq           = @iseq
-      cm.literals       = @literals.to_tuple
-      cm.lines          = @lines.to_tuple
-
-      cm.required_args  = @required_args
-      cm.post_args      = @post_args
-      cm.total_args     = @total_args
-      cm.splat          = @splat_index
-      cm.local_count    = @local_count
-      cm.local_names    = @local_names.to_tuple if @local_names
-
-      cm.stack_size     = max_stack_size
-      cm.file           = @file
-      cm.name           = @name
-      cm.primitive      = @primitive
-
-      if @for_block
-        cm.add_metadata :for_block, true
-      end
-
-      cm
-    end
-
-    def use_detected
-      if @required_args < @detected_args
-        @required_args = @detected_args
-      end
-
-      if @total_args < @detected_args
-        @total_args = @detected_args
-      end
-
-      if @local_count < @detected_locals
-        @local_count = @detected_locals
-      end
-    end
-
-    # Commands (these don't generate data in the stream)
-
-    def state
-      @state.last
-    end
-
-    def push_state(scope)
-      @state << AST::State.new(scope)
-    end
-
-    def pop_state
-      @state.pop
     end
 
     def push_modifiers
@@ -371,81 +201,19 @@ module Rubinius
       @break, @redo, @next, @retry = @modstack.pop
     end
 
-    def definition_line(line)
-      unless @stream.empty?
-        raise Exception, "only use #definition_line first"
-      end
-
-      @lines << -1
-      @lines << line
-
-      @last_line = line
+    def empty?
+      @list.collect(&:instruction).compact.empty?
     end
 
-    def set_line(line)
-      raise Exception, "source code line cannot be nil" unless line
-
-      if !@last_line
-        @lines << @ip
-        @lines << line
-        @last_line = line
-      elsif line != @last_line
-        if @lines[-2] == @ip
-          @lines[-1] = line
-        else
-          @lines << @ip
-          @lines << line
-        end
-
-        @last_line = line
-      end
+    def initialize_stack
+      @max_stack = 0
+      @stack_locals = 0
     end
 
-    def line
-      @last_line
-    end
-
-    def ip_to_line(ip)
-      total = @lines.size - 2
-      i = 0
-
-      while i < total
-        if ip >= @lines[i] and ip <= @lines[i+2]
-          return @lines[i+1]
-        end
-
-        i += 2
-      end
-    end
-
-    def close
-      if @lines.empty?
-        msg = "closing a method definition with no line info: #{file}:#{line}"
-        raise Exception, msg
-      end
-
-      @lines << @ip
-    end
-
-    def send_primitive(name)
-      @primitive = name
-    end
-
-    def new_label
-      Label.new(self)
-    end
-
-    # Aliases
-
-    alias_method :dup,  :dup_top
-    alias_method :git,  :goto_if_true
-    alias_method :gif,  :goto_if_false
-    alias_method :swap, :swap_stack
-
-    # Helpers
-
-    def new_basic_block
-      BasicBlock.new self
+    def new_stack_local
+      idx = @stack_locals
+      @stack_locals += 1
+      idx
     end
 
     def accumulate_stack(size)
@@ -453,15 +221,157 @@ module Rubinius
     end
 
     def max_stack_size
-      size = @max_stack + @local_count + @stack_locals
-      size += 1 if @for_block
-      size
+      @max_stack + @stack_locals
     end
 
-    def new_stack_local
-      idx = @stack_locals
-      @stack_locals += 1
-      return idx
+    def create_instruction
+      instruction = {}
+      @list.last.instruction = instruction
+      @list << Slot.new
+
+      instruction
+    end
+
+    def ip
+      @list.last
+    end
+
+    def set_label(label)
+      @list.last.labels << label
+    end
+
+    def optimize
+      #puts @list.collect {|instruction| instruction[:name] }
+      #puts
+    end
+
+    def materialize
+      calculate_ip
+      materialize_position
+    end
+
+    def calculate_ip
+      ip = 0
+      @list.collect(&:instruction).compact.each do |instruction|
+        instruction[:ip] = ip
+        ip += instruction[:stream].size
+      end
+    end
+
+    def materialize_position
+      @current_block = @enter_block = new_basic_block
+
+      @list.each do |slot|
+        instruction = slot.instruction
+        next if instruction.nil?
+
+        slot.labels.each do |label|
+          @current_block.left = label.basic_block
+          @current_block.close
+          @current_block = label.basic_block
+          @current_block.open
+        end
+
+        if instruction[:name] != :cast_array
+          @current_block.add_stack(*instruction[:stack])
+        end
+
+        case instruction[:name]
+        when :goto
+          position = instruction[:position]
+          label = instruction[:stream].last
+
+          @current_block.left = label.basic_block
+          @current_block.close
+          @current_block = new_basic_block
+
+          instruction[:stream][1] = position.materialize
+        when :goto_if_false
+          position = instruction[:position]
+          label = instruction[:stream].last
+
+          @current_block.left = label.basic_block
+          @current_block.close
+          block = new_basic_block
+          @current_block.right = block
+          @current_block = block
+
+          instruction[:stream][1] = position.materialize
+        when :goto_if_true
+          position = instruction[:position]
+          label = instruction[:stream].last
+
+          @current_block.left = label.basic_block
+          @current_block.close
+          block = new_basic_block
+          @current_block.right = block
+          @current_block = block
+
+          instruction[:stream][1] = position.materialize
+        when :ret, :raise_return, :ensure_return
+          @current_block.close instruction
+          @current_block = new_basic_block
+        when :raise_exc, :reraise, :break
+          @current_block.close
+          @current_block = new_basic_block
+        when :setup_unwind
+          position = instruction[:position]
+          label = instruction[:stream][1]
+
+          @current_block.left = label.basic_block
+          @current_block.close
+          block = new_basic_block
+          @current_block.right = block
+          @current_block = block
+
+          instruction[:stream][1] = position.materialize
+        end
+      end
+    end
+
+    def validate_stack
+      pp(@list.collect(&:instruction).compact.collect do |instruction| {:ip => instruction[:ip], :name => instruction[:name], :stream => instruction[:stream]} end) if ENV["DEBUG"]
+      begin
+        # Validate the stack and calculate the max depth
+        @enter_block.validate_stack
+      rescue Exception => e
+        if $DEBUG
+          puts "Error computing stack for #{@name}: #{e.message} (#{e.class})"
+        end
+        raise e
+      end
+    end
+
+    def iseq
+      InstructionSequence.new(instruction_stream.to_tuple)
+    end
+
+    def new_basic_block
+      BasicBlock.new(self)
+    end
+
+    def new_label
+      Label.new(self)
+    end
+
+    private
+    def instruction_stream
+      stream = []
+      @list.collect(&:instruction).compact.collect do |instruction|
+        stream += instruction[:stream]
+      end
+      stream
+    end
+  end
+
+  module GeneratorMethods
+    alias_method :dup,  :dup_top
+    alias_method :git,  :goto_if_true
+    alias_method :gif,  :goto_if_false
+    alias_method :swap, :swap_stack
+
+    def create_instruction
+      @instruction = @instruction_list.create_instruction #
     end
 
     def push(what)
@@ -481,85 +391,14 @@ module Rubinius
       end
     end
 
-    def push_generator(generator)
-      index = push_literal generator
-      @generators << index
-      index
-    end
-
-    # Find the index for the specified literal, or create a new slot if the
-    # literal has not been encountered previously.
-    def find_literal(literal)
-      @literals_map[literal]
-    end
-
-    # Add literal exists to allow RegexLiteral's to create a new regex literal
-    # object at run-time. All other literals should be added via find_literal,
-    # which re-use an existing matching literal if one exists.
-    def add_literal(literal)
-      index = @literals.size
-      @literals << literal
-      return index
-    end
-
-    # Pushes the specified literal value into the literal's tuple
-    def push_literal(literal)
-      index = find_literal literal
-      emit_push_literal index
-      return index
-    end
-
-    # Puts +what+ is the literals tuple without trying to see if
-    # something that is like +what+ is already there.
-    def push_unique_literal(literal)
-      index = add_literal literal
-      emit_push_literal index
-      return index
-    end
-
-    # Pushes the literal value on the stack into the specified position in the
-    # literals tuple. Most timees, push_literal should be used instead; this
-    # method exists to support RegexLiteral, where the compiled literal value
-    # (a Regex object) does not exist until runtime.
-    def push_literal_at(index)
-      emit_push_literal index
-      return index
-    end
-
-    # The push_const instruction itself is unused right now. The instruction
-    # parser does not emit a GeneratorMethods#push_const. This method/opcode
-    # was used in the compiler before the push_const_fast instruction. Rather
-    # than changing the compiler code, this helper was used.
     def push_const(name)
       push_const_fast find_literal(name), add_literal(nil)
     end
 
-    def push_local(idx)
-      if @detected_locals <= idx
-        @detected_locals = idx + 1
-      end
-
-      super
-    end
-
-    def set_local(idx)
-      if @detected_locals <= idx
-        @detected_locals = idx + 1
-      end
-
-      super
-    end
-
-    # Minor meta operations that can be used to detect
-    # the number of method arguments needed
-    def push_arg(idx)
-      push_local(idx)
-      @detected_args = @detected_locals
-    end
-
-    def set_arg(idx)
-      set_local(idx)
-      @detected_args = @detected_locals
+    alias_method :__meta_to_s, :meta_to_s
+    def meta_to_s(name=:to_s, priv=true)
+      allow_private if priv
+      __meta_to_s find_literal(name)
     end
 
     def last_match(mode, which)
@@ -567,64 +406,326 @@ module Rubinius
       push_int Integer(which)
       invoke_primitive :regexp_last_match_result, 2
     end
+  end
 
-    def send(meth, count, priv=false)
-      allow_private if priv
-
-      unless count.kind_of? Fixnum
-        raise CompileError, "count must be a number"
+  class Generator
+    module Literals
+      def initialize_literals
+        @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
+        @literals = []
       end
 
-      idx = find_literal(meth)
-
-      # Don't use send_method, it's only for when the syntax
-      # specified no arguments and no parens.
-      send_stack idx, count
-    end
-
-    # Do a private send to self with no arguments specified, ie, a vcall
-    # style send.
-    def send_vcall(meth)
-      idx = find_literal(meth)
-      send_method idx
-    end
-
-    def send_with_block(meth, count, priv=false)
-      allow_private if priv
-
-      unless count.kind_of? Fixnum
-        raise CompileError, "count must be a number"
+      def find_literal(literal)
+        @literals_map[literal]
       end
 
-      idx = find_literal(meth)
+      def add_literal(literal)
+        index = @literals.size
+        @literals << literal
+        return index
+      end
 
-      send_stack_with_block idx, count
-    end
+      def push_literal(literal)
+        index = find_literal literal
+        emit_push_literal index
+        return index
+      end
 
-    def send_with_splat(meth, args, priv=false, concat=false)
-      val = 0
-      val |= InstructionSet::CALL_FLAG_CONCAT if concat
-      set_call_flags val unless val == 0
+      def push_unique_literal(literal)
+        index = add_literal literal
+        emit_push_literal index
+        return index
+      end
 
-      allow_private if priv
-
-      idx = find_literal(meth)
-      send_stack_with_splat idx, args
-    end
-
-    def send_super(meth, args, splat=false)
-      idx = find_literal(meth)
-
-      if splat
-        send_super_stack_with_splat idx, args
-      else
-        send_super_stack_with_block idx, args
+      def push_literal_at(index)
+        emit_push_literal index
+        return index
       end
     end
 
-    def meta_to_s(name=:to_s, priv=true)
-      allow_private if priv
-      super find_literal(name)
+    module SendMethods
+      def send(meth, count, priv=false)
+        allow_private if priv
+
+        unless count.kind_of? Fixnum
+          raise CompileError, "count must be a number"
+        end
+
+        idx = find_literal(meth)
+
+        # Don't use send_method, it's only for when the syntax
+        # specified no arguments and no parens.
+        send_stack idx, count
+      end
+
+      # Do a private send to self with no arguments specified, ie, a vcall
+      # style send.
+      def send_vcall(meth)
+        idx = find_literal(meth)
+        send_method idx
+      end
+
+      def send_with_block(meth, count, priv=false)
+        allow_private if priv
+
+        unless count.kind_of? Fixnum
+          raise CompileError, "count must be a number"
+        end
+
+        idx = find_literal(meth)
+
+        send_stack_with_block idx, count
+      end
+
+      def send_with_splat(meth, args, priv=false, concat=false)
+        val = 0
+        val |= InstructionSet::CALL_FLAG_CONCAT if concat
+        set_call_flags val unless val == 0
+
+        allow_private if priv
+
+        idx = find_literal(meth)
+        send_stack_with_splat idx, args
+      end
+
+      def send_super(meth, args, splat=false)
+        idx = find_literal(meth)
+
+        if splat
+          send_super_stack_with_splat idx, args
+        else
+          send_super_stack_with_block idx, args
+        end
+      end
+    end
+
+    module Modifiers
+      def break
+        @instruction_list.break
+      end
+
+      def break=(label)
+        @instruction_list.break = label
+      end
+
+      def redo
+        @instruction_list.redo
+      end
+
+      def redo=(label)
+        @instruction_list.redo = label
+      end
+
+      def next
+        @instruction_list.next
+      end
+
+      def next=(label)
+        @instruction_list.next = label
+      end
+
+      def retry
+        @instruction_list.retry
+      end
+
+      def retry=(label)
+        @instruction_list.retry = label
+      end
+
+      def push_modifiers
+        @instruction_list.push_modifiers
+      end
+
+      def pop_modifiers
+        @instruction_list.pop_modifiers
+      end
+    end
+
+    module States
+      def initialize_states
+        @states = []
+      end
+
+      def state
+        @states.last
+      end
+
+      def push_state(scope)
+        @states << AST::State.new(scope)
+      end
+
+      def pop_state
+        @states.pop
+      end
+    end
+
+    module Lines
+      def initialize_lines
+        @last_line = nil
+        @lines = []
+      end
+
+      def close
+        if @lines.empty?
+          msg = "closing a method definition with no line info: #{file}:#{line}"
+          raise Exception, msg
+        end
+
+        @lines << ip
+      end
+
+      def set_line(line)
+        raise Exception, "source code line cannot be nil" unless line
+
+        if !@last_line
+          @lines << ip
+          @lines << line
+          @last_line = line
+        elsif line != @last_line
+          if @lines[-2] == ip
+            @lines[-1] = line
+          else
+            @lines << ip
+            @lines << line
+          end
+
+          @last_line = line
+        end
+      end
+
+      def definition_line(line)
+        unless @instruction_list.empty?
+          raise Exception, "only use #definition_line first"
+        end
+
+        @lines << -1
+        @lines << line
+
+        @last_line = line
+      end
+    end
+
+    module InstructionListDelegator
+      def new_label
+        @instruction_list.new_label
+      end
+
+      def new_stack_local
+        @instruction_list.new_stack_local
+      end
+
+      def ip
+        @instruction_list.ip
+      end
+    end
+
+    include GeneratorMethods
+    include Literals
+    include SendMethods
+    include Modifiers
+    include States
+    include Lines
+    include InstructionListDelegator
+    attr_accessor :name, :file
+
+    attr_accessor :local_count, :local_names
+    attr_accessor :required_args, :post_args, :total_args, :splat_index
+    attr_accessor :for_block
+
+    def initialize
+      @generators = []
+      @instruction_list = InstructionList.new
+
+      @required_args = 0
+      @post_args = 0
+      @total_args = 0
+
+      @for_block = nil
+      @primitive = nil
+
+      initialize_literals
+      initialize_states
+      initialize_lines
+    end
+
+    def execute(node)
+      node.bytecode self
+    end
+    alias_method :run, :execute
+
+    def max_stack_size
+      size = @instruction_list.max_stack_size + local_count
+      size += 1 if @for_block
+      size
+    end
+
+    def push_generator(generator)
+      index = push_literal generator
+      @generators << index
+      index
+    end
+
+    def send_primitive(name)
+      @primitive = name
+    end
+
+    def encode
+      @instruction_list.optimize
+      @instruction_list.materialize
+      @instruction_list.validate_stack
+
+      @iseq = @instruction_list.iseq
+
+      @generators.each do |index|
+        @literals[index].encode
+      end
+    end
+
+    def package(klass)
+      @generators.each do |index|
+        @literals[index] = @literals[index].package klass
+      end
+
+      lines = @lines.collect do |line|
+        if line.respond_to?(:materialize)
+          line_ = nil
+          catch(:last) do
+            line_ = line.materialize
+          end
+          line_ || 1000
+        else
+          line
+        end
+      end
+
+      #raise @iseq.inspect
+
+      cm = klass.new
+      cm.iseq           = @iseq
+      cm.literals       = @literals.to_tuple
+      cm.lines          = lines.to_tuple
+
+      cm.required_args  = required_args
+      cm.post_args      = post_args
+      cm.total_args     = total_args
+      cm.splat          = splat_index
+
+      p [name, max_stack_size]
+
+      cm.local_count    = local_count
+      cm.local_names    = local_names.to_tuple if local_names
+
+      cm.stack_size     = max_stack_size
+
+      cm.file           = file
+      cm.name           = name
+
+      cm.primitive      = @primitive
+      if @for_block
+        cm.add_metadata :for_block, true
+      end
+
+      cm
     end
   end
 end

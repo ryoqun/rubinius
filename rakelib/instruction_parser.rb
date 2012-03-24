@@ -82,19 +82,20 @@ class InstructionParser
       when 2
         @file.puts "      def #{method_name}(arg1, arg2)"
       end
+        @file.puts "        instruction = create_instruction"
+        @file.puts "        instruction[:name] = #{method_name.to_sym.inspect}"
     end
 
     # Append to the opcode stream.
     def method_append_stream
       case @opcode.arguments.size
       when 0
-        @file.puts "        @stream << #{@opcode.bytecode}"
+        @file.puts "        instruction[:stream] = [#{@opcode.bytecode}]"
       when 1
-        @file.puts "        @stream << #{@opcode.bytecode} << arg1"
+        @file.puts "        instruction[:stream] = [#{@opcode.bytecode}, arg1]"
       when 2
-        @file.puts "        @stream << #{@opcode.bytecode} << arg1 << arg2"
+        @file.puts "        instruction[:stream] = [#{@opcode.bytecode}, arg1, arg2]"
       end
-      @file.puts "        @ip += #{@opcode.arguments.size + 1}"
     end
 
     # Calculate the full stack affect of this opcode.
@@ -118,11 +119,10 @@ class InstructionParser
         end
       end
 
-      @file.puts "        @current_block.add_stack(#{read}, #{write})"
+      @file.puts "        instruction[:stack] = [#{read}, #{write}]"
     end
 
     def method_close
-      @file.puts "        @instruction = #{@opcode.bytecode}"
       @file.puts "      end"
       @file.puts ""
     end
@@ -157,22 +157,12 @@ class InstructionParser
 
     # Basic block creation, closing, transitions
     def bb_unconditional_branch
-      @file.puts "        @current_block.left = arg1.basic_block"
-      @file.puts "        @current_block.close"
-      @file.puts "        @current_block = new_basic_block"
     end
 
     def bb_conditional_branch
-      @file.puts "        @current_block.left = arg1.basic_block"
-      @file.puts "        @current_block.close"
-      @file.puts "        block = new_basic_block"
-      @file.puts "        @current_block.right = block"
-      @file.puts "        @current_block = block"
     end
 
     def bb_exit(check_stack)
-      @file.puts "        @current_block.close #{check_stack}"
-      @file.puts "        @current_block = new_basic_block"
     end
 
     # Categories of instructions. These could be done based on the control
@@ -182,15 +172,13 @@ class InstructionParser
     # is used and redundancy is factored out as needed.
 
     def unconditional_branch
-      @before_stream = lambda { @file.puts "        location = @ip + 1" }
-      @after_stream = lambda { @file.puts "        arg1.used_at location" }
+      @after_stream = lambda { @file.puts "        arg1.used_at instruction" }
       @after_stack = lambda { bb_unconditional_branch }
       method_definition
     end
 
     def conditional_branch
-      @before_stream = lambda { @file.puts "        location = @ip + 1" }
-      @after_stream = lambda { @file.puts "        arg1.used_at location" }
+      @after_stream = lambda { @file.puts "        arg1.used_at instruction" }
       @after_stack = lambda { bb_conditional_branch }
       method_definition
     end
@@ -243,15 +231,15 @@ class InstructionParser
     end
 
     def process_push_int
-      method_signature
 
       # Integers greater than 256 are stored in the literals tuple.
       @file.puts <<EOM
+      def #{method_name}(arg1)
         if arg1 > 2 and arg1 < 256
-          @stream << #{@opcode.bytecode} << arg1
-          @current_block.add_stack(0, 1)
-          @ip += 2
-          @instruction = #{@opcode.bytecode}
+          instruction = create_instruction
+          instruction[:name] = #{method_name.to_sym.inspect}
+          instruction[:stream] = [#{@opcode.bytecode}, arg1]
+          instruction[:stack] = [0, 1]
         else
           case arg1
           when -1
@@ -329,11 +317,13 @@ EOM
     end
 
     def process_cast_array
-      method_signature
       make_array = @parser.find_opcode "make_array"
-      @file.puts "        unless @instruction == #{@opcode.bytecode} or @instruction == #{make_array.bytecode}"
-      @file.puts "          @stream << #{@opcode.bytecode}"
-      @file.puts "          @ip += 1"
+
+      @file.puts "      def #{method_name}"
+      @file.puts "        unless @instruction[:stream].first == #{@opcode.bytecode} or @instruction[:stream].first == #{make_array.bytecode}"
+      @file.puts "          instruction = create_instruction"
+      @file.puts "          instruction[:name] = #{method_name.to_sym.inspect}"
+      @file.puts "          instruction[:stream] = [#{@opcode.bytecode}]"
       @file.puts "        end"
       method_close
     end
