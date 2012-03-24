@@ -82,8 +82,7 @@ class InstructionParser
       when 2
         @file.puts "      def #{method_name}(arg1, arg2)"
       end
-        @file.puts "        instruction = create_instruction"
-        @file.puts "        instruction[:name] = #{method_name.to_sym.inspect}"
+        @file.puts "        instruction = create_instruction(#{method_name.to_sym.inspect})"
     end
 
     # Append to the opcode stream.
@@ -236,8 +235,7 @@ class InstructionParser
       @file.puts <<EOM
       def #{method_name}(arg1)
         if arg1 > 2 and arg1 < 256
-          instruction = create_instruction
-          instruction[:name] = #{method_name.to_sym.inspect}
+          instruction = create_instruction(#{method_name.to_sym.inspect})
           instruction[:stream] = [#{@opcode.bytecode}, arg1]
           instruction[:stack] = [0, 1]
         else
@@ -321,8 +319,7 @@ EOM
 
       @file.puts "      def #{method_name}"
       @file.puts "        unless @instruction[:stream].first == #{@opcode.bytecode} or @instruction[:stream].first == #{make_array.bytecode}"
-      @file.puts "          instruction = create_instruction"
-      @file.puts "          instruction[:name] = #{method_name.to_sym.inspect}"
+      @file.puts "          instruction = create_instruction(#{method_name.to_sym.inspect})"
       @file.puts "          instruction[:stream] = [#{@opcode.bytecode}]"
       @file.puts "        end"
       method_close
