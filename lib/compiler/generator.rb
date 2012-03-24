@@ -619,6 +619,45 @@ module Rubinius
       end
     end
 
+    module DetectionHelper
+      attr_accessor :detected_args, :detected_locals
+      def initialize_detection
+        @detected_args = 0
+        @detected_locals = 0
+      end
+
+      def use_detected
+        if @required_args < @detected_args
+          @required_args = @detected_args
+        end
+
+        if @total_args < @detected_args
+          @total_args = @detected_args
+        end
+
+        if @local_count < @detected_locals
+          @local_count = @detected_locals
+        end
+      end
+
+      def push_local(idx)
+        if @detected_locals <= idx
+          @detected_locals = idx + 1
+        end
+
+        super
+      end
+
+      def set_local(idx)
+        if @detected_locals <= idx
+          @detected_locals = idx + 1
+        end
+
+        super
+      end
+    end
+
+
     include GeneratorMethods
     include Literals
     include SendMethods
@@ -626,6 +665,7 @@ module Rubinius
     include States
     include Lines
     include InstructionListDelegator
+    include DetectionHelper
     attr_accessor :name, :file
 
     attr_accessor :local_count, :local_names
@@ -646,6 +686,7 @@ module Rubinius
       initialize_literals
       initialize_states
       initialize_lines
+      initialize_detection
     end
 
     def execute(node)
@@ -709,8 +750,6 @@ module Rubinius
       cm.post_args      = post_args
       cm.total_args     = total_args
       cm.splat          = splat_index
-
-      p [name, max_stack_size]
 
       cm.local_count    = local_count
       cm.local_names    = local_names.to_tuple if local_names
