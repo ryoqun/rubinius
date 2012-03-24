@@ -2,51 +2,24 @@
 
 module Rubinius
   class Slot
-    attr_reader :jumps
-    attr_writer :instruction, :basic_blocks, :jumps
+    attr_accessor :instruction, :basic_blocks, :jumps
 
     def initialize
       @instruction = nil
       @basic_blocks = []
       @jumps = []
-      @delegated_to = nil
     end
 
     def jump_from(instruction)
       @jumps << instruction
     end
 
-    def instruction
-      if @delegated_to
-        @delegated_to.instruction
-      else
-        @instruction
-      end
-    end
-
-    def basic_blocks
-      if @delegated_to
-        @delegated_to.basic_blocks
-      else
-        @basic_blocks
-      end
-    end
-
     def materialize
-      if @delegated_to
-        @delegated_to.materialize
+      if @instruction
+        @instruction[:ip]
       else
-        if @instruction
-          @instruction[:ip]
-        else
-          100000
-        end
+        100000
       end
-    end
-
-    def delegate(slot)
-      @delegated_to = slot
-      @delegated_to.basic_blocks = @basic_blocks + @delegated_to.basic_blocks
     end
   end
 
@@ -264,22 +237,8 @@ module Rubinius
 
     def create_instruction(name)
       instruction = {:name => name}
-
-      #if @instruction_slots[-2] and @instruction_slots[-2].instruction[:name] == :push_nil and instruction[:name] == :pop
-      #  puts "pop"
-      #  removed_slot = @instruction_slots.last
-      #  @instruction_slots.pop
-      #
-      #  @instruction_slots.last.instruction = nil
-      #  removed_slot.delegate(@instruction_slots.last)
-      #
-      #  return instruction
-      #end
-
       @instruction_slots.last.instruction = instruction
       @instruction_slots << Slot.new
-      #@instruction_slots.last.remove
-
       instruction
     end
 
@@ -305,12 +264,12 @@ module Rubinius
         if last_instruction
           if instruction[:name] == :ret and
              last_instruction[:name] == :ret
-            p last_slot.basic_blocks.size
-            p slot.basic_blocks.size
+            #p last_slot.basic_blocks.size
+            #p slot.basic_blocks.size
             if last_slot.basic_blocks.empty? and slot.basic_blocks.empty?
-              p last_slot
-              p slot
-              puts "double ret"
+              #p last_slot
+              #p slot
+              #puts "double ret"
               instruction[:remove] = true
             end
           end
@@ -318,13 +277,13 @@ module Rubinius
           if instruction[:name] == :pop and
              last_instruction[:name] == :push_nil and
              slot.jumps.empty?
-            puts "meaningless push_nil/pop"
-            p last_slot.basic_blocks.size
-            p slot.basic_blocks.size #
+            #puts "meaningless push_nil/pop"
+            #p last_slot.basic_blocks.size
+            #p slot.basic_blocks.size #
 
             next_slot = @instruction_slots[index + 1]
-            puts "jump analysis"
-            p @instruction_slots.collect(&:jumps).collect(&:size)
+            #puts "jump analysis"
+            #p @instruction_slots.collect(&:jumps).collect(&:size)
             #p(@instruction_slots.collect(&:instruction).collect {|instruction| instruction[:slot] if instruction})
             jumps = last_slot.jumps
             jumps.each do |jump|
@@ -332,20 +291,18 @@ module Rubinius
             end
             next_slot.jumps = jumps + next_slot.jumps
             last_slot.jumps.clear
-            p @instruction_slots.collect(&:jumps).collect(&:size)
+            #p @instruction_slots.collect(&:jumps).collect(&:size)
 
-            puts "basic block analysis"
-            p @instruction_slots.collect(&:basic_blocks).collect(&:size)
+            #puts "basic block analysis"
+            #p @instruction_slots.collect(&:basic_blocks).collect(&:size)
             next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
             slot.basic_blocks.clear
             last_slot.basic_blocks.clear
-            p @instruction_slots.collect(&:basic_blocks).collect(&:size)
+            #p @instruction_slots.collect(&:basic_blocks).collect(&:size)
             last_instruction[:remove] = true
             instruction[:remove] = true
             #next_slot = @instruction_slots[index + 1]
             #next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
-            #last_slot.delegate(next_slot)
-            #slot.delegate(next_slot)
           end
         end
 
