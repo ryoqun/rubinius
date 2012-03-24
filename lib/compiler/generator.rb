@@ -15,11 +15,7 @@ module Rubinius
     end
 
     def materialize
-      if @instruction
-        @instruction[:ip]
-      else
-        100000
-      end
+      @instruction[:ip]
     end
   end
 
@@ -212,8 +208,16 @@ module Rubinius
       @break, @redo, @next, @retry = @modstack.pop
     end
 
+    def used_slots
+      @instruction_slots[0..-2]
+    end
+
+    def instructions
+      used_slots.collect(&:instruction)
+    end
+
     def empty?
-      @instruction_slots.collect(&:instruction).compact.empty?
+      used_slots.empty?
     end
 
     def initialize_stack
@@ -235,29 +239,30 @@ module Rubinius
       @max_stack + @stack_locals
     end
 
+    def last_slot
+      @instruction_slots.last
+    end
+
     def create_instruction(name)
       instruction = {:name => name}
-      @instruction_slots.last.instruction = instruction
+      last_slot.instruction = instruction
       @instruction_slots << Slot.new
       instruction
     end
 
     def ip
-      @instruction_slots.last
+      last_slot
     end
 
     def set_basic_block(basic_block)
-      @instruction_slots.last.basic_blocks << basic_block
+      last_slot.basic_blocks << basic_block
     end
 
     def optimize
-      #puts @instruction_slots.collect {|instruction| instruction[:name] }
-      #puts
       last_slot = nil
 
-      @instruction_slots.each_with_index do |slot, index|
+      used_slots.each_with_index do |slot, index|
         instruction = slot.instruction
-        next if instruction.nil?
 
         last_instruction = last_slot.instruction if last_slot
 
@@ -274,8 +279,48 @@ module Rubinius
             end
           end
 
+          if [:goto_if_true].include?(instruction[:name]) and
+             [:push_false].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            next_slot = @instruction_slots[index + 1]
+
+            jumps = last_slot.jumps
+            jumps.each do |jump|
+              jump[:slot] = next_slot
+            end
+            next_slot.jumps = jumps + next_slot.jumps
+            last_slot.jumps.clear
+
+            next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
+            slot.basic_blocks.clear
+            last_slot.basic_blocks.clear
+
+            last_instruction[:remove] = true
+            instruction[:remove] = true
+          end
+
+          if [:goto_if_false].include?(instruction[:name]) and
+             [:push_true].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            next_slot = @instruction_slots[index + 1]
+
+            jumps = last_slot.jumps
+            jumps.each do |jump|
+              jump[:slot] = next_slot
+            end
+            next_slot.jumps = jumps + next_slot.jumps
+            last_slot.jumps.clear
+
+            next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
+            slot.basic_blocks.clear
+            last_slot.basic_blocks.clear
+
+            last_instruction[:remove] = true
+            instruction[:remove] = true
+          end
+
           if instruction[:name] == :pop and
-             last_instruction[:name] == :push_nil and
+             [:push_nil, :push_true, :push_false].include?(last_instruction[:name]) and
              slot.jumps.empty?
             next_slot = @instruction_slots[index + 1]
 
@@ -299,21 +344,26 @@ module Rubinius
       end
 
       @instruction_slots.reject! do |slot|
-        slot.instruction and slot.instruction[:remove]
+        slot.instruction and slot.instruction[:name] and slot.instruction[:remove]
       end
     end
 
     def materialize
+      @instruction_slots.freeze
+
       calculate_ip
+      @instruction_slots.each(&:freeze)
+
       materialize_position
     end
 
     def calculate_ip
       ip = 0
-      @instruction_slots.collect(&:instruction).compact.each do |instruction|
+      instructions.each do |instruction|
         instruction[:ip] = ip
         ip += instruction[:stream].size
       end
+      last_slot.instruction = {:ip => ip}
     end
 
     def replace_with_ip(instruction)
@@ -325,9 +375,8 @@ module Rubinius
     def materialize_position
       @enter_block = current_block = new_basic_block
 
-      @instruction_slots.each do |slot|
+      used_slots.each do |slot|
         instruction = slot.instruction
-        next if instruction.nil?
 
         slot.basic_blocks.each do |basic_block|
           current_block.left = basic_block
@@ -393,7 +442,7 @@ module Rubinius
     private
     def instruction_stream
       stream = []
-      @instruction_slots.collect(&:instruction).compact.collect do |instruction|
+      instructions.each do |instruction|
         stream += instruction[:stream]
       end
       stream
