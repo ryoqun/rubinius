@@ -2,26 +2,57 @@
 
 module Rubinius
   class Slot
-    attr_accessor :instruction
-    attr_reader :labels
+    attr_reader :jumps
+    attr_writer :instruction, :basic_blocks, :jumps
 
     def initialize
       @instruction = nil
-      @labels = []
+      @basic_blocks = []
+      @jumps = []
+      @delegated_to = nil
+    end
+
+    def jump_from(instruction)
+      @jumps << instruction
+    end
+
+    def instruction
+      if @delegated_to
+        @delegated_to.instruction
+      else
+        @instruction
+      end
+    end
+
+    def basic_blocks
+      if @delegated_to
+        @delegated_to.basic_blocks
+      else
+        @basic_blocks
+      end
     end
 
     def materialize
-      if @instruction
-        @instruction[:ip]
+      if @delegated_to
+        @delegated_to.materialize
       else
-        100000
+        if @instruction
+          @instruction[:ip]
+        else
+          100000
+        end
       end
+    end
+
+    def delegate(slot)
+      @delegated_to = slot
+      @delegated_to.basic_blocks = @basic_blocks + @delegated_to.basic_blocks
     end
   end
 
   class InstructionList
     class Label
-      attr_accessor :position, :basic_block
+      attr_accessor :basic_block
       attr_reader :used
       alias_method :used?, :used
 
@@ -29,37 +60,43 @@ module Rubinius
         @generator   = generator
         @basic_block = generator.new_basic_block
 
-        @position    = nil
-        @used        = false
-        @location    = nil
-        @locations   = nil
+        @slot           = nil
+        @used           = false
+        @instruction    = nil
+        @instructions   = nil
       end
 
       def set!
-        @position = @generator.ip
+        @slot = @generator.ip
 
-        if @locations
-          @locations.each do |location|
-            location[:position] = @position
+        if @instructions
+          @instructions.each do |instruction|
+            set_jump_slot(instruction)
           end
-        elsif @location
-          @location[:position] = @position
+        elsif @instruction
+          set_jump_slot(@instruction)
         end
 
-        @generator.set_label(self)
+        @generator.set_basic_block(@basic_block)
       end
 
       def used_at(instruction)
-        if @position
-          instruction[:position] = @position
-        elsif !@location
-          @location = instruction
-        elsif @locations
-          @locations << instruction
+        if @slot
+          set_jump_slot(instruction)
+        elsif !@instruction
+          @instruction = instruction
+        elsif @instructions
+          @instructions << instruction
         else
-          @locations = [@location, instruction]
+          @instructions = [@instruction, instruction]
         end
         @used = true
+      end
+
+      private
+      def set_jump_slot(instruction)
+        @slot.jump_from(instruction)
+        instruction[:slot] = @slot
       end
     end
 
@@ -95,13 +132,14 @@ module Rubinius
         @ip = @generator.ip
       end
 
-      def close(instruction=false)
+      def close
         @closed = true
+      end
 
-        if instruction
-          @exit_size = @stack
-          @exit_ip = instruction[:ip]
-        end
+      def close_and_exit(exit_instruction)
+        close
+        @exit_size = @stack
+        @exit_ip = exit_instruction[:ip]
       end
 
       def location(ip=nil)
@@ -178,7 +216,7 @@ module Rubinius
     end
 
     def initialize
-      @list = [Slot.new]
+      @instruction_slots = [Slot.new]
 
       initialize_modifiers
       initialize_stack
@@ -202,7 +240,7 @@ module Rubinius
     end
 
     def empty?
-      @list.collect(&:instruction).compact.empty?
+      @instruction_slots.collect(&:instruction).compact.empty?
     end
 
     def initialize_stack
@@ -224,25 +262,99 @@ module Rubinius
       @max_stack + @stack_locals
     end
 
-    def create_instruction
-      instruction = {}
-      @list.last.instruction = instruction
-      @list << Slot.new
+    def create_instruction(name)
+      instruction = {:name => name}
+
+      #if @instruction_slots[-2] and @instruction_slots[-2].instruction[:name] == :push_nil and instruction[:name] == :pop
+      #  puts "pop"
+      #  removed_slot = @instruction_slots.last
+      #  @instruction_slots.pop
+      #
+      #  @instruction_slots.last.instruction = nil
+      #  removed_slot.delegate(@instruction_slots.last)
+      #
+      #  return instruction
+      #end
+
+      @instruction_slots.last.instruction = instruction
+      @instruction_slots << Slot.new
+      #@instruction_slots.last.remove
 
       instruction
     end
 
     def ip
-      @list.last
+      @instruction_slots.last
     end
 
-    def set_label(label)
-      @list.last.labels << label
+    def set_basic_block(basic_block)
+      @instruction_slots.last.basic_blocks << basic_block
     end
 
     def optimize
-      #puts @list.collect {|instruction| instruction[:name] }
+      #puts @instruction_slots.collect {|instruction| instruction[:name] }
       #puts
+      last_slot = nil
+
+      @instruction_slots.each_with_index do |slot, index|
+        instruction = slot.instruction
+        next if instruction.nil?
+
+        last_instruction = last_slot.instruction if last_slot
+
+        if last_instruction
+          if instruction[:name] == :ret and
+             last_instruction[:name] == :ret
+            p last_slot.basic_blocks.size
+            p slot.basic_blocks.size
+            if last_slot.basic_blocks.empty? and slot.basic_blocks.empty?
+              p last_slot
+              p slot
+              puts "double ret"
+              instruction[:remove] = true
+            end
+          end
+
+          if instruction[:name] == :pop and
+             last_instruction[:name] == :push_nil and
+             slot.jumps.empty?
+            puts "meaningless push_nil/pop"
+            p last_slot.basic_blocks.size
+            p slot.basic_blocks.size #
+
+            next_slot = @instruction_slots[index + 1]
+            puts "jump analysis"
+            p @instruction_slots.collect(&:jumps).collect(&:size)
+            #p(@instruction_slots.collect(&:instruction).collect {|instruction| instruction[:slot] if instruction})
+            jumps = last_slot.jumps
+            jumps.each do |jump|
+              jump[:slot] = next_slot
+            end
+            next_slot.jumps = jumps + next_slot.jumps
+            last_slot.jumps.clear
+            p @instruction_slots.collect(&:jumps).collect(&:size)
+
+            puts "basic block analysis"
+            p @instruction_slots.collect(&:basic_blocks).collect(&:size)
+            next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
+            slot.basic_blocks.clear
+            last_slot.basic_blocks.clear
+            p @instruction_slots.collect(&:basic_blocks).collect(&:size)
+            last_instruction[:remove] = true
+            instruction[:remove] = true
+            #next_slot = @instruction_slots[index + 1]
+            #next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
+            #last_slot.delegate(next_slot)
+            #slot.delegate(next_slot)
+          end
+        end
+
+        last_slot = slot
+      end
+
+      @instruction_slots.reject! do |slot|
+        slot.instruction and slot.instruction[:remove]
+      end
     end
 
     def materialize
@@ -252,85 +364,61 @@ module Rubinius
 
     def calculate_ip
       ip = 0
-      @list.collect(&:instruction).compact.each do |instruction|
+      @instruction_slots.collect(&:instruction).compact.each do |instruction|
         instruction[:ip] = ip
         ip += instruction[:stream].size
       end
     end
 
-    def materialize_position
-      @current_block = @enter_block = new_basic_block
+    def replace_with_ip(instruction)
+      basic_block = instruction[:stream][1]
+      instruction[:stream][1] = instruction[:slot].materialize
+      basic_block
+    end
 
-      @list.each do |slot|
+    def materialize_position
+      @enter_block = current_block = new_basic_block
+
+      @instruction_slots.each do |slot|
         instruction = slot.instruction
         next if instruction.nil?
 
-        slot.labels.each do |label|
-          @current_block.left = label.basic_block
-          @current_block.close
-          @current_block = label.basic_block
-          @current_block.open
+        slot.basic_blocks.each do |basic_block|
+          current_block.left = basic_block
+          current_block.close
+          current_block = basic_block
+          current_block.open
         end
 
         if instruction[:name] != :cast_array
-          @current_block.add_stack(*instruction[:stack])
+          current_block.add_stack(*instruction[:stack])
         end
 
         case instruction[:name]
         when :goto
-          position = instruction[:position]
-          label = instruction[:stream].last
+          basic_block = replace_with_ip(instruction)
 
-          @current_block.left = label.basic_block
-          @current_block.close
-          @current_block = new_basic_block
+          current_block.left = basic_block
+          current_block.close
+          current_block = new_basic_block
+        when :goto_if_false, :goto_if_true, :setup_unwind
+          basic_block = replace_with_ip(instruction)
 
-          instruction[:stream][1] = position.materialize
-        when :goto_if_false
-          position = instruction[:position]
-          label = instruction[:stream].last
-
-          @current_block.left = label.basic_block
-          @current_block.close
-          block = new_basic_block
-          @current_block.right = block
-          @current_block = block
-
-          instruction[:stream][1] = position.materialize
-        when :goto_if_true
-          position = instruction[:position]
-          label = instruction[:stream].last
-
-          @current_block.left = label.basic_block
-          @current_block.close
-          block = new_basic_block
-          @current_block.right = block
-          @current_block = block
-
-          instruction[:stream][1] = position.materialize
+          current_block.left = basic_block
+          current_block.close
+          current_block = current_block.right = new_basic_block
         when :ret, :raise_return, :ensure_return
-          @current_block.close instruction
-          @current_block = new_basic_block
+          current_block.close_and_exit instruction
+          current_block = new_basic_block
         when :raise_exc, :reraise, :break
-          @current_block.close
-          @current_block = new_basic_block
-        when :setup_unwind
-          position = instruction[:position]
-          label = instruction[:stream][1]
-
-          @current_block.left = label.basic_block
-          @current_block.close
-          block = new_basic_block
-          @current_block.right = block
-          @current_block = block
-
-          instruction[:stream][1] = position.materialize
+          current_block.close
+          current_block = new_basic_block
         end
       end
     end
 
     def validate_stack
-      pp(@list.collect(&:instruction).compact.collect do |instruction| {:ip => instruction[:ip], :name => instruction[:name], :stream => instruction[:stream]} end) if ENV["DEBUG"]
+      #pp(@instruction_slots.collect(&:instruction).compact.collect do |instruction| {:ip => instruction[:ip], :name => instruction[:name], :stream => instruction[:stream]} end) if ENV["DEBUG"]
       begin
         # Validate the stack and calculate the max depth
         @enter_block.validate_stack
@@ -338,6 +426,8 @@ module Rubinius
         if $DEBUG
           puts "Error computing stack for #{@name}: #{e.message} (#{e.class})"
         end
+        require "pp"
+        pp(@instruction_slots.collect(&:instruction).compact.collect do |instruction| {:ip => instruction[:ip], :name => instruction[:name], :stream => instruction[:stream]} end)
         raise e
       end
     end
@@ -357,7 +447,7 @@ module Rubinius
     private
     def instruction_stream
       stream = []
-      @list.collect(&:instruction).compact.collect do |instruction|
+      @instruction_slots.collect(&:instruction).compact.collect do |instruction|
         stream += instruction[:stream]
       end
       stream
@@ -370,8 +460,8 @@ module Rubinius
     alias_method :gif,  :goto_if_false
     alias_method :swap, :swap_stack
 
-    def create_instruction
-      @instruction = @instruction_list.create_instruction #
+    def create_instruction(name)
+      @instruction = @instruction_list.create_instruction(name)
     end
 
     def push(what)
@@ -422,24 +512,24 @@ module Rubinius
       def add_literal(literal)
         index = @literals.size
         @literals << literal
-        return index
+        index
       end
 
       def push_literal(literal)
         index = find_literal literal
         emit_push_literal index
-        return index
+        index
       end
 
       def push_unique_literal(literal)
         index = add_literal literal
         emit_push_literal index
-        return index
+        index
       end
 
       def push_literal_at(index)
         emit_push_literal index
-        return index
+        index
       end
     end
 
