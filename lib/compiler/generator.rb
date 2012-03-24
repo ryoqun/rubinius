@@ -277,32 +277,21 @@ module Rubinius
           if instruction[:name] == :pop and
              last_instruction[:name] == :push_nil and
              slot.jumps.empty?
-            #puts "meaningless push_nil/pop"
-            #p last_slot.basic_blocks.size
-            #p slot.basic_blocks.size #
-
             next_slot = @instruction_slots[index + 1]
-            #puts "jump analysis"
-            #p @instruction_slots.collect(&:jumps).collect(&:size)
-            #p(@instruction_slots.collect(&:instruction).collect {|instruction| instruction[:slot] if instruction})
+
             jumps = last_slot.jumps
             jumps.each do |jump|
               jump[:slot] = next_slot
             end
             next_slot.jumps = jumps + next_slot.jumps
             last_slot.jumps.clear
-            #p @instruction_slots.collect(&:jumps).collect(&:size)
 
-            #puts "basic block analysis"
-            #p @instruction_slots.collect(&:basic_blocks).collect(&:size)
             next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
             slot.basic_blocks.clear
             last_slot.basic_blocks.clear
-            #p @instruction_slots.collect(&:basic_blocks).collect(&:size)
+
             last_instruction[:remove] = true
             instruction[:remove] = true
-            #next_slot = @instruction_slots[index + 1]
-            #next_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks + next_slot.basic_blocks
           end
         end
 
