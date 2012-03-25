@@ -63,6 +63,10 @@ using namespace rubinius;
   return VMMethod::debugger_interpreter_continue(state, vmm, call_frame, \
          stack_calculate_sp(), is, current_unwind, unwinds)
 
+#define CHECK(val) \
+   if(val == NULL) { goto exception; } \
+   else { if(vmm->debugging) JUMP_DEBUGGING; }
+
 #define CHECK_AND_PUSH(val) \
    if(val == NULL) { goto exception; } \
    else { stack_push(val); if(vmm->debugging) JUMP_DEBUGGING; }
@@ -356,7 +360,10 @@ exception:
   return NULL;
 }
 
+#undef CHECK
 #undef CHECK_AND_PUSH
+#define CHECK(val) if(val == NULL) { goto exception; }
+
 #define CHECK_AND_PUSH(val) if(val == NULL) { goto exception; } \
    else { stack_push(val); }
 

@@ -492,6 +492,37 @@
 <ul class="insn_cross_ref">
 <li><a href="#push_local_depth">push_local_depth</a></li>
 </ul>
+<h3><a class="instruction" name="meta_set_local_depth_pop">meta_set_local_depth_pop(depth, index)</a></h3>
+
+   Updates the value of a local variable contained in an enclosing scope
+
+   Read a value from the top of the stack and use it to update a local
+   variable in an enclosing scope. The _depth_ and _index_ operands
+   identify the specific local the same as in `push_local_depth`.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+
+#### Example
+     foo.each do |i|
+       bar.each do |j|
+         i = i + j  # i is a local variable from enclosing scope at depth 1
+       end
+     end
+
+
+<h4>See Also</h4>
+<ul class="insn_cross_ref">
+<li><a href="#push_local_depth">push_local_depth</a></li>
+</ul>
 <h3><a class="instruction" name="passed_arg">passed_arg(index)</a></h3>
 
    Checks if the argument specified by the operand _index_ was passed to

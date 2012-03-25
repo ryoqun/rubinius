@@ -279,6 +279,20 @@ module Rubinius
             end
           end
 
+          if [:pop].include?(instruction[:name]) and
+             [:set_local_depth].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            puts "meta_set_local_depth_pop"
+
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = :meta_set_local_depth_pop
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:meta_set_local_depth_pop]
+            last_instruction[:stack] = [1, 0]
+            instruction[:remove] = true
+          end
+
           if [:goto_if_true].include?(instruction[:name]) and
              [:push_false].include?(last_instruction[:name]) and
              slot.jumps.empty?
