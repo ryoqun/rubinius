@@ -407,6 +407,26 @@
 <ul class="insn_cross_ref">
 <li><a href="#push_local">push_local</a></li>
 </ul>
+<h3><a class="instruction" name="meta_set_local_pop">meta_set_local_pop(local)</a></h3>
+
+   Read the top of the stack and set the local variable identified by operand
+   _local_ to it. The stack is not modified by this instruction.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+
+<h4>See Also</h4>
+<ul class="insn_cross_ref">
+<li><a href="#push_local">push_local</a></li>
+</ul>
 <h3><a class="instruction" name="push_local">push_local(local)</a></h3>
 
    Retrieves the current value of the local variable referenced by operand
@@ -1056,6 +1076,47 @@
 <li><a href="#send_stack">send_stack</a></li>
 </ul>
 <h3><a class="instruction" name="send_stack">send_stack(literal, count)</a></h3>
+
+   Sends a message with arguments on the stack
+
+   Pops the _receiver_ of the message off the stack and sends the message
+   specified by the operand _literal_ with _count_ arguments. The arguments
+   are removed from the stack also.
+
+   When the method returns, the return value is pushed on the stack.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>   argN
+</td><td>   value
+</td></tr>
+<tr><td>   ...
+</td><td>   ...
+</td></tr>
+<tr><td>   arg2
+</td><td></td></tr>
+<tr><td>   arg1
+</td><td></td></tr>
+<tr><td>   receiver
+</td><td></td></tr>
+</tbody>
+</table>
+
+#### Notes
+   This opcode does not pass a block to the receiver; see
+   `send_stack_with_block` for the equivalent op code used when a block is to
+   be passed.
+
+
+<h4>See Also</h4>
+<ul class="insn_cross_ref">
+<li><a href="#send_stack_with_block">send_stack_with_block</a></li>
+</ul>
+<h3><a class="instruction" name="meta_send_stack_pop">meta_send_stack_pop(literal, count)</a></h3>
 
    Sends a message with arguments on the stack
 
@@ -2063,6 +2124,26 @@
 <tbody>
 <tr><td>value</td><td>value</td></tr>
 <tr><td>...</td><td>...</td></tr>
+</tbody>
+</table>
+
+#### Notes
+   Stack locals differ from normal locals in that they are not viewable by
+   closures.
+
+<h3><a class="instruction" name="meta_set_stack_local_pop">meta_set_stack_local_pop(which)</a></h3>
+
+   Set the stack local identified by operand _which_ using the value on the
+   top of the stack.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
 </tbody>
 </table>
 

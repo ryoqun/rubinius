@@ -286,6 +286,16 @@ instruction set_local(local) [ value -- value ]
 end
 
 # [Description]
+#   Read the top of the stack and set the local variable identified by operand
+#   _local_ to it. The stack is not modified by this instruction.
+# [See Also]
+#   push_local
+
+instruction meta_set_local_pop(local) [ value -- ]
+  call_frame->scope->set_local(local, stack_pop());
+end
+
+# [Description]
 #   Retrieves the current value of the local variable referenced by operand
 #   _local_ and push it onto the stack.
 # [See Also]
@@ -928,6 +938,47 @@ instruction send_stack(literal count) [ receiver +count -- value ] => send
   stack_clear(count + 1);
 
   CHECK_AND_PUSH(ret);
+end
+
+# [Description]
+#   Sends a message with arguments on the stack
+#
+#   Pops the _receiver_ of the message off the stack and sends the message
+#   specified by the operand _literal_ with _count_ arguments. The arguments
+#   are removed from the stack also.
+#
+#   When the method returns, the return value is pushed on the stack.
+# [Stack Before]
+#   argN
+#   ...
+#   arg2
+#   arg1
+#   receiver
+# [Stack After]
+#   value
+#   ...
+# [See Also]
+#   send_stack_with_block
+# [Notes]
+#   This opcode does not pass a block to the receiver; see
+#   `send_stack_with_block` for the equivalent op code used when a block is to
+#   be passed.
+
+instruction meta_send_stack_pop(literal count) [ receiver +count -- ] => send
+  flush_ip();
+  Object* recv = stack_back(count);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  SET_ALLOW_PRIVATE(false);
+
+  Arguments args(cache->name, recv, cNil, count,
+                 stack_back_position(count));
+
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(count + 1);
+
+  CHECK(ret);
 end
 
 # [Description]
@@ -2098,6 +2149,17 @@ end
 
 instruction set_stack_local(which) [ value -- value ]
   stack_local(which) = stack_top();
+end
+
+# [Description]
+#   Set the stack local identified by operand _which_ using the value on the
+#   top of the stack.
+# [Notes]
+#   Stack locals differ from normal locals in that they are not viewable by
+#   closures.
+
+instruction meta_set_stack_local_pop(which) [ value -- ]
+  stack_local(which) = stack_pop();
 end
 
 # [Description]
