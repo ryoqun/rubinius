@@ -158,6 +158,7 @@ namespace rubinius {
         switch(opcodes[index]) {
         case InstructionSequence::insn_send_method:
         case InstructionSequence::insn_send_stack:
+        case InstructionSequence::insn_meta_send_stack_pop:
         case InstructionSequence::insn_send_stack_with_block:
         case InstructionSequence::insn_send_stack_with_splat:
         case InstructionSequence::insn_send_super_stack_with_block:
@@ -222,6 +223,7 @@ namespace rubinius {
       case InstructionSequence::insn_call_custom:
       case InstructionSequence::insn_send_method:
       case InstructionSequence::insn_send_stack:
+      case InstructionSequence::insn_meta_send_stack_pop:
       case InstructionSequence::insn_send_stack_with_block:
       case InstructionSequence::insn_send_stack_with_splat:
       case InstructionSequence::insn_meta_send_call:

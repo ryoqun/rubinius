@@ -280,9 +280,49 @@ module Rubinius
           end
 
           if [:pop].include?(instruction[:name]) and
+             [:set_stack_local].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            #puts "set_stack_local"
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = :meta_set_stack_local_pop
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:meta_set_stack_local_pop]
+            last_instruction[:stack][1] = 0
+            instruction[:remove] = true
+          end
+
+          if [:pop].include?(instruction[:name]) and
+             [:set_local].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            #puts "set_local"
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = :meta_set_local_pop
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:meta_set_local_pop]
+            last_instruction[:stack][1] = 0
+            instruction[:remove] = true
+          end
+
+          if [:pop].include?(instruction[:name]) and
+             [:send_stack].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            #puts "meta_send_stack"
+
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = :meta_send_stack_pop
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:meta_send_stack_pop]
+            last_instruction[:stack][1] = 0
+            instruction[:remove] = true
+          end
+
+          if [:pop].include?(instruction[:name]) and
              [:set_local_depth].include?(last_instruction[:name]) and
              slot.jumps.empty?
-            puts "meta_set_local_depth_pop"
+            #puts "meta_set_local_depth_pop"
 
             last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
             slot.basic_blocks.clear
