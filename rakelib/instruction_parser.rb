@@ -154,16 +154,6 @@ class InstructionParser
       method_definition
     end
 
-    # Basic block creation, closing, transitions
-    def bb_unconditional_branch
-    end
-
-    def bb_conditional_branch
-    end
-
-    def bb_exit(check_stack)
-    end
-
     # Categories of instructions. These could be done based on the control
     # flow attributes added to the instructions for the debugger, but that
     # would require more complicated parsing and contortions to work around
@@ -171,19 +161,22 @@ class InstructionParser
     # is used and redundancy is factored out as needed.
 
     def unconditional_branch
-      @after_stream = lambda { @file.puts "        arg1.used_at instruction" }
-      @after_stack = lambda { bb_unconditional_branch }
+      @before_stream = lambda {
+        @file.puts "        arg1.used_at instruction"
+        @file.puts "        arg1 = arg1.basic_block"
+      }
       method_definition
     end
 
     def conditional_branch
-      @after_stream = lambda { @file.puts "        arg1.used_at instruction" }
-      @after_stack = lambda { bb_conditional_branch }
+      @before_stream = lambda {
+        @file.puts "        arg1.used_at instruction"
+        @file.puts "        arg1 = arg1.basic_block"
+      }
       method_definition
     end
 
     def unconditional_exit(check_stack=false)
-      @after_stack = lambda { bb_exit check_stack }
       method_definition
     end
 
