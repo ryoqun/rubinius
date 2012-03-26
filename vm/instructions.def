@@ -711,6 +711,20 @@ instruction set_ivar(index) [ value -- value ]
 end
 
 # [Description]
+#   Pops a value off the stack, and uses it to set the value of the instance
+#   variable identifies by the literal specified by operand _index_.  The
+#   value popped off the stack is then pushed back on again.
+
+instruction meta_set_ivar_pop(index) [ value -- ]
+  if(CBOOL(call_frame->self()->frozen_p(state))) {
+    Exception::frozen_error(state, call_frame);
+    RUN_EXCEPTION();
+  }
+  Symbol* sym = as<Symbol>(call_frame->cm->literals()->at(state, index));
+  call_frame->self()->set_ivar(state, sym, stack_pop());
+end
+
+# [Description]
 #   Pushes the instance variable identified by _index_ onto the stack.
 
 instruction push_ivar(index) [ -- value ]
@@ -1023,6 +1037,49 @@ instruction send_stack_with_block(literal count) [ block receiver +count -- valu
 end
 
 # [Description]
+#   Sends a message with arguments and a block on the stack
+#
+#   Pops the _receiver_ of the message off the stack and sends the message
+#   specified by the operand _literal_ with _count_ arguments. The arguments
+#   are removed from the stack also. A value that represents the block to pass
+#   on is popped off the stack after the normal arguments.
+#
+#   When the method returns, the return value will be on top of the stack.
+# [Stack Before]
+#   block
+#   argN
+#   ...
+#   arg2
+#   arg1
+#   receiver
+# [Stack After]
+#   retval
+#   ...
+# [See Also]
+#   send_stack
+# [Notes]
+#   This opcode passes a block to the receiver; see `send_stack` for the
+#   equivalent op code used when no block is to be passed.
+
+instruction meta_send_stack_with_block_pop(literal count) [ block receiver +count -- ] => send
+  flush_ip();
+  Object* block = stack_pop();
+  Object* recv = stack_back(count);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, block, count,
+                 stack_back_position(count));
+
+  SET_ALLOW_PRIVATE(false);
+
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(count + 1);
+
+  CHECK(ret);
+end
+
+# [Description]
 #   Sends a message with static arguments, a block, and a splat.
 #
 #   Pops the _receiver_ of the message off the stack and sends the message
@@ -1073,6 +1130,60 @@ instruction send_stack_with_splat(literal count) [ block array receiver +count -
   stack_clear(count + 1);
 
   CHECK_AND_PUSH(ret);
+end
+
+# [Description]
+#   Sends a message with static arguments, a block, and a splat.
+#
+#   Pops the _receiver_ of the message off the stack and sends the message
+#   specified by the operand _literal_ with _count_ arguments. The arguments
+#   are removed from the stack also. A value that represents additional
+#   arguments packaged up as an Array is then popped from the stack. A value
+#   that represents the block to pass is then popped off the stack.
+#
+#   When the method returns, the return value will be on top of the stack.
+# [Stack Before]
+#   block
+#   splat
+#   argN
+#   ...
+#   arg2
+#   arg1
+#   receiver
+# [Stack After]
+#   retval
+#   ...
+# [See Also]
+#   send_stack_with_block
+
+define CALL_FLAG_CONCAT 2
+
+instruction meta_send_stack_with_splat_pop(literal count) [ block array receiver +count -- ] => send
+  flush_ip();
+  Object* block = stack_pop();
+  Object* ary   = stack_pop();
+  Object* recv =  stack_back(count);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, block, count,
+                 stack_back_position(count));
+
+  if(!ary->nil_p()) {
+    if(CALL_FLAGS() & CALL_FLAG_CONCAT) {
+      args.prepend(state, as<Array>(ary));
+    } else {
+      args.append(state, as<Array>(ary));
+    }
+  }
+
+  SET_CALL_FLAGS(0);
+  SET_ALLOW_PRIVATE(false);
+
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(count + 1);
+
+  CHECK(ret);
 end
 
 # [Description]
@@ -1376,6 +1487,43 @@ instruction yield_stack(count) [ +count -- value ] => yield
   stack_clear(count);
 
   CHECK_AND_PUSH(ret);
+end
+
+# [Description]
+#   Invoke the current block, passing _count_ arguments to it.
+# [Stack Before]
+#   argN
+#   ...
+#   arg2
+#   arg1
+#   ...
+# [Stack After]
+#   value
+#   ...
+# [See Also]
+#   send_stack
+
+instruction meta_yield_stack_pop(count) [ +count -- ] => yield
+  flush_ip();
+  Object* t1 = call_frame->scope->block();
+  Object* ret;
+  Arguments args(G(sym_call), t1, count, stack_back_position(count));
+
+  if(BlockEnvironment *env = try_as<BlockEnvironment>(t1)) {
+    ret = env->call(state, call_frame, args);
+  } else if(Proc* proc = try_as<Proc>(t1)) {
+    ret = proc->yield(state, call_frame, args);
+  } else if(t1->nil_p()) {
+    state->raise_exception(Exception::make_lje(state, call_frame));
+    ret = NULL;
+  } else {
+    Dispatch dis(G(sym_call));
+    ret = dis.send(state, call_frame, args);
+  }
+
+  stack_clear(count);
+
+  CHECK(ret);
 end
 
 # [Description]

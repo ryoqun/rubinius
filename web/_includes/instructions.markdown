@@ -882,6 +882,22 @@
 <tr><td>...</td><td>...</td></tr>
 </tbody>
 </table>
+<h3><a class="instruction" name="meta_set_ivar_pop">meta_set_ivar_pop(index)</a></h3>
+
+   Pops a value off the stack, and uses it to set the value of the instance
+   variable identifies by the literal specified by operand _index_.  The
+   value popped off the stack is then pushed back on again.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="push_ivar">push_ivar(index)</a></h3>
 
    Pushes the instance variable identified by _index_ onto the stack.
@@ -1200,6 +1216,49 @@
 <ul class="insn_cross_ref">
 <li><a href="#send_stack">send_stack</a></li>
 </ul>
+<h3><a class="instruction" name="meta_send_stack_with_block_pop">meta_send_stack_with_block_pop(literal, count)</a></h3>
+
+   Sends a message with arguments and a block on the stack
+
+   Pops the _receiver_ of the message off the stack and sends the message
+   specified by the operand _literal_ with _count_ arguments. The arguments
+   are removed from the stack also. A value that represents the block to pass
+   on is popped off the stack after the normal arguments.
+
+   When the method returns, the return value will be on top of the stack.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>   block
+</td><td>   retval
+</td></tr>
+<tr><td>   argN
+</td><td>   ...
+</td></tr>
+<tr><td>   ...
+</td><td></td></tr>
+<tr><td>   arg2
+</td><td></td></tr>
+<tr><td>   arg1
+</td><td></td></tr>
+<tr><td>   receiver
+</td><td></td></tr>
+</tbody>
+</table>
+
+#### Notes
+   This opcode passes a block to the receiver; see `send_stack` for the
+   equivalent op code used when no block is to be passed.
+
+
+<h4>See Also</h4>
+<ul class="insn_cross_ref">
+<li><a href="#send_stack">send_stack</a></li>
+</ul>
 <h3><a class="instruction" name="send_stack_with_splat">send_stack_with_splat(literal, count)</a></h3>
 
 
@@ -1211,6 +1270,21 @@
 <tbody>
 <tr><td>block</td><td>value</td></tr>
 <tr><td>array</td><td>...</td></tr>
+<tr><td>receiver</td><td></td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_send_stack_with_splat_pop">meta_send_stack_with_splat_pop(literal, count)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>block</td><td>...</td></tr>
+<tr><td>array</td><td></td></tr>
 <tr><td>receiver</td><td></td></tr>
 <tr><td>...</td><td></td></tr>
 </tbody>
@@ -1413,6 +1487,35 @@
 </tbody>
 </table>
 <h3><a class="instruction" name="yield_stack">yield_stack(count)</a></h3>
+
+   Invoke the current block, passing _count_ arguments to it.
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>   argN
+</td><td>   value
+</td></tr>
+<tr><td>   ...
+</td><td>   ...
+</td></tr>
+<tr><td>   arg2
+</td><td></td></tr>
+<tr><td>   arg1
+</td><td></td></tr>
+<tr><td>   ...
+</td><td></td></tr>
+</tbody>
+</table>
+
+<h4>See Also</h4>
+<ul class="insn_cross_ref">
+<li><a href="#send_stack">send_stack</a></li>
+</ul>
+<h3><a class="instruction" name="meta_yield_stack_pop">meta_yield_stack_pop(count)</a></h3>
 
    Invoke the current block, passing _count_ arguments to it.
 
