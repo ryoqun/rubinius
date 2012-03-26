@@ -64,11 +64,11 @@ using namespace rubinius;
          stack_calculate_sp(), is, current_unwind, unwinds)
 
 #define CHECK(val) \
-   if(val == NULL) { goto exception; } \
+   if(val == NULL) { goto exception;} \
    else { if(vmm->debugging) JUMP_DEBUGGING; }
 
 #define CHECK_AND_PUSH(val) \
-   if(val == NULL) { goto exception; } \
+   if(val == NULL) { goto exception;} \
    else { stack_push(val); if(vmm->debugging) JUMP_DEBUGGING; }
 
 #define RUN_EXCEPTION() goto exception
@@ -362,9 +362,9 @@ exception:
 
 #undef CHECK
 #undef CHECK_AND_PUSH
-#define CHECK(val) if(val == NULL) { goto exception; }
+#define CHECK(val) if(val == NULL) { goto exception;}
 
-#define CHECK_AND_PUSH(val) if(val == NULL) { goto exception; } \
+#define CHECK_AND_PUSH(val) if(val == NULL) { goto exception;} \
    else { stack_push(val); }
 
 

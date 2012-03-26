@@ -21,7 +21,7 @@ module Rubinius
 
   class InstructionList
     class Label
-      attr_accessor :basic_block
+      attr_reader :basic_block
       attr_reader :used
       alias_method :used?, :used
 
@@ -36,7 +36,10 @@ module Rubinius
       end
 
       def set!
+        raise "existing slot" if @slot
+
         @slot = @generator.ip
+        @slot.basic_blocks << @basic_block
 
         if @instructions
           @instructions.each do |instruction|
@@ -45,8 +48,6 @@ module Rubinius
         elsif @instruction
           set_jump_slot(@instruction)
         end
-
-        @generator.set_basic_block(@basic_block)
       end
 
       def used_at(instruction)
@@ -75,7 +76,6 @@ module Rubinius
 
       def initialize(generator)
         @generator  = generator
-        @ip         = generator.ip
         @enter_size = nil
         @max_size   = 0
         @min_size   = 0
@@ -97,10 +97,6 @@ module Rubinius
         @max_size = @stack if @stack > @max_size
       end
 
-      def open
-        @ip = @generator.ip
-      end
-
       def close
         @closed = true
       end
@@ -112,12 +108,9 @@ module Rubinius
       end
 
       def location(ip=nil)
-        ip ||= @ip
         line = nil #@generator.ip_to_line(ip)
         "#name: line: #{line}, IP: #{ip}"
       end
-
-      SEPARATOR_SIZE = 40
 
       def invalid(message)
         raise CompileError, message
@@ -138,48 +131,54 @@ module Rubinius
       end
 
       def flow_stack_size(stack)
-        unless @visited
-          @visited = true
+        return if @visited
+        @visited = true
 
-          @generator.accumulate_stack(@enter_size + @max_size)
+        @generator.accumulate_stack(@enter_size + @max_size)
 
-          net_size = @enter_size + @stack
+        net_size = @enter_size + @stack
 
-          if net_size < 0
-            invalid "net stack underflow in block starting at #{location}"
-          end
+        if net_size < 0
+          invalid "net stack underflow in block starting at #{location}"
+        end
 
-          if @enter_size + @min_size < 0
-            invalid "minimum stack underflow in block starting at #{location}"
-          end
+        if @enter_size + @min_size < 0
+          invalid "minimum stack underflow in block starting at #{location}"
+        end
 
-          if @exit_size and @enter_size + @exit_size < 1
-            invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
-          end
+        if @exit_size and @enter_size + @exit_size < 1
+          invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
+        end
 
-          if @left
-            @left.check_stack net_size
-            stack.push @left unless @left.visited?
-          end
+        if @left
+          @left.check_stack net_size
+          stack.push @left unless @left.visited?
+        end
 
-          if @right
-            @right.check_stack net_size
-            stack.push @right unless @right.visited?
-          end
+        if @right
+          @right.check_stack net_size
+          stack.push @right unless @right.visited?
         end
       end
 
       def check_stack(stack_size)
         if @enter_size
-          unless stack_size == @enter_size
-            invalid "unbalanced stack at #{location}: #{stack_size} != #{@enter_size}"
-          end
+          check_unbalanced(stack_size)
         else
-          if not @closed
-            invalid "control fails to exit properly at #{location}"
-          end
-
+          check_closed
           @enter_size = stack_size
+        end
+      end
+
+      def check_unbalanced(stack_size)
+        unless @enter_size == stack_size
+          invalid "unbalanced stack at #{location}: #{stack_size} != #{@enter_size}"
+        end
+      end
+
+      def check_closed
+        unless @closed
+          invalid "control fails to exit properly at #{location}"
         end
       end
     end
@@ -254,10 +253,6 @@ module Rubinius
       last_slot
     end
 
-    def set_basic_block(basic_block)
-      last_slot.basic_blocks << basic_block
-    end
-
     def optimize
       last_slot = nil
 
@@ -277,6 +272,82 @@ module Rubinius
               #puts "double ret"
               instruction[:remove] = true
             end
+          end
+
+          if [:goto].include?(instruction[:name]) and
+             [:push_nil].include?(last_instruction[:name]) and
+             instruction[:slot].instruction[:name] == :pop and
+             last_slot.basic_blocks.empty? and
+             slot.basic_blocks.empty? and
+             instruction[:slot].basic_blocks.size == 1 and
+             last_slot.jumps.empty? and
+             slot.jumps.empty? and
+             instruction[:slot].jumps.size == 1 and
+             @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1].instruction[:name] == :ret
+            #puts "push_nil_goto?"
+            #puts last_slot.jumps.size
+            #puts slot.jumps.size
+            #puts instruction[:slot].jumps.size
+            #puts "bb"
+            #puts last_slot.basic_blocks.size
+            #puts slot.basic_blocks.size
+            #puts instruction[:slot].basic_blocks.size
+
+            #previous_slot = @instruction_slots[index - 1]
+            #p @instruction_slots.collect(&:basic_blocks).collect(&:size)
+
+            #previous_slot.basic_blocks = previous_slot.basic_blocks + last_slot.basic_blocks
+            #last_slot.basic_blocks.clear
+            #previous_goto_slot = @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1]
+            #p previous_goto_slot.instruction[:name]
+            next_goto_slot = @instruction_slots[@instruction_slots.index(instruction[:slot]) + 1]
+            next_goto_slot.basic_blocks = instruction[:slot].basic_blocks + next_goto_slot.basic_blocks
+            instruction[:slot].basic_blocks.clear
+            jump_slot = instruction[:slot]
+
+            last_instruction[:remove] = true
+            instruction[:slot].instruction[:remove] = true
+            instruction[:slot] = next_goto_slot
+            next_goto_slot.jumps = jump_slot.jumps + next_goto_slot.jumps
+            jump_slot.jumps.clear
+          end
+
+          if [:pop].include?(instruction[:name]) and
+             [:yield_stack].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = :meta_yield_stack_pop
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:meta_yield_stack_pop]
+            last_instruction[:stack][1] = 0
+            instruction[:remove] = true
+          end
+
+          if [:pop].include?(instruction[:name]) and
+             [:send_stack_with_splat, :send_stack_with_block].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            name = "meta_#{last_instruction[:name]}_pop".to_sym
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = name
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[name]
+            last_instruction[:stack][1] = 0
+            instruction[:remove] = true
+          end
+
+          if [:pop].include?(instruction[:name]) and
+             [:set_ivar].include?(last_instruction[:name]) and
+             slot.jumps.empty?
+            #puts "set_ivar"
+            last_slot.basic_blocks = last_slot.basic_blocks + slot.basic_blocks
+            slot.basic_blocks.clear
+
+            last_instruction[:name] = :meta_set_ivar_pop
+            last_instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:meta_set_ivar_pop]
+            last_instruction[:stack][1] = 0
+            instruction[:remove] = true
           end
 
           if [:pop].include?(instruction[:name]) and
@@ -427,41 +498,40 @@ module Rubinius
     end
 
     def materialize_position
-      @enter_block = current_block = new_basic_block
+      @enter_block = current = new_basic_block
 
       used_slots.each do |slot|
         instruction = slot.instruction
 
         slot.basic_blocks.each do |basic_block|
-          current_block.left = basic_block
-          current_block.close
-          current_block = basic_block
-          current_block.open
+          current.left = basic_block
+          current.close
+          current = basic_block
         end
 
         if instruction[:name] != :cast_array
-          current_block.add_stack(*instruction[:stack])
+          current.add_stack(*instruction[:stack])
         end
 
         case instruction[:name]
         when :goto
           basic_block = replace_with_ip(instruction)
 
-          current_block.left = basic_block
-          current_block.close
-          current_block = new_basic_block
+          current.left = basic_block
+          current.close
+          current = new_basic_block
         when :goto_if_false, :goto_if_true, :setup_unwind
           basic_block = replace_with_ip(instruction)
 
-          current_block.left = basic_block
-          current_block.close
-          current_block = current_block.right = new_basic_block
+          current.left = basic_block
+          current.close
+          current = current.right = new_basic_block
         when :ret, :raise_return, :ensure_return
-          current_block.close_and_exit instruction
-          current_block = new_basic_block
+          current.close_and_exit instruction
+          current = new_basic_block
         when :raise_exc, :reraise, :break
-          current_block.close
-          current_block = new_basic_block
+          current.close
+          current = new_basic_block
         end
       end
     end
