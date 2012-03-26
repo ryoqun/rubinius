@@ -283,7 +283,8 @@ module Rubinius
              last_slot.jumps.empty? and
              slot.jumps.empty? and
              instruction[:slot].jumps.size == 1 and
-             @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1].instruction[:name] == :ret
+             [:ret, :raise_return, :ensure_return, :raise_exc, :reraise, :break].include?( @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1].instruction[:name])
+            #puts @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1].instruction[:name]
             #puts "push_nil_goto?"
             #puts last_slot.jumps.size
             #puts slot.jumps.size
@@ -310,6 +311,12 @@ module Rubinius
             instruction[:slot] = next_goto_slot
             next_goto_slot.jumps = jump_slot.jumps + next_goto_slot.jumps
             jump_slot.jumps.clear
+          elsif [:goto].include?(instruction[:name]) and
+             [:push_nil].include?(last_instruction[:name]) and
+             instruction[:slot].instruction[:name] == :pop and
+             instruction[:slot].jumps.size == 1 and
+             [:ret, :raise_return, :ensure_return, :raise_exc, :reraise, :break].include?( @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1].instruction[:name])
+            puts "aaaaa" + @instruction_slots[@instruction_slots.index(instruction[:slot]) - 1].instruction[:name].to_s
           end
 
           if [:pop].include?(instruction[:name]) and
