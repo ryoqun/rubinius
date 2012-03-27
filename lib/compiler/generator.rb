@@ -552,8 +552,6 @@ module Rubinius
         if $DEBUG
           puts "Error computing stack for #{@name}: #{e.message} (#{e.class})"
         end
-        require "pp"
-        pp(@instruction_slots.collect(&:instruction).compact.collect do |instruction| {:ip => instruction[:ip], :name => instruction[:name], :stream => instruction[:stream]} end)
         raise e
       end
     end
@@ -929,7 +927,7 @@ module Rubinius
     end
 
     def encode
-      #@instruction_list.optimize
+      @instruction_list.optimize
       @instruction_list.materialize
       @instruction_list.validate_stack
 
