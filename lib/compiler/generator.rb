@@ -691,8 +691,6 @@ module Rubinius
         send_stack_with_block idx, count
       end
 
-      CALL_FLAG_CONCAT = 2
-
       def send_with_splat(meth, args, priv=false, concat=false)
         val = 0
         val |= InstructionSet::CALL_FLAG_CONCAT if concat
