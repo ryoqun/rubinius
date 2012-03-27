@@ -261,7 +261,7 @@ module Rubinius
 
         last_instruction = last_slot.instruction if last_slot
 
-        if last_instruction
+        if last_instruction and ENV["NO_OPT"].nil?
           if instruction[:name] == :ret and
              last_instruction[:name] == :ret
             #p last_slot.basic_blocks.size

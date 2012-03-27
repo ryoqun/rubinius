@@ -1304,6 +1304,7 @@ instruction create_block(literal) [ -- block ]
   // TODO: We do not need to be doing this everytime.
   cm->scope(state, call_frame->static_scope());
 
+  //std::cout << state << cm << vmm << call_frame << literal << std::endl;
   Object* be = BlockEnvironment::under_call_frame(state, gct, cm, vmm, call_frame);
 
   CHECK_AND_PUSH(be);
