@@ -44,7 +44,7 @@ namespace rubinius {
 
   void** VMMethod::instructions = 0;
 
-  void VMMethod::init(STATE) {
+  void VMMethod::init(UNUSED_STATE) {
     // Seed the instructions table
     interpreter(0, 0, 0);
   }
@@ -274,7 +274,7 @@ namespace rubinius {
   // For when the method expects no arguments at all (no splat, nothing)
   class NoArguments {
   public:
-    static bool call(STATE, VMMethod* vmm, StackVariables* scope, Arguments& args) {
+    static bool call(UNUSED_STATE, VMMethod* /*vmm*/, StackVariables* /*scope*/, Arguments& args) {
       return args.total() == 0;
     }
   };
@@ -282,7 +282,7 @@ namespace rubinius {
   // For when the method expects 1 and only 1 argument
   class OneArgument {
   public:
-    static bool call(STATE, VMMethod* vmm, StackVariables* scope, Arguments& args) {
+    static bool call(UNUSED_STATE, VMMethod* /*vmm*/, StackVariables* scope, Arguments& args) {
       if(args.total() != 1) return false;
       scope->set_local(0, args.get_argument(0));
       return true;
@@ -292,7 +292,7 @@ namespace rubinius {
   // For when the method expects 2 and only 2 arguments
   class TwoArguments {
   public:
-    static bool call(STATE, VMMethod* vmm, StackVariables* scope, Arguments& args) {
+    static bool call(UNUSED_STATE, VMMethod* /*vmm*/, StackVariables* scope, Arguments& args) {
       if(args.total() != 2) return false;
       scope->set_local(0, args.get_argument(0));
       scope->set_local(1, args.get_argument(1));
@@ -303,7 +303,7 @@ namespace rubinius {
   // For when the method expects 3 and only 3 arguments
   class ThreeArguments {
   public:
-    static bool call(STATE, VMMethod* vmm, StackVariables* scope, Arguments& args) {
+    static bool call(UNUSED_STATE, VMMethod* /*vmm*/, StackVariables* scope, Arguments& args) {
       if(args.total() != 3) return false;
       scope->set_local(0, args.get_argument(0));
       scope->set_local(1, args.get_argument(1));
@@ -315,7 +315,7 @@ namespace rubinius {
   // For when the method expects a fixed number of arguments (no splat)
   class FixedArguments {
   public:
-    static bool call(STATE, VMMethod* vmm, StackVariables* scope, Arguments& args) {
+    static bool call(UNUSED_STATE, VMMethod* vmm, StackVariables* scope, Arguments& args) {
       if((native_int)args.total() != vmm->total_args) return false;
 
       for(native_int i = 0; i < vmm->total_args; i++) {
@@ -684,7 +684,7 @@ namespace rubinius {
   }
 
   /* This is a noop for this class. */
-  void VMMethod::compile(STATE) { }
+  void VMMethod::compile(UNUSED_STATE) { }
 
   // If +disable+ is set, then the method is tagged as not being
   // available for JIT.
@@ -752,7 +752,7 @@ namespace rubinius {
   /*
    * Ensures the specified IP value is a valid address.
    */
-  bool VMMethod::validate_ip(STATE, size_t ip) {
+  bool VMMethod::validate_ip(UNUSED_STATE, size_t ip) {
     /* Ensure ip is valid */
     VMMethod::Iterator iter(this);
     for(; !iter.end(); iter.inc()) {

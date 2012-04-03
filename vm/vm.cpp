@@ -102,7 +102,7 @@ namespace rubinius {
     delete park_;
   }
 
-  void VM::discard(STATE, VM* vm) {
+  void VM::discard(UNUSED_STATE, VM* vm) {
     rbxti::destroy_env(vm->tooling_env_);
     vm->saved_call_frame_ = 0;
     vm->shared.remove_vm(vm);

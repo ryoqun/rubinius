@@ -150,16 +150,16 @@ namespace rubinius {
     return this;
   }
 
-  Object* Object::equal(STATE, Object* other) {
+  Object* Object::equal(UNUSED_STATE, Object* other) {
     return this == other ? cTrue : cFalse;
   }
 
-  Object* Object::freeze(STATE) {
+  Object* Object::freeze(UNUSED_STATE) {
     if(reference_p()) set_frozen();
     return this;
   }
 
-  Object* Object::frozen_p(STATE) {
+  Object* Object::frozen_p(UNUSED_STATE) {
     if(reference_p() && is_frozen_p()) return cTrue;
     return cFalse;
   }
@@ -405,7 +405,7 @@ namespace rubinius {
     }
   }
 
-  bool Object::has_id(STATE) {
+  bool Object::has_id(UNUSED_STATE) {
     if(!reference_p()) return true;
     return object_id() > 0;
   }
@@ -504,7 +504,7 @@ namespace rubinius {
     return dis.send(state, caller, lookup, args);
   }
 
-  Object* Object::send_prim(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+  Object* Object::send_prim(STATE, CallFrame* call_frame, Executable*, Module*,
                             Arguments& args, Symbol* min_visibility) {
     if(args.total() < 1) return Primitives::failure();
 
@@ -750,7 +750,7 @@ namespace rubinius {
     return this;
   }
 
-  Object* Object::tainted_p(STATE) {
+  Object* Object::tainted_p(UNUSED_STATE) {
     if(is_tainted_p()) return cTrue;
     return cFalse;
   }
@@ -771,7 +771,7 @@ namespace rubinius {
     return this;
   }
 
-  Object* Object::untrusted_p(STATE) {
+  Object* Object::untrusted_p(UNUSED_STATE) {
     if(is_untrusted_p()) return cTrue;
     return cFalse;
   }
@@ -832,13 +832,13 @@ namespace rubinius {
    *  write_barrier versions, which we do), or we have to include
    *  every header up front. We opt for the former.
    */
-  void Object::inline_write_barrier_passed(STATE, void* obj) {
+  void Object::inline_write_barrier_passed(STATE, void*) {
     if(!remembered_p()) {
       state->memory()->remember_object(this);
     }
   }
 
-  void Object::inline_write_barrier_passed(VM* vm, void* obj) {
+  void Object::inline_write_barrier_passed(VM* vm, void*) {
     if(!remembered_p()) {
       vm->om->remember_object(this);
     }

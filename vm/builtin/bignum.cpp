@@ -377,7 +377,7 @@ namespace rubinius {
     return mp_iseven(mp_val()) == MP_YES;
   }
 
-  Integer* Bignum::normalize(STATE, Bignum* b) {
+  Integer* Bignum::normalize(UNUSED_STATE, Bignum* b) {
     mp_clamp(b->mp_val());
 
     if((size_t)mp_count_bits(b->mp_val()) <= FIXNUM_WIDTH) {
@@ -782,7 +782,7 @@ namespace rubinius {
     return cFalse;
   }
 
-  Object* Bignum::equal(STATE, Bignum* b) {
+  Object* Bignum::equal(UNUSED_STATE, Bignum* b) {
     if(mp_cmp(mp_val(), b->mp_val()) == MP_EQ) {
       return cTrue;
     }
@@ -823,7 +823,7 @@ namespace rubinius {
     return Fixnum::from(0);
   }
 
-  Object* Bignum::compare(STATE, Bignum* b) {
+  Object* Bignum::compare(UNUSED_STATE, Bignum* b) {
     switch(mp_cmp(mp_val(), b->mp_val())) {
       case MP_LT:
         return Fixnum::from(-1);
@@ -869,7 +869,7 @@ namespace rubinius {
     }
   }
 
-  Object* Bignum::gt(STATE, Bignum* b) {
+  Object* Bignum::gt(UNUSED_STATE, Bignum* b) {
     if(mp_cmp(mp_val(), b->mp_val()) == MP_GT) {
       return cTrue;
     }
@@ -907,7 +907,7 @@ namespace rubinius {
     return Float::coerce(state, this)->ge(state, b);
   }
 
-  Object* Bignum::ge(STATE, Bignum* b) {
+  Object* Bignum::ge(UNUSED_STATE, Bignum* b) {
     int r = mp_cmp(mp_val(), b->mp_val());
     if(r == MP_GT || r == MP_EQ) {
       return cTrue;
@@ -940,7 +940,7 @@ namespace rubinius {
     }
   }
 
-  Object* Bignum::lt(STATE, Bignum* b) {
+  Object* Bignum::lt(UNUSED_STATE, Bignum* b) {
     if(mp_cmp(mp_val(), b->mp_val()) == MP_LT) {
       return cTrue;
     }
@@ -974,7 +974,7 @@ namespace rubinius {
     }
   }
 
-  Object* Bignum::le(STATE, Bignum* b) {
+  Object* Bignum::le(UNUSED_STATE, Bignum* b) {
     int r = mp_cmp(mp_val(), b->mp_val());
     if(r == MP_LT || r == MP_EQ) {
       return cTrue;
@@ -1161,7 +1161,7 @@ namespace rubinius {
     return n;
   }
 
-  double Bignum::to_double(STATE) {
+  double Bignum::to_double(UNUSED_STATE) {
     mp_int* a = mp_val();
 
     /* get number of digits of the lsb we have to read */
@@ -1249,7 +1249,7 @@ namespace rubinius {
     return ary;
   }
 
-  Integer* Bignum::size(STATE) {
+  Integer* Bignum::size(UNUSED_STATE) {
     int bits = mp_count_bits(mp_val());
     int bytes = (bits + 7) / 8;
 
@@ -1318,7 +1318,7 @@ namespace rubinius {
     }
   }
 
-  void Bignum::Info::show(STATE, Object* self, int level) {
+  void Bignum::Info::show(STATE, Object* self, int) {
     Bignum* b = as<Bignum>(self);
     std::cout << b->to_s(state, Fixnum::from(10))->c_str(state) << std::endl;
   }

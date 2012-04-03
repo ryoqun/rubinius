@@ -60,7 +60,7 @@ namespace rubinius {
   }
 
   /** @todo Remove the event too? Should not affect code, but no need for it either. --rue */
-  void Channel::cancel_waiter(STATE, const Thread* waiter) {
+  void Channel::cancel_waiter(UNUSED_STATE, const Thread*) {
     // waiting_->remove(state, waiter);
   }
 

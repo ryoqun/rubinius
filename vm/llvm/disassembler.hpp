@@ -5,10 +5,15 @@
 #include <string.h>
 #include <iostream>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include <llvm/Support/TargetRegistry.h>
 #include <llvm/MC/MCAsmInfo.h>
 #include <llvm/MC/MCDisassembler.h>
 #include <llvm/Support/MemoryObject.h>
+
+#pragma GCC diagnostic pop
 
 namespace rubinius {
 

@@ -40,7 +40,7 @@ namespace rubinius {
     return current_module_;
   }
 
-  StaticScope* StaticScope::of_sender(STATE, CallFrame* calling_environment) {
+  StaticScope* StaticScope::of_sender(UNUSED_STATE, CallFrame* calling_environment) {
     if(calling_environment->previous) {
       return calling_environment->previous->top_ruby_frame()->static_scope();
     }

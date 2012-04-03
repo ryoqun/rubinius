@@ -365,7 +365,7 @@ namespace rubinius {
     public:
       Info(object_type type) : TypeInfo(type) {}
       virtual ~Info() {}
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
 
 

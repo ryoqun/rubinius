@@ -918,7 +918,7 @@ namespace immix {
     /**
      * Returns the next block containing free space.
      */
-    void get_new_block(bool free_only = false) {
+    void get_new_block(bool /*free_only*/ = false) {
       for(;;) {
         /*
          *

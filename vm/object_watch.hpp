@@ -13,7 +13,7 @@ namespace rubinius {
     return obj == object_watch;
   }
 #else
-  static inline bool watched_p(Object* obj) {
+  static inline bool watched_p(Object*) {
     return false;
   }
 #endif

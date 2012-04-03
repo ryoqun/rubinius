@@ -355,7 +355,7 @@ namespace rubinius {
 
     void ber_decode(STATE, Array* array,
                      const char*& bytes, const char* bytes_end,
-                     native_int count, native_int& index)
+                     native_int count, native_int&)
     {
       static unsigned long mask = 0xfeUL << ((sizeof(unsigned long) - 1) * 8);
       static Fixnum* base = Fixnum::from(128);

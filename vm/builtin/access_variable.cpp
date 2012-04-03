@@ -31,7 +31,7 @@ namespace rubinius {
     return av;
   }
 
-  Object* AccessVariable::access_read_regular_ivar(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+  Object* AccessVariable::access_read_regular_ivar(STATE, CallFrame*, Executable* exec, Module*,
                                          Arguments& args) {
     AccessVariable* access = as<AccessVariable>(exec);
     if(unlikely(args.total() != 0)) {
@@ -49,7 +49,7 @@ namespace rubinius {
     return recv->get_table_ivar(state, access->name());
   }
 
-  Object* AccessVariable::access_write_regular_ivar(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+  Object* AccessVariable::access_write_regular_ivar(STATE, CallFrame* call_frame, Executable* exec, Module*,
                                          Arguments& args) {
     AccessVariable* access = as<AccessVariable>(exec);
     if(unlikely(args.total() != 1)) {

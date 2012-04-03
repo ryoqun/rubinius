@@ -50,7 +50,7 @@ namespace rubinius {
     MethodCacheEntry* lookup_public(STATE, Module* mod, Class* cls, Symbol* name);
     MethodCacheEntry* lookup_private(STATE, Module* mod, Class* cls, Symbol* name);
 
-    void clear(STATE, Symbol* name) {
+    void clear(UNUSED_STATE, Symbol* name) {
       thread::SpinLock::LockGuard guard(lock_);
       for(size_t i = 0; i < CPU_CACHE_SIZE; i++) {
         if(entries[i].name == name) {
@@ -59,7 +59,7 @@ namespace rubinius {
       }
     }
 
-    void clear(STATE, Module* cls, Symbol* name) {
+    void clear(UNUSED_STATE, Module* cls, Symbol* name) {
       CacheEntry* entry;
       thread::SpinLock::LockGuard guard(lock_);
       entry = entries + CPU_CACHE_HASH(cls, name);
@@ -80,7 +80,7 @@ namespace rubinius {
 
     private:
 
-    void retain_i(STATE, Module* cls, Symbol* name, Module* mod, Executable* meth,
+    void retain_i(UNUSED_STATE, Module* cls, Symbol* name, Module* mod, Executable* meth,
                 bool missing, Symbol* visibility) {
       CacheEntry* entry;
 
@@ -101,7 +101,7 @@ namespace rubinius {
     }
 
     // Must be called with the lock held on +this+
-    CacheEntry* lookup(STATE, Module* cls, Symbol* name) {
+    CacheEntry* lookup(UNUSED_STATE, Module* cls, Symbol* name) {
       CacheEntry* entry = entries + CPU_CACHE_HASH(cls, name);
       if(entry->name == name && entry->klass == cls) {
         return entry;

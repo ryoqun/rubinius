@@ -52,7 +52,7 @@ namespace rubinius {
     G(matchdata)->set_object_type(state, MatchDataType);
   }
 
-  char *Regexp::version(STATE) {
+  char *Regexp::version(UNUSED_STATE) {
     return (char*)onig_version();
   }
 
@@ -143,8 +143,8 @@ namespace rubinius {
     LookupTable* tbl;
   };
 
-  static int _gather_names(const UChar *name, const UChar *name_end,
-      int ngroup_num, int *group_nums, regex_t *reg, struct _gather_data *gd) {
+  static int _gather_names(const UChar *name, const UChar *,
+      int ngroup_num, int *group_nums, regex_t *, struct _gather_data *gd) {
     STATE = gd->state;
     Array* ary = Array::create(state, ngroup_num);
 
@@ -383,7 +383,7 @@ namespace rubinius {
     return Fixnum::from(result);
   }
 
-  Object* Regexp::fixed_encoding_p(STATE) {
+  Object* Regexp::fixed_encoding_p(UNUSED_STATE) {
     return RBOOL(fixed_encoding_);
   }
 

@@ -146,7 +146,7 @@ namespace rubinius {
 #include "gen/instruction_effects.hpp"
   }
 
-  bool BytecodeVerification::verify_from(STATE, int sp, int ip,
+  bool BytecodeVerification::verify_from(UNUSED_STATE, int sp, int ip,
                                          std::list<Section>& ips)
   {
     if(sp < 0) {

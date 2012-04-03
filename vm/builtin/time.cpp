@@ -176,7 +176,8 @@ namespace rubinius {
 
   struct tm Time::get_tm() {
     time_t seconds = seconds_;
-    struct tm tm = {0};
+    struct tm tm;
+    memset(&tm, 0, sizeof(struct tm));
 
     if(Fixnum* off = try_as<Fixnum>(offset_)) {
       seconds += off->to_native();
@@ -191,7 +192,7 @@ namespace rubinius {
     return tm;
   }
 
-  Object* Time::utc_offset(STATE) {
+  Object* Time::utc_offset(UNUSED_STATE) {
     if(CBOOL(is_gmt_)) {
       return Fixnum::from(0);
     } else if(!offset_->nil_p()) {

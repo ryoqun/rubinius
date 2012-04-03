@@ -41,7 +41,7 @@ extern "C" {
     }
   }
 
-  void rb_gc_force_recycle(VALUE val) {
+  void rb_gc_force_recycle(VALUE) {
     // NOTHING. We don't support this and never will.
   }
 

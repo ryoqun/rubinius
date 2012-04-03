@@ -24,7 +24,7 @@ namespace rubinius {
     native_int index() const;
 
     // Rubinius.primitive :symbol_s_eqq
-    static Object* is_symbol(STATE, Object* obj) {
+    static Object* is_symbol(UNUSED_STATE, Object* obj) {
       return obj->symbol_p() ? cTrue : cFalse;
     }
 
@@ -72,7 +72,7 @@ namespace rubinius {
       virtual void mark(Object*, ObjectMark& mark);
       virtual void show(STATE, Object* self, int level);
       virtual void show_simple(STATE, Object* self, int level);
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
   };
 

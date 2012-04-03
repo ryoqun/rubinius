@@ -112,7 +112,7 @@ namespace rubinius {
     return Integer::from(state, (uintptr_t)pointer);
   }
 
-  Integer* Pointer::set_address(STATE, Integer* ptr) {
+  Integer* Pointer::set_address(UNUSED_STATE, Integer* ptr) {
     pointer = (void*)ptr->to_native();
     return ptr;
   }
@@ -133,7 +133,7 @@ namespace rubinius {
     return val;
   }
 
-  void Pointer::finalize(STATE, Pointer* ptr) {
+  void Pointer::finalize(UNUSED_STATE, Pointer* ptr) {
     if(ptr->autorelease && ptr->pointer) {
       ::free(ptr->pointer);
     }
@@ -152,14 +152,14 @@ namespace rubinius {
     return String::create(state, (char*)pointer);
   }
 
-  Pointer* Pointer::write_string(STATE, String* str, Fixnum* len) {
+  Pointer* Pointer::write_string(UNUSED_STATE, String* str, Fixnum* len) {
     native_int n = len->to_native();
     if(str->byte_size() < n) n = str->byte_size();
     memcpy(pointer, (void*)str->byte_address(), n);
     return this;
   }
 
-  Integer* Pointer::write_char(STATE, Integer* val) {
+  Integer* Pointer::write_char(UNUSED_STATE, Integer* val) {
     unsigned char s = val->to_native();
     *(unsigned char*)pointer = s;
     return val;
@@ -173,7 +173,7 @@ namespace rubinius {
     }
   }
 
-  Integer* Pointer::write_short(STATE, Integer* val) {
+  Integer* Pointer::write_short(UNUSED_STATE, Integer* val) {
     unsigned short s = val->to_native();
     *(unsigned short*)pointer = s;
     return val;
@@ -187,7 +187,7 @@ namespace rubinius {
     }
   }
 
-  Integer* Pointer::write_int(STATE, Integer* val) {
+  Integer* Pointer::write_int(UNUSED_STATE, Integer* val) {
     *(int*)pointer = val->to_native();
     return val;
   }
@@ -200,7 +200,7 @@ namespace rubinius {
     }
   }
 
-  Integer* Pointer::write_long(STATE, Integer* val) {
+  Integer* Pointer::write_long(UNUSED_STATE, Integer* val) {
     *(long*)pointer = val->to_native();
     return val;
   }
@@ -213,7 +213,7 @@ namespace rubinius {
     }
   }
 
-  Integer* Pointer::write_long_long(STATE, Integer* val) {
+  Integer* Pointer::write_long_long(UNUSED_STATE, Integer* val) {
     *(long long*)pointer = val->to_long_long();
     return val;
   }
@@ -226,7 +226,7 @@ namespace rubinius {
     }
   }
 
-  Float* Pointer::write_float(STATE, Float* flt) {
+  Float* Pointer::write_float(UNUSED_STATE, Float* flt) {
     *(float*)pointer = (float)flt->val;
     return flt;
   }
@@ -235,7 +235,7 @@ namespace rubinius {
     return Float::create(state, (double)(*(float*)pointer));
   }
 
-  Float* Pointer::write_double(STATE, Float* flt) {
+  Float* Pointer::write_double(UNUSED_STATE, Float* flt) {
     *(double*)pointer = flt->val;
     return flt;
   }
@@ -244,7 +244,7 @@ namespace rubinius {
     return Float::create(state, *(double*)pointer);
   }
 
-  Pointer* Pointer::write_pointer(STATE, Pointer* ptr) {
+  Pointer* Pointer::write_pointer(UNUSED_STATE, Pointer* ptr) {
     *(void**)pointer = ptr->pointer;
     return ptr;
   }
@@ -503,7 +503,7 @@ namespace rubinius {
     }
   }
 
-  void Pointer::Info::mark(Object* obj, ObjectMark& mark) {
+  void Pointer::Info::mark(Object*, ObjectMark&) {
     // @todo implement
   }
 }

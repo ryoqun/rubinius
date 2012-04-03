@@ -175,7 +175,7 @@ extern "C" {
   // TODO: Since in 1.9 #respond_to? returns false if the MRI version of this
   // method is in a method table, we'll probably need to get the Rubinius
   // special version of this method and call it rather than just raising here.
-  VALUE rb_f_notimplement(int argc, VALUE *argv, VALUE obj) {
+  VALUE rb_f_notimplement(int, VALUE *, VALUE) {
     rb_fatal("not implemented");
   }
 
@@ -293,6 +293,9 @@ extern "C" {
     rb_hash_delete(list, obj);
   }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclobbered"
+
   VALUE rb_exec_recursive(VALUE (*func)(VALUE, VALUE, int),
                           VALUE obj, VALUE arg)
   {
@@ -325,6 +328,8 @@ extern "C" {
       return ret;
     }
   }
+
+#pragma GCC diagnostic pop
 
   void rb_set_end_proc(void* cb, VALUE cb_data) {
     NativeMethodEnvironment* env = NativeMethodEnvironment::get();

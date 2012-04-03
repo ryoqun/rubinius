@@ -148,7 +148,7 @@ namespace rubinius {
     return 0; // keep compiler happy
   }
 
-  void NativeMethodEnvironment::delete_global(VALUE val) {
+  void NativeMethodEnvironment::delete_global(VALUE) {
     rubinius::bug("NME::delete_global was used");
   }
 
@@ -195,7 +195,7 @@ namespace rubinius {
     native_method_environment.set(env);
   }
 
-  void NativeMethod::cleanup_thread(STATE) {
+  void NativeMethod::cleanup_thread(UNUSED_STATE) {
     delete native_method_environment.get();
     native_method_environment.set(NULL);
   }
@@ -216,8 +216,8 @@ namespace rubinius {
 
   class ZeroArguments {
   public:
-    static Object* invoke(STATE, NativeMethod* nm, NativeMethodEnvironment* env,
-                          Arguments& args)
+    static Object* invoke(UNUSED_STATE, NativeMethod* nm, NativeMethodEnvironment* env,
+                          Arguments&)
     {
       VALUE receiver = env->current_native_frame()->receiver();
       return env->get_object(nm->func()(receiver));
@@ -226,7 +226,7 @@ namespace rubinius {
 
   class OneArgument {
   public:
-    static Object* invoke(STATE, NativeMethod* nm, NativeMethodEnvironment* env,
+    static Object* invoke(UNUSED_STATE, NativeMethod* nm, NativeMethodEnvironment* env,
                           Arguments& args)
     {
       VALUE receiver = env->current_native_frame()->receiver();
@@ -238,7 +238,7 @@ namespace rubinius {
 
   class TwoArguments {
   public:
-    static Object* invoke(STATE, NativeMethod* nm, NativeMethodEnvironment* env,
+    static Object* invoke(UNUSED_STATE, NativeMethod* nm, NativeMethodEnvironment* env,
                           Arguments& args)
     {
       VALUE receiver = env->current_native_frame()->receiver();
@@ -251,7 +251,7 @@ namespace rubinius {
 
   class ThreeArguments {
   public:
-    static Object* invoke(STATE, NativeMethod* nm, NativeMethodEnvironment* env,
+    static Object* invoke(UNUSED_STATE, NativeMethod* nm, NativeMethodEnvironment* env,
                           Arguments& args)
     {
       VALUE receiver = env->current_native_frame()->receiver();

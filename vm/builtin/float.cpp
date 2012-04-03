@@ -150,7 +150,7 @@ namespace rubinius {
     return Float::create(state, -this->val);
   }
 
-  Object* Float::equal(STATE, Float* other) {
+  Object* Float::equal(UNUSED_STATE, Float* other) {
     if(this->val == other->val) {
       return cTrue;
     }
@@ -165,18 +165,18 @@ namespace rubinius {
     return cFalse;
   }
 
-  Object* Float::eql(STATE, Float* other) {
+  Object* Float::eql(UNUSED_STATE, Float* other) {
     if(this->val == other->val) {
       return cTrue;
     }
     return cFalse;
   }
 
-  Object* Float::eql(STATE, Integer* other) {
+  Object* Float::eql(UNUSED_STATE, Integer*) {
     return cFalse;
   }
 
-  Object* Float::compare(STATE, Float* other) {
+  Object* Float::compare(UNUSED_STATE, Float* other) {
     if(this->val == other->val) {
       return Fixnum::from(0);
     } else if(this->val > other->val) {
@@ -208,7 +208,7 @@ namespace rubinius {
     }
   }
 
-  Object* Float::gt(STATE, Float* other) {
+  Object* Float::gt(UNUSED_STATE, Float* other) {
     return this->val > other->val ? cTrue : cFalse;
   }
 
@@ -216,7 +216,7 @@ namespace rubinius {
     return this->val > Float::coerce(state, other)->val ? cTrue : cFalse;
   }
 
-  Object* Float::ge(STATE, Float* other) {
+  Object* Float::ge(UNUSED_STATE, Float* other) {
     return this->val >= other->val ? cTrue : cFalse;
   }
 
@@ -224,7 +224,7 @@ namespace rubinius {
     return this->val >= Float::coerce(state, other)->val ? cTrue : cFalse;
   }
 
-  Object* Float::lt(STATE, Float* other) {
+  Object* Float::lt(UNUSED_STATE, Float* other) {
     return this->val < other->val ? cTrue : cFalse;
   }
 
@@ -232,7 +232,7 @@ namespace rubinius {
     return this->val < Float::coerce(state, other)->val ? cTrue : cFalse;
   }
 
-  Object* Float::le(STATE, Float* other) {
+  Object* Float::le(UNUSED_STATE, Float* other) {
     return this->val <= other->val ? cTrue : cFalse;
   }
 
@@ -240,7 +240,7 @@ namespace rubinius {
     return this->val <= Float::coerce(state, other)->val ? cTrue : cFalse;
   }
 
-  Object* Float::fisinf(STATE) {
+  Object* Float::fisinf(UNUSED_STATE) {
     if(isinf(this->val) != 0) {
       return this->val < 0 ? Fixnum::from(-1) : Fixnum::from(1);
     } else {
@@ -248,7 +248,7 @@ namespace rubinius {
     }
   }
 
-  Object* Float::fisnan(STATE) {
+  Object* Float::fisnan(UNUSED_STATE) {
     return isnan(this->val) == 1 ? cTrue : cFalse;
   }
 
@@ -325,13 +325,13 @@ namespace rubinius {
     return String::create(state, str, sz);
   }
 
-  void Float::into_string(STATE, char* buf, size_t sz) {
+  void Float::into_string(UNUSED_STATE, char* buf, size_t sz) {
     snprintf(buf, sz, "%+.17e", val);
   }
 
-  void Float::Info::mark(Object* t, ObjectMark& mark) { }
+  void Float::Info::mark(Object*, ObjectMark&) { }
 
-  void Float::Info::show(STATE, Object* self, int level) {
+  void Float::Info::show(UNUSED_STATE, Object* self, int) {
     Float* f = as<Float>(self);
     std::cout << f->val << std::endl;
   }

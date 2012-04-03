@@ -40,7 +40,7 @@ namespace rubinius {
     return dir;
   }
 
-  void Dir::finalize(STATE, Dir* dir) {
+  void Dir::finalize(UNUSED_STATE, Dir* dir) {
     if(dir->os_) {
       closedir(dir->os_);
       dir->os_ = 0;
@@ -79,7 +79,7 @@ namespace rubinius {
     return cNil;
   }
 
-  Object* Dir::closed_p(STATE) {
+  Object* Dir::closed_p(UNUSED_STATE) {
     return os_ ? cFalse : cTrue;
   }
 

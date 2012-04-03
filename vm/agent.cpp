@@ -131,10 +131,11 @@ namespace rubinius {
     int on = 1;
     setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(on));
 
-    struct sockaddr_in sin = {};
+    struct sockaddr_in sin;
     sin.sin_family = AF_INET;
     sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_port = htons(port);
+    memset(&sin.sin_zero, 0, sizeof(sin.sin_zero));
 
     if(::bind(server_fd_, (struct sockaddr*)&sin, sizeof(sin)) == -1) {
       std::cerr << "[QA: Unable to bind socket: " << strerror(errno) << "]\n";

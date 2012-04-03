@@ -16,6 +16,10 @@ namespace rubinius {
   public:
 
     // Rubinius.primitive+ :weakref_object
+    Object* object(UNUSED_STATE) {
+      return object_;
+    }
+
     Object* object() {
       return object_;
     }
@@ -45,7 +49,7 @@ namespace rubinius {
     public:
       Info(object_type type) : TypeInfo(type) { }
       virtual void mark(Object* obj, ObjectMark& mark);
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
   };
 }

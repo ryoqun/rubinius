@@ -366,7 +366,7 @@ namespace rubinius {
       }
     }
 
-    void header(STATE) {
+    void header(UNUSED_STATE) {
       enc.write_raw("RBXHEAPDUMP\0", 12);
       enc.write4(1);
     }

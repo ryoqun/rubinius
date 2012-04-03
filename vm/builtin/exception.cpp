@@ -189,7 +189,7 @@ namespace rubinius {
     RubyException::raise(make_exception(state, get_type_error(state), reason));
   }
 
-  void Exception::type_error(STATE, object_type type, Object* object,
+  void Exception::type_error(UNUSED_STATE, object_type type, Object* object,
                                    const char* reason) {
     // We code for TypeError being raised defensively, so it's ok, to raise it
     // since someone close by will catch it and propogate it back to ruby

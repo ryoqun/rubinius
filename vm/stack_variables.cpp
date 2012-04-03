@@ -69,7 +69,7 @@ namespace rubinius {
     }
   }
 
-  Object* StackVariables::last_match(STATE) {
+  Object* StackVariables::last_match(UNUSED_STATE) {
     // For closures, get back to the top of the chain and get that
     // last_match.
     if(parent_) {

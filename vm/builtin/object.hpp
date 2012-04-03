@@ -408,7 +408,7 @@ namespace rubinius {
         : TypeInfo(type)
       {}
 
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
 
   private:
@@ -439,11 +439,11 @@ namespace rubinius {
     return __SYMBOL_P__(this);
   }
 
-  inline void Object::write_barrier(STATE, Fixnum* obj) {
+  inline void Object::write_barrier(UNUSED_STATE, Fixnum*) {
     /* No-op */
   }
 
-  inline void Object::write_barrier(STATE, Symbol* obj) {
+  inline void Object::write_barrier(UNUSED_STATE, Symbol*) {
     /* No-op */
   }
 
@@ -475,7 +475,7 @@ namespace rubinius {
   class ObjectMatchAll : public ObjectMatcher {
   public:
     virtual ~ObjectMatchAll() {}
-    virtual bool match_p(STATE, Object* obj) { return true; }
+    virtual bool match_p(UNUSED_STATE, Object*) { return true; }
   };
 
 }

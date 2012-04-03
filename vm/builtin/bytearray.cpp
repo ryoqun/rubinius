@@ -68,7 +68,7 @@ namespace rubinius {
     return ByteArray::create(state, size);
   }
 
-  Fixnum* ByteArray::size(STATE) {
+  Fixnum* ByteArray::size(UNUSED_STATE) {
     return Fixnum::from(size());
   }
 
@@ -162,7 +162,7 @@ namespace rubinius {
     return ba;
   }
 
-  ByteArray* ByteArray::reverse(STATE, Fixnum* o_start, Fixnum* o_total) {
+  ByteArray* ByteArray::reverse(UNUSED_STATE, Fixnum* o_start, Fixnum* o_total) {
     native_int start = o_start->to_native();
     native_int total = o_total->to_native();
 
@@ -217,7 +217,7 @@ namespace rubinius {
     }
   }
 
-  Object* ByteArray::locate(STATE, String* pattern, Fixnum* start, Fixnum* max_o) {
+  Object* ByteArray::locate(UNUSED_STATE, String* pattern, Fixnum* start, Fixnum* max_o) {
     const uint8_t* pat = pattern->byte_address();
     native_int len = pattern->byte_size();
     native_int max = max_o->to_native();
@@ -322,7 +322,7 @@ namespace rubinius {
     return ba->full_size_;
   }
 
-  void ByteArray::Info::mark(Object* t, ObjectMark& mark) {
+  void ByteArray::Info::mark(Object*, ObjectMark&) {
     // @todo implement
   }
 }

@@ -476,7 +476,7 @@ namespace rubinius {
   class GCIndependentLockGuard : public thread::LockGuardTemplate<T> {
     State* state_;
   public:
-    GCIndependentLockGuard(STATE, GCToken gct, T& in_lock)
+    GCIndependentLockGuard(STATE, GCToken, T& in_lock)
       : thread::LockGuardTemplate<T>(in_lock, false)
       , state_(state)
     {

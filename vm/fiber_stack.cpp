@@ -37,7 +37,7 @@ namespace rubinius {
     user_->copy_to_heap(state);
   }
 
-  void FiberStack::orphan(STATE, FiberData* user) {
+  void FiberStack::orphan(UNUSED_STATE, FiberData* user) {
     if(user == user_) {
       user_ = 0;
     }

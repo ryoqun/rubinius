@@ -65,24 +65,30 @@ namespace rubinius {
     return as<Bignum>(this)->positive_p();
   }
 
-  Integer* Integer::from(STATE, int num) {
 #ifndef IS_X8664
+  Integer* Integer::from(STATE, int num) {
     if(num > FIXNUM_MAX || num < FIXNUM_MIN) {
       /* Number is too big for Fixnum. Use Bignum. */
       return Bignum::from(state, (native_int)num);
     }
-#endif
+  }
+#else
+  Integer* Integer::from(UNUSED_STATE, int num) {
     return (Fixnum*)APPLY_FIXNUM_TAG(num);
   }
+#endif
 
-  Integer* Integer::from(STATE, unsigned int num) {
 #ifndef IS_X8664
+  Integer* Integer::from(STATE, unsigned int num) {
     if(num > FIXNUM_MAX) {
       return Bignum::from(state, (unsigned long)num);
     }
-#endif
+  }
+#else
+  Integer* Integer::from(UNUSED_STATE, unsigned int num) {
     return (Fixnum*)APPLY_FIXNUM_TAG((native_int)num);
   }
+#endif
 
   Integer* Integer::from(STATE, unsigned long num) {
     if(num > FIXNUM_MAX) {

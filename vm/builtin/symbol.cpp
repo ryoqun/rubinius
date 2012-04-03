@@ -27,11 +27,11 @@ namespace rubinius {
     return STRIP_SYMBOL_TAG(this);
   }
 
-  Integer* Symbol::index(STATE) {
+  Integer* Symbol::index(UNUSED_STATE) {
     return Fixnum::from(this->index());
   }
 
-  Symbol* Symbol::from_index(STATE, size_t index) {
+  Symbol* Symbol::from_index(UNUSED_STATE, size_t index) {
     return (Symbol*)APPLY_SYMBOL_TAG(index);
   }
 
@@ -72,12 +72,12 @@ namespace rubinius {
     return Encoding::usascii_encoding(state);
   }
 
-  Encoding* Symbol::encoding(STATE, Encoding* enc) {
+  Encoding* Symbol::encoding(UNUSED_STATE, Encoding* enc) {
     // TODO
     return enc;
   }
 
-  void Symbol::Info::show(STATE, Object* self, int level) {
+  void Symbol::Info::show(STATE, Object* self, int) {
     Symbol* sym = try_as<Symbol>(self);
     std::cout << ":" << sym->debug_str(state) << std::endl;
   }
@@ -86,5 +86,5 @@ namespace rubinius {
     show(state, self, level);
   }
 
-  void Symbol::Info::mark(Object* t, ObjectMark& mark) { }
+  void Symbol::Info::mark(Object*, ObjectMark&) { }
 }

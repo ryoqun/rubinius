@@ -412,11 +412,11 @@ extern "C" {
   }
 #define HAVE_RB_STR_COPIED_PTR 1
 
-  void rb_str_flush(VALUE self) {
+  void rb_str_flush(VALUE /*self*/) {
     // Using pinned ByteArray, we don't need this anymore.
   }
 
-  void rb_str_update(VALUE self) {
+  void rb_str_update(VALUE /*self*/) {
     // Using pinned ByteArray, we don't need this anymore.
   }
 

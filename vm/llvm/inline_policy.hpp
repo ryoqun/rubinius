@@ -74,7 +74,7 @@ namespace rubinius {
       if(!options_.allow_has_block) throw Unsupported();
     }
 
-    void visit_yield_splat(opcode count) {
+    void visit_yield_splat(opcode /*count*/) {
       throw Unsupported();
     }
 
@@ -82,23 +82,23 @@ namespace rubinius {
       throw Unsupported();
     }
 
-    void visit_setup_unwind(opcode where, opcode type) {
+    void visit_setup_unwind(opcode /*where*/, opcode /*type*/) {
       if(!options_.allow_exceptions) throw Unsupported();
     }
 
-    void visit_create_block(opcode which) {
+    void visit_create_block(opcode /*which*/) {
       if(!options_.allow_blocks) throw Unsupported();
     }
 
-    void visit_send_super_stack_with_block(opcode which, opcode args) {
+    void visit_send_super_stack_with_block(opcode /*which*/, opcode /*args*/) {
       throw Unsupported();
     }
 
-    void visit_send_super_stack_with_splat(opcode which, opcode args) {
+    void visit_send_super_stack_with_splat(opcode /*which*/, opcode /*args*/) {
       throw Unsupported();
     }
 
-    void visit_zsuper(opcode which) {
+    void visit_zsuper(opcode /*which*/) {
       throw Unsupported();
     }
 

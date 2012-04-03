@@ -88,9 +88,10 @@ namespace rubinius {
       // Don't use 'this' !!! The above code might have GC'd
 
       uintptr_t body = reinterpret_cast<uintptr_t>(obj->body_as_array());
-      for(size_t i = 0; i < size - sizeof(ObjectHeader);
-          i += sizeof(Object*)) {
-        Object** pos = reinterpret_cast<Object**>(body + i);
+      size_t pointer_size = sizeof(Object*);
+      size_t body_size = (size - sizeof(ObjectHeader)) / pointer_size;
+      for(size_t i = 0; i < body_size; ++i) {
+        Object** pos = reinterpret_cast<Object**>(body + pointer_size * i);
         *pos = cUndef;
       }
 
@@ -124,9 +125,10 @@ namespace rubinius {
       }
 
       uintptr_t body = reinterpret_cast<uintptr_t>(obj->body_as_array());
-      for(size_t i = 0; i < size - sizeof(ObjectHeader);
-          i += sizeof(Object*)) {
-        Object** pos = reinterpret_cast<Object**>(body + i);
+      size_t pointer_size = sizeof(Object*);
+      size_t body_size = (size - sizeof(ObjectHeader)) / pointer_size;
+      for(size_t i = 0; i < body_size; ++i) {
+        Object** pos = reinterpret_cast<Object**>(body + pointer_size * i);
         *pos = cUndef;
       }
 
@@ -173,7 +175,7 @@ namespace rubinius {
     }
   }
 
-  Class* Class::true_superclass(STATE) {
+  Class* Class::true_superclass(UNUSED_STATE) {
     Module* super = superclass();
 
     while(kind_of<IncludedModule>(super)) {
@@ -340,7 +342,7 @@ namespace rubinius {
     return sc;
   }
 
-  void SingletonClass::Info::show(STATE, Object* self, int level) {
+  void SingletonClass::Info::show(STATE, Object* self, int) {
     SingletonClass* cls = as<SingletonClass>(self);
     Module* mod = try_as<Module>(cls->attached_instance());
 

@@ -70,7 +70,7 @@ namespace rubinius {
       return field[index];
     }
 
-    Object* at(STATE, native_int index) {
+    Object* at(UNUSED_STATE, native_int index) {
       return at(index);
     }
 
@@ -84,7 +84,7 @@ namespace rubinius {
       }
 
       virtual void mark(Object* obj, ObjectMark& mark);
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
       virtual void show(STATE, Object* self, int level);
       virtual void show_simple(STATE, Object* self, int level);
       virtual size_t object_size(const ObjectHeader* object);

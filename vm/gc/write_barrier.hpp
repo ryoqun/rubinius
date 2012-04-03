@@ -53,7 +53,7 @@ namespace gc {
      * The returned ObjectArray* is const, since it should not be modified other
      * than via the remember/unremember methods.
      */
-    ObjectArray* const remember_set() {
+    ObjectArray* remember_set() {
       return remember_set_;
     }
 

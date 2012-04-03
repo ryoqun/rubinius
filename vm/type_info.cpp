@@ -33,11 +33,11 @@ namespace rubinius {
 
   TypeInfo::~TypeInfo() { }
 
-  void TypeInfo::set_field(STATE, Object* target, size_t index, Object* val) {
+  void TypeInfo::set_field(UNUSED_STATE, Object* /*target*/, size_t /*index*/, Object* /*val*/) {
     throw std::runtime_error("field access denied");
   }
 
-  Object* TypeInfo::get_field(STATE, Object* target, size_t index) {
+  Object* TypeInfo::get_field(UNUSED_STATE, Object* /*target*/, size_t /*index*/) {
     throw std::runtime_error("unable to access field");
   }
 
@@ -48,7 +48,7 @@ namespace rubinius {
     auto_mark(obj, mark);
   }
 
-  size_t TypeInfo::object_size(const ObjectHeader* obj) {
+  size_t TypeInfo::object_size(const ObjectHeader* /*obj*/) {
     abort();
     // Must be implemented, if goes here
     return 0;
@@ -87,11 +87,11 @@ namespace rubinius {
     std::cout << ">" << std::endl;
   }
 
-  void TypeInfo::show(STATE, Object* self, int level) {
+  void TypeInfo::show(STATE, Object* self, int /*level*/) {
     class_info(state, self, true);
   }
 
-   void TypeInfo::show_simple(STATE, Object* self, int level) {
+   void TypeInfo::show_simple(STATE, Object* self, int /*level*/) {
      class_info(state, self, true);
    }
 

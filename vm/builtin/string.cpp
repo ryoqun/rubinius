@@ -333,7 +333,7 @@ namespace rubinius {
       return 0;
     }
 
-    int convert_meta(bool ctrl=false, bool meta=false) {
+    int convert_meta(bool, bool meta=false) {
       if(meta) raise_error("duplicate meta escape");
       if(p == e) raise_error("meta escape is too short");
 
@@ -730,7 +730,7 @@ namespace rubinius {
     return str;
   }
 
-  Object* String::secure_compare(STATE, String* other) {
+  Object* String::secure_compare(UNUSED_STATE, String* other) {
     native_int s1 = num_bytes()->to_native();
     native_int s2 = other->num_bytes()->to_native();
     native_int d1 = as<ByteArray>(data_)->size();
@@ -952,7 +952,7 @@ namespace rubinius {
   }
 
   // Character-wise logical AND of two strings. Modifies the receiver.
-  String* String::apply_and(STATE, String* other) {
+  String* String::apply_and(UNUSED_STATE, String* other) {
     native_int count;
     if(num_bytes_ > other->num_bytes()) {
       count = other->num_bytes()->to_native();
@@ -1184,7 +1184,7 @@ namespace rubinius {
     return result;
   }
 
-  String* String::copy_from(STATE, String* other, Fixnum* start,
+  String* String::copy_from(UNUSED_STATE, String* other, Fixnum* start,
                             Fixnum* size, Fixnum* dest)
   {
     native_int src = start->to_native();
@@ -1291,7 +1291,7 @@ namespace rubinius {
     return s;
   }
 
-  String* String::from_codepoint(STATE, Object* self, Integer* code, Encoding* enc) {
+  String* String::from_codepoint(STATE, Object*, Integer* code, Encoding* enc) {
     String* s = state->new_object<String>(G(string));
 
     unsigned int c = code->to_uint();
@@ -1362,7 +1362,7 @@ namespace rubinius {
   /* Returns the byte index of the character at logical 'index'. The 'start'
    * parameter is the byte index of a character at which to start searching.
    */
-  native_int String::find_character_byte_index(STATE, native_int index,
+  native_int String::find_character_byte_index(UNUSED_STATE, native_int index,
                                                native_int start)
   {
     if(byte_compatible_p(encoding_)) {
@@ -1726,7 +1726,7 @@ namespace rubinius {
     return force_as<Fixnum>(Primitives::failure());
   }
 
-  void String::Info::show(STATE, Object* self, int level) {
+  void String::Info::show(STATE, Object* self, int) {
     String* str = as<String>(self);
     std::cout << "\"" << str->c_str(state) << "\"" << std::endl;
   }

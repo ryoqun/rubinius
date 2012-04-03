@@ -290,7 +290,7 @@ namespace rubinius {
     return 0;
   }
 
-  void CompiledMethod::post_marshal(STATE) {
+  void CompiledMethod::post_marshal(UNUSED_STATE) {
   }
 
   size_t CompiledMethod::number_of_locals() {
@@ -360,7 +360,7 @@ namespace rubinius {
     return cFalse;
   }
 
-  CompiledMethod* CompiledMethod::of_sender(STATE, CallFrame* calling_environment) {
+  CompiledMethod* CompiledMethod::of_sender(UNUSED_STATE, CallFrame* calling_environment) {
     CallFrame* caller = static_cast<CallFrame*>(calling_environment->previous);
     if(caller) {
       if(caller->cm) {
@@ -371,7 +371,7 @@ namespace rubinius {
     return nil<CompiledMethod>();
   }
 
-  CompiledMethod* CompiledMethod::current(STATE, CallFrame* calling_environment) {
+  CompiledMethod* CompiledMethod::current(UNUSED_STATE, CallFrame* calling_environment) {
     return calling_environment->cm;
   }
 

@@ -37,7 +37,7 @@ namespace rubinius {
 
     static void finalize(STATE, Data* data);
 
-    RDataShadow* rdata(STATE) {
+    RDataShadow* rdata(UNUSED_STATE) {
       return internal_;
     }
 
@@ -57,7 +57,7 @@ namespace rubinius {
     public:
       Info(object_type type) : TypeInfo(type) { }
       virtual void mark(Object* t, ObjectMark& mark);
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
   };
 

@@ -118,6 +118,9 @@ namespace rubinius {
     /* Leave this as the last data member always */
     TypedRoot<Class*> special_classes[SPECIAL_CLASS_SIZE];
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunsafe-loop-optimizations"
+
     Globals() :
       cmethod(&roots),
       tuple(&roots),
@@ -225,6 +228,7 @@ namespace rubinius {
 
       /* Add initialize of globals above this line. */
     { }
+#pragma GCC diagnostic pop
   };
 };
 

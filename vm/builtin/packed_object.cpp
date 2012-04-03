@@ -109,12 +109,12 @@ namespace rubinius {
     }
   }
 
-  void PackedObject::Info::show(STATE, Object* self, int level) {
+  void PackedObject::Info::show(STATE, Object* self, int) {
     class_info(state, self, true);
     return;
   }
 
-  void PackedObject::Info::show_simple(STATE, Object* self, int level) {
+  void PackedObject::Info::show_simple(STATE, Object* self, int) {
     class_info(state, self, true);
     return;
   }

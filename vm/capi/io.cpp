@@ -54,7 +54,7 @@ namespace rubinius {
       return NULL;
     }
 
-    RIO* Handle::as_rio(NativeMethodEnvironment* env) {
+    RIO* Handle::as_rio(NativeMethodEnvironment*) {
       if(type_ != cRIO) {
         IO* io_obj = c_as<IO>(object());
 

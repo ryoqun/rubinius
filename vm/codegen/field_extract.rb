@@ -17,7 +17,7 @@ class BasicPrimitive
   end
 
   def output_header(str)
-    str << "Object* Primitives::#{@name}(STATE, CallFrame* call_frame, Executable* exec, Module* mod, Arguments& args) {\n"
+    str << "Object* Primitives::#{@name}(STATE, CallFrame* call_frame, Executable* exec, Module* mod, Arguments& args __attribute__ ((unused))) {\n"
     str << "  state->set_call_frame(call_frame);\n"
     str << emit_counter
     # str << " std::cout << \"[Primitive #{@name}]\\n\";\n"
@@ -163,9 +163,9 @@ class CPPPrimitive < BasicPrimitive
     end
 
     if @safe
-      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, Object* recv #{arg_list}) {\n"
+      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, Object* recv  __attribute__ ((unused))#{arg_list}) {\n"
     else
-      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, CallFrame* call_frame, Object* recv #{arg_list}) {\n"
+      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, CallFrame* call_frame, Object* recv  __attribute__ ((unused))#{arg_list}) {\n"
     end
 
     str << "  Object* ret;\n"
@@ -248,7 +248,7 @@ class CPPPrimitive < BasicPrimitive
       arg_list = ", " + list.join(", ")
     end
 
-    str << "extern \"C\" Object* invoke_#{@name}(STATE, CallFrame* call_frame, Object** args, int arg_count) {\n"
+    str << "extern \"C\" Object* invoke_#{@name}(STATE, CallFrame* call_frame, Object** args __attribute__ ((unused)), int arg_count) {\n"
 
     str << "  Object* ret;\n"
     str << "  GCTokenImpl gct;\n" if @pass_gctoken
@@ -354,9 +354,9 @@ class CPPStaticPrimitive < CPPPrimitive
     end
 
     if @safe
-      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, Object* recv #{arg_list}) {\n"
+      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, Object* recv  __attribute__ ((unused))#{arg_list}) {\n"
     else
-      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, CallFrame* call_frame, Object* recv #{arg_list}) {\n"
+      str << "extern \"C\" Object* jit_stub_#{@name}(STATE, CallFrame* call_frame, Object* recv __attribute__ ((unused)) #{arg_list}) {\n"
     end
 
     str << "  Object* ret;\n"
@@ -427,7 +427,7 @@ class CPPStaticPrimitive < CPPPrimitive
       arg_list = ", " + list.join(", ")
     end
 
-    str << "extern \"C\" Object* invoke_#{@name}(STATE, CallFrame* call_frame, Object** args, int arg_count) {\n"
+    str << "extern \"C\" Object* invoke_#{@name}(STATE, CallFrame* call_frame, Object** args __attribute__ ((unused)), int arg_count) {\n"
 
     str << "  Object* ret;\n"
     str << "  GCTokenImpl gct;\n" if @pass_gctoken
@@ -672,7 +672,7 @@ class CPPClass
   def generate_accessors
     str = ""
     all_fields.each do |name, type, idx, flags|
-      str << "Object* Primitives::access_#{@name}_#{name}(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+      str << "Object* Primitives::access_#{@name}_#{name}(STATE, CallFrame*, Executable* exec, Module*,
                    Arguments& args) {\n"
       str << "  AccessVariable* access = as<AccessVariable>(exec);\n"
       str << "  if(access->write()->true_p()) {\n"
@@ -950,7 +950,7 @@ class CPPParser
           end
           args = m[4].split(/\s*,\s*/)
           # If the first argument is the +STATE+ macro, handle it in +output_args+
-          if args.first == "STATE"
+          if args.first == "STATE" or args.first == "UNUSED_STATE"
             args.shift and pass_state = true
 
             if args.first =~ /GCToken .*/

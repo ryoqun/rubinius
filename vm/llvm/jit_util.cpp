@@ -88,7 +88,7 @@ extern "C" {
   }
 
   void rbx_begin_profiling_block(STATE, void* data, BlockEnvironment* env,
-                                 Module* mod, CompiledMethod* cm)
+                                 Module* mod, CompiledMethod* /*cm*/)
   {
     // Use placement new to stick the class into data, which is on the callers
     // stack.
@@ -751,12 +751,12 @@ extern "C" {
     return rbx_simple_send(state, call_frame, G(sym_tequal), 1, stk);
   }
 
-  Object* rbx_passed_arg(STATE, Arguments& args, int index) {
+  Object* rbx_passed_arg(UNUSED_STATE, Arguments& args, int index) {
     return (index < (int)args.total()) ? cTrue : cFalse;
   }
 
   // TODO remove this and use passed_arg
-  Object* rbx_passed_blockarg(STATE, Arguments& args, int index) {
+  Object* rbx_passed_blockarg(UNUSED_STATE, Arguments& args, int index) {
     return (index == (int)args.total()) ? cTrue : cFalse;
   }
 
@@ -997,7 +997,7 @@ extern "C" {
     return state->vm()->thread_state()->state_as_object(state);
   }
 
-  Object* rbx_restore_exception_state(STATE, CallFrame* call_frame, Object* top) {
+  Object* rbx_restore_exception_state(STATE, CallFrame*, Object* top) {
     if(top->nil_p()) {
       state->vm()->thread_state()->clear();
     } else {
@@ -1311,7 +1311,7 @@ extern "C" {
 
   Object* rbx_continue_debugging(STATE, CallFrame* call_frame,
                                  int32_t entry_ip, native_int sp,
-                                 CallFrame* method_call_frame,
+                                 CallFrame* ,
                                  int32_t unwind_count,
                                  int32_t* input_unwinds,
                                  Object* top_of_stack)

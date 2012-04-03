@@ -131,7 +131,7 @@ namespace rubinius {
     status_ = eOnStack;
   }
 
-  void FiberData::copy_to_heap(STATE) {
+  void FiberData::copy_to_heap(UNUSED_STATE) {
     assert(status_ != eDead);
     assert(stack_);
 

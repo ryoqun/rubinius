@@ -123,7 +123,7 @@ extern "C" {
   }
 
   VALUE rb_check_convert_type(VALUE object_handle, int /*type*/,
-                              const char* type_name, const char* method_name)
+                              const char* /*type_name*/, const char* method_name)
   {
     NativeMethodEnvironment* env = NativeMethodEnvironment::get();
     VALUE name = env->get_handle(String::create(env->state(), method_name));
@@ -343,13 +343,13 @@ extern "C" {
     return obj;
   }
 
-  void rb_check_safe_obj(VALUE obj) {
+  void rb_check_safe_obj(VALUE /*obj*/) {
   }
 
-  void rb_check_safe_str(VALUE obj) {
+  void rb_check_safe_str(VALUE /*obj*/) {
   }
 
-  void rb_secure_update(VALUE obj) {
+  void rb_secure_update(VALUE /*obj*/) {
   }
 
   VALUE rb_any_to_s(VALUE obj) {

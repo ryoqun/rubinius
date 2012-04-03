@@ -35,7 +35,7 @@ namespace rubinius {
     bool positive_p() const;
 
     // Rubinius.primitive :fixnum_s_eqq
-    static Object* is_fixnum(STATE, Object* obj) {
+    static Object* is_fixnum(UNUSED_STATE, Object* obj) {
       return obj->fixnum_p() ? cTrue : cFalse;
     }
 
@@ -135,7 +135,7 @@ namespace rubinius {
     Object* compare(STATE, Float* other);
 
     // Rubinius.primitive! :fixnum_gt
-    Object* gt(STATE, Fixnum* other) {
+    Object* gt(UNUSED_STATE, Fixnum* other) {
       return to_native() > other->to_native() ? cTrue : cFalse;
     }
 
@@ -155,7 +155,7 @@ namespace rubinius {
     Object* ge(STATE, Float* other);
 
     // Rubinius.primitive! :fixnum_lt
-    Object* lt(STATE, Fixnum* other) {
+    Object* lt(UNUSED_STATE, Fixnum* other) {
       return to_native() < other->to_native() ? cTrue : cFalse;
     }
 
@@ -261,7 +261,7 @@ namespace rubinius {
       virtual void mark(Object* t, ObjectMark& mark);
       virtual void show(STATE, Object* self, int level);
       virtual void show_simple(STATE, Object* self, int level);
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
   };
 

@@ -145,7 +145,7 @@ extern "C" {
     Encoding::set_object_encoding(env->state(), val, enc);
   }
 
-  rb_encoding* rb_enc_compatible(VALUE str1, VALUE str2) {
+  rb_encoding* rb_enc_compatible(VALUE str1, VALUE) {
     // TODO
     return rb_enc_get(str1);
   }
@@ -184,7 +184,7 @@ extern "C" {
     return Encoding::find_index(env->state(), enc->get_encoding()->name);
   }
 
-  int rb_enc_dummy_p(rb_encoding *enc) {
+  int rb_enc_dummy_p(rb_encoding *) {
     // TODO
     return 0;
   }

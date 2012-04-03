@@ -199,7 +199,7 @@ namespace jit {
     compile_builder(ctx_, ls, info, work);
   }
 
-  void Compiler::compile_builder(jit::Context& ctx, LLVMState* ls, JITMethodInfo& info,
+  void Compiler::compile_builder(jit::Context& /*ctx*/, LLVMState* /*ls*/, JITMethodInfo& info,
                                      jit::Builder& work)
   {
     function_ = info.function();

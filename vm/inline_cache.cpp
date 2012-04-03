@@ -676,7 +676,7 @@ namespace rubinius {
     private_lock_.unlock();
   }
 
-  void InlineCache::print_location(STATE, std::ostream& stream) {
+  void InlineCache::print_location(UNUSED_STATE, std::ostream& stream) {
 #ifdef TRACK_IC_LOCATION
     stream << vmm_->original->file()->c_str(state)
            << ":" << vmm_->original->line(state, ip_);

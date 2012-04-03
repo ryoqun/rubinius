@@ -89,11 +89,13 @@ namespace thread {
     // Set the name of the thread. Be sure to call this inside perform
     // so that the system can see the proper thread to set if that is
     // available (OS X only atm)
-    static void set_os_name(const char* name) {
 #ifdef HAVE_PTHREAD_SETNAME
+    static void set_os_name(const char* name) {
       pthread_setname_np(name);
-#endif
     }
+#else
+    static void set_os_name(const char*) {}
+#endif
 
     void set_name(const char* name) {
       name_ = name;

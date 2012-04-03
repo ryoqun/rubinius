@@ -505,7 +505,7 @@ step2:
     return vm->om->type_info[type_id()]->object_size(this);
   }
 
-  void ObjectHeader::initialize_copy(ObjectMemory* om, Object* other, unsigned int new_age) {
+  void ObjectHeader::initialize_copy(ObjectMemory* /*om*/, Object* other, unsigned int new_age) {
     /* Even though we dup it, we have to be careful to maintain
      * the zone. */
 

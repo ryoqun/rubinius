@@ -62,7 +62,7 @@ namespace rubinius {
   }
 
   /* Return the +index+ numbered element from the beginning. */
-  Object* List::locate(STATE, size_t index) {
+  Object* List::locate(UNUSED_STATE, size_t index) {
     ListNode* cur = first_;
 
     while(index > 0) {

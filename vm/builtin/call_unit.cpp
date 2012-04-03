@@ -53,17 +53,17 @@ namespace rubinius {
     return pe;
   }
 
-  Object* CallUnit::constant_value_executor(STATE, CallFrame* call_frame,
+  Object* CallUnit::constant_value_executor(UNUSED_STATE, CallFrame*,
                                             CallUnit* unit,
-                                            Executable* exec, Module* mod,
-                                            Arguments& args)
+                                            Executable*, Module*,
+                                            Arguments&)
   {
     return unit->value();
   }
 
   Object* CallUnit::method_executor(STATE, CallFrame* call_frame,
                                             CallUnit* unit,
-                                            Executable* exec, Module* mod,
+                                            Executable*, Module*,
                                             Arguments& args)
   {
     args.set_name(unit->name());
@@ -86,9 +86,9 @@ namespace rubinius {
     }
   }
 
-  Object* CallUnit::kind_of_executor(STATE, CallFrame* call_frame,
+  Object* CallUnit::kind_of_executor(STATE, CallFrame*,
                                             CallUnit* unit,
-                                            Executable* exec, Module* mod,
+                                            Executable*, Module*,
                                             Arguments& args)
   {
     Object* obj;

@@ -60,7 +60,7 @@ extern "C" {
     return rb_external_str_new_with_enc(string, strlen(string), rb_default_external_encoding());
   }
 
-  int rb_enc_str_coderange(VALUE string) {
+  int rb_enc_str_coderange(VALUE /*string*/) {
     // TODO
     return ENC_CODERANGE_7BIT;
   }
@@ -75,7 +75,7 @@ extern "C" {
     return rb_str_new(ptr, len);
   }
 
-  VALUE rb_str_conv_enc(VALUE str, rb_encoding *from, rb_encoding *to) {
+  VALUE rb_str_conv_enc(VALUE str, rb_encoding * /*from*/, rb_encoding * /*to*/) {
     // TODO
     return str;
   }

@@ -38,7 +38,7 @@ namespace rubinius {
    * A specialized version for completeness.
    */
   template <>
-    SPECIALIZATION_STORAGE bool kind_of<Object>(const Object* obj) {
+    SPECIALIZATION_STORAGE bool kind_of<Object>(const Object*) {
       return true;
     }
 

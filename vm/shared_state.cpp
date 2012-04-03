@@ -150,7 +150,7 @@ namespace rubinius {
     return agent_;
   }
 
-  void SharedState::stop_agent(STATE) {
+  void SharedState::stop_agent(UNUSED_STATE) {
     if(agent_) {
       agent_->shutdown_i();
       agent_ = NULL;

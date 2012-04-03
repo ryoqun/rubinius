@@ -1088,7 +1088,7 @@ failed: /* try next '*' position */
     return Fixnum::from(new_fd);
   }
 
-  Object* IO::send_io(STATE, IO* io) {
+  Object* IO::send_io(UNUSED_STATE, IO* io) {
 #ifdef _WIN32
     return Primitives::failure();
 #else
@@ -1207,7 +1207,7 @@ failed: /* try next '*' position */
 #endif
   }
 
-  void IO::set_nonblock(STATE) {
+  void IO::set_nonblock(UNUSED_STATE) {
 #ifdef F_GETFL
     int flags = fcntl(descriptor_->to_native(), F_GETFL);
     if(flags == -1) return;

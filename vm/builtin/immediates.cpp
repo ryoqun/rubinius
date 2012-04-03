@@ -4,21 +4,21 @@
 
 namespace rubinius {
 
-  void FalseClass::Info::mark(Object* t, ObjectMark& mark) { }
+  void FalseClass::Info::mark(Object*, ObjectMark&) { }
 
-  void FalseClass::Info::show(STATE, Object* self, int level) {
+  void FalseClass::Info::show(UNUSED_STATE, Object*, int) {
     std::cout << "'false'" << std::endl;
   }
 
-  void TrueClass::Info::mark(Object* t, ObjectMark& mark) { }
+  void TrueClass::Info::mark(Object*, ObjectMark&) { }
 
-  void TrueClass::Info::show(STATE, Object* self, int level) {
+  void TrueClass::Info::show(UNUSED_STATE, Object*, int) {
     std::cout << "'true'" << std::endl;
   }
 
-  void NilClass::Info::mark(Object* t, ObjectMark& mark) { }
+  void NilClass::Info::mark(Object*, ObjectMark&) { }
 
-  void NilClass::Info::show(STATE, Object* self, int level) {
+  void NilClass::Info::show(UNUSED_STATE, Object*, int) {
     std::cout << "nil" << std::endl;
   }
 

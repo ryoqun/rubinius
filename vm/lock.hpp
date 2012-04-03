@@ -69,7 +69,7 @@ namespace rubinius {
       lock_line_ = line;
     }
 
-    void unlock(ManagedThread* th) {
+    void unlock(ManagedThread*) {
       locking_thread_ = 0;
       thread::Mutex::unlock();
       lock_file_ = "";
@@ -97,7 +97,7 @@ namespace rubinius {
       lock_line_ = line;
     }
 
-    void unlock(ManagedThread* th) {
+    void unlock(ManagedThread*) {
       locking_thread_ = 0;
       thread::SpinLock::unlock();
       lock_file_ = "";

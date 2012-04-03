@@ -44,7 +44,7 @@ namespace rubinius {
     return SymbolTable::Normal;
   }
 
-  SymbolTable::Kind SymbolTable::kind(STATE, const Symbol* sym) {
+  SymbolTable::Kind SymbolTable::kind(UNUSED_STATE, const Symbol* sym) {
     return kinds[sym->index()];
   }
 

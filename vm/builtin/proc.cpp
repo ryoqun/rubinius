@@ -135,13 +135,13 @@ namespace rubinius {
     }
   }
 
-  Object* Proc::call_prim(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+  Object* Proc::call_prim(STATE, CallFrame* call_frame, Executable*, Module*,
                           Arguments& args) {
     return call(state, call_frame, args);
   }
 
   Object* Proc::call_on_object(STATE, CallFrame* call_frame,
-                               Executable* exec, Module* mod, Arguments& args) {
+                               Executable*, Module*, Arguments& args) {
     bool lambda_style = !lambda_->nil_p();
     int flags = 0;
 

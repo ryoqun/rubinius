@@ -169,7 +169,7 @@ extern "C" {
     return klass;
   }
 
-  void rb_attr(VALUE klass, ID id, int read, int write, int ex) {
+  void rb_attr(VALUE klass, ID id, int read, int write, int) {
     // TODO don't ignore ex.
     if(read) {
       rb_funcall(klass, rb_intern("attr_reader"), 1, ID2SYM(id));

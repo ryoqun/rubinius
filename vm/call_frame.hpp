@@ -158,7 +158,7 @@ namespace rubinius {
       return cm->scope();
     }
 
-    bool is_block_p(STATE) {
+    bool is_block_p(UNUSED_STATE) {
       return block_p();
     }
 

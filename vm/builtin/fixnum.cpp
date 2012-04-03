@@ -170,7 +170,7 @@ namespace rubinius {
     return Float::create(state, to_native())->divmod(state, other);
   }
 
-  Integer* Fixnum::neg(STATE) {
+  Integer* Fixnum::neg(UNUSED_STATE) {
     return Fixnum::from(-to_native());
   }
 
@@ -242,7 +242,7 @@ namespace rubinius {
     return this->to_f(state)->fpow(state, exponent);
   }
 
-  Object* Fixnum::equal(STATE, Fixnum* other) {
+  Object* Fixnum::equal(UNUSED_STATE, Fixnum* other) {
     return to_native() == other->to_native() ? cTrue : cFalse;
   }
 
@@ -250,11 +250,11 @@ namespace rubinius {
     return other->equal(state, this);
   }
 
-  Object* Fixnum::equal(STATE, Float* other) {
+  Object* Fixnum::equal(UNUSED_STATE, Float* other) {
     return (double)to_native() == other->val ? cTrue : cFalse;
   }
 
-  Object* Fixnum::compare(STATE, Fixnum* other) {
+  Object* Fixnum::compare(UNUSED_STATE, Fixnum* other) {
     native_int left  = to_native();
     native_int right = other->to_native();
     if(left == right) {
@@ -277,7 +277,7 @@ namespace rubinius {
     }
   }
 
-  Object* Fixnum::compare(STATE, Float* other) {
+  Object* Fixnum::compare(UNUSED_STATE, Float* other) {
     double left  = (double)to_native();
     double right = other->val;
     if(left == right) {
@@ -293,11 +293,11 @@ namespace rubinius {
     return other->lt(state, this);
   }
 
-  Object* Fixnum::gt(STATE, Float* other) {
+  Object* Fixnum::gt(UNUSED_STATE, Float* other) {
     return (double) to_native() > other->val ? cTrue : cFalse;
   }
 
-  Object* Fixnum::ge(STATE, Fixnum* other) {
+  Object* Fixnum::ge(UNUSED_STATE, Fixnum* other) {
     return to_native() >= other->to_native() ? cTrue : cFalse;
   }
 
@@ -305,7 +305,7 @@ namespace rubinius {
     return other->le(state, this);
   }
 
-  Object* Fixnum::ge(STATE, Float* other) {
+  Object* Fixnum::ge(UNUSED_STATE, Float* other) {
     return (double) to_native() >= other->val ? cTrue : cFalse;
   }
 
@@ -313,11 +313,11 @@ namespace rubinius {
     return other->gt(state, this);
   }
 
-  Object* Fixnum::lt(STATE, Float* other) {
+  Object* Fixnum::lt(UNUSED_STATE, Float* other) {
     return (double) to_native() < other->val ? cTrue : cFalse;
   }
 
-  Object* Fixnum::le(STATE, Fixnum* other) {
+  Object* Fixnum::le(UNUSED_STATE, Fixnum* other) {
     return to_native() <= other->to_native() ? cTrue : cFalse;
   }
 
@@ -325,7 +325,7 @@ namespace rubinius {
     return other->ge(state, this);
   }
 
-  Object* Fixnum::le(STATE, Float* other) {
+  Object* Fixnum::le(UNUSED_STATE, Float* other) {
     return (double) to_native() <= other->val ? cTrue : cFalse;
   }
 
@@ -362,11 +362,11 @@ namespace rubinius {
     return Fixnum::from(to_native() >> shift);
   }
 
-  Integer* Fixnum::size(STATE) {
+  Integer* Fixnum::size(UNUSED_STATE) {
     return Fixnum::from(sizeof(native_int));
   }
 
-  Integer* Fixnum::bit_and(STATE, Fixnum* other) {
+  Integer* Fixnum::bit_and(UNUSED_STATE, Fixnum* other) {
     return Fixnum::from(to_native() & other->to_native());
   }
 
@@ -381,7 +381,7 @@ namespace rubinius {
     return Fixnum::from(to_native() & (native_int)other->val);
   }
 
-  Integer* Fixnum::bit_or(STATE, Fixnum* other) {
+  Integer* Fixnum::bit_or(UNUSED_STATE, Fixnum* other) {
     return Fixnum::from(to_native() | other->to_native());
   }
 
@@ -396,7 +396,7 @@ namespace rubinius {
     return Fixnum::from(to_native() | (native_int)other->val);
   }
 
-  Integer* Fixnum::bit_xor(STATE, Fixnum* other) {
+  Integer* Fixnum::bit_xor(UNUSED_STATE, Fixnum* other) {
     return Fixnum::from(to_native() ^ other->to_native());
   }
 
@@ -411,7 +411,7 @@ namespace rubinius {
     return Fixnum::from(to_native() ^ (native_int)other->val);
   }
 
-  Integer* Fixnum::invert(STATE) {
+  Integer* Fixnum::invert(UNUSED_STATE) {
     return Fixnum::from(~to_native());
   }
 
@@ -481,7 +481,7 @@ namespace rubinius {
     return ary;
   }
 
-  void Fixnum::Info::show(STATE, Object* self, int level) {
+  void Fixnum::Info::show(UNUSED_STATE, Object* self, int) {
     Fixnum* f = as<Fixnum>(self);
     std::cout << f->to_native() << std::endl;
   }
@@ -490,5 +490,5 @@ namespace rubinius {
     show(state, self, level);
   }
 
-  void Fixnum::Info::mark(Object* t, ObjectMark& mark) { }
+  void Fixnum::Info::mark(Object*, ObjectMark&) { }
 }

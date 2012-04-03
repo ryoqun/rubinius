@@ -376,7 +376,7 @@ namespace jit {
       break_at(current_ip_ + 2);
     }
 
-    void visit_setup_unwind(opcode which, opcode type) {
+    void visit_setup_unwind(opcode which, opcode /*type*/) {
       // setup_unwind must always refer to an instruction further
       // on in the stream
       assert(current_ip_ < which);
@@ -412,7 +412,7 @@ namespace jit {
       next_ip_too();
     }
 
-    void visit_create_block(opcode which) {
+    void visit_create_block(opcode /*which*/) {
       creates_blocks_ = true;
     }
 
@@ -426,33 +426,33 @@ namespace jit {
       }
     }
 
-    void visit_send_stack(opcode which, opcode args) {
+    void visit_send_stack(opcode which, opcode /*args*/) {
       check_for_eval(which);
       number_of_sends_++;
     }
 
-    void visit_send_method(opcode which) {
+    void visit_send_method(opcode /*which*/) {
       number_of_sends_++;
     }
 
-    void visit_send_stack_with_block(opcode which, opcode args) {
+    void visit_send_stack_with_block(opcode /*which*/, opcode /*args*/) {
       number_of_sends_++;
     }
 
-    void visit_send_stack_with_splat(opcode which, opcode args) {
+    void visit_send_stack_with_splat(opcode which, opcode /*args*/) {
       check_for_eval(which);
       number_of_sends_++;
     }
 
-    void visit_send_super_stack_with_block(opcode which, opcode args) {
+    void visit_send_super_stack_with_block(opcode /*which*/, opcode /*args*/) {
       number_of_sends_++;
     }
 
-    void visit_send_super_stack_with_splat(opcode which, opcode args) {
+    void visit_send_super_stack_with_splat(opcode /*which*/, opcode /*args*/) {
       number_of_sends_++;
     }
 
-    void visit_zsuper(opcode which) {
+    void visit_zsuper(opcode /*which*/) {
       // HACK. zsuper accesses scope.
       calls_evalish_ = true;
       number_of_sends_++;

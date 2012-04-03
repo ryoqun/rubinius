@@ -18,7 +18,7 @@ namespace rubinius {
     return pe;
   }
 
-  Object* Thunk::thunk_executor(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+  Object* Thunk::thunk_executor(STATE, CallFrame* call_frame, Executable* exec, Module*,
                                        Arguments& args)
   {
     Thunk* thunk = as<Thunk>(exec);

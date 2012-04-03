@@ -738,7 +738,7 @@ namespace rubinius {
   const static size_t eMaxInlineSendCount = 10;
 
   void LLVMState::compile_callframe(STATE, CompiledMethod* start, CallFrame* call_frame,
-                                    int primitive) {
+                                    int /*primitive*/) {
 
     if(debug_search) {
       std::cout << std::endl << "JIT:       triggered: "

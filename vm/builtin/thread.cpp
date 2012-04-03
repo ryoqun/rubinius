@@ -257,7 +257,7 @@ namespace rubinius {
     return cNil;
   }
 
-  int Thread::fork_attached(STATE) {
+  int Thread::fork_attached(UNUSED_STATE) {
     pthread_attr_t attrs;
     pthread_attr_init(&attrs);
     pthread_attr_setstacksize(&attrs, 4194304);
@@ -265,13 +265,13 @@ namespace rubinius {
     return pthread_create(&vm_->os_thread(), &attrs, in_new_thread, (void*)vm_);
   }
 
-  Object* Thread::pass(STATE, CallFrame* calling_environment) {
+  Object* Thread::pass(UNUSED_STATE, CallFrame*) {
     struct timespec ts = {0, 0};
     nanosleep(&ts, NULL);
     return cNil;
   }
 
-  Object* Thread::priority(STATE) {
+  Object* Thread::priority(UNUSED_STATE) {
     pthread_t id = vm_->os_thread();
 
     int _policy;
@@ -302,7 +302,7 @@ namespace rubinius {
     return exc;
   }
 
-  Object* Thread::set_priority(STATE, Fixnum* new_priority) {
+  Object* Thread::set_priority(UNUSED_STATE, Fixnum* new_priority) {
     return new_priority;
   }
 

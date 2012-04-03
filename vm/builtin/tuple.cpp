@@ -230,7 +230,7 @@ namespace rubinius {
   /** @todo Add some error checking/handling and
    *  evaluate corner cases, and add tests... --rue
    */
-  Tuple* Tuple::lshift_inplace(STATE, Fixnum* shift) {
+  Tuple* Tuple::lshift_inplace(UNUSED_STATE, Fixnum* shift) {
     native_int size = this->num_fields();
     const int start = shift->to_native();
 
@@ -252,7 +252,7 @@ namespace rubinius {
     return this;
   }
 
-  Object* Tuple::reverse(STATE, Fixnum* o_start, Fixnum* o_total) {
+  Object* Tuple::reverse(UNUSED_STATE, Fixnum* o_start, Fixnum* o_total) {
     native_int start = o_start->to_native();
     native_int total = o_total->to_native();
 

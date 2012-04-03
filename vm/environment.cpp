@@ -132,7 +132,7 @@ namespace rubinius {
   }
 
 #ifndef RBX_WINDOWS
-  static void null_func(int sig) {}
+  static void null_func(int /*sig*/) {}
 #endif
 
 #ifdef USE_EXECINFO

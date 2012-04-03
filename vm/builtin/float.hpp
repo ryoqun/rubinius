@@ -28,7 +28,7 @@ namespace rubinius {
     static Float* create(STATE, float val);
     static Float* create(STATE, native_int val);
     static Float* coerce(STATE, Object* value);
-    double to_double(STATE) { return val; }
+    double to_double(UNUSED_STATE) { return val; }
     void into_string(STATE, char* buf, size_t sz);
 
     // Rubinius.primitive! :float_add
@@ -148,7 +148,7 @@ namespace rubinius {
       virtual void mark(Object* t, ObjectMark& mark);
       virtual void show(STATE, Object* self, int level);
       virtual void show_simple(STATE, Object* self, int level);
-      virtual void auto_mark(Object* obj, ObjectMark& mark) {}
+      virtual void auto_mark(Object*, ObjectMark&) {}
     };
   };
 }

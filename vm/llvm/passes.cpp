@@ -2,6 +2,9 @@
 
 #include "llvm/passes.hpp"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include <llvm/Attributes.h>
 #include <llvm/BasicBlock.h>
 #include <llvm/Function.h>
@@ -15,6 +18,9 @@
 #include <llvm/Analysis/SparsePropagation.h>
 #include <llvm/Analysis/AliasAnalysis.h>
 #include <llvm/Support/raw_ostream.h>
+
+#pragma GCC diagnostic pop
+
 #include <iostream>
 
 namespace {
@@ -334,7 +340,7 @@ namespace {
       return false;
     }
 
-    virtual bool runOnFunction(Function& func) {
+    virtual bool runOnFunction(Function& /*func*/) {
       InitializeAliasAnalysis(this);
       return false;
     }

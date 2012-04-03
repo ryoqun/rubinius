@@ -525,7 +525,7 @@ namespace jit {
 
 
 
-  void MethodBuilder::initialize_frame(int stack_size) {
+  void MethodBuilder::initialize_frame(int /*stack_size*/) {
     Value* cm_gep = get_field(call_frame, offset::CallFrame::cm);
     method = b().CreateBitCast(
         exec, cast<llvm::PointerType>(cm_gep->getType())->getElementType(), "cm");

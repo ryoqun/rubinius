@@ -23,7 +23,7 @@ namespace rubinius {
     static AtomicReference* allocate(STATE);
 
     // Rubinius.primitive :atomic_get
-    Object* get(STATE) {
+    Object* get(UNUSED_STATE) {
       atomic::memory_barrier();
       return value_;
     }

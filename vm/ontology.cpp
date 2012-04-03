@@ -460,7 +460,7 @@ namespace rubinius {
     G(rubinius)->set_const(state, "SIZEOF_LONG", Fixnum::from(sizeof(long)));
   }
 
-  void VM::bootstrap_symbol(STATE) {
+  void VM::bootstrap_symbol(UNUSED_STATE) {
 #define add_sym(name) GO(sym_ ## name).set(symbol(#name))
     add_sym(object_id);
     add_sym(method_missing);

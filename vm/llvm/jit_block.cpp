@@ -145,7 +145,7 @@ namespace jit {
     nil_locals();
   }
 
-  void BlockBuilder::initialize_frame(int stack_size) {
+  void BlockBuilder::initialize_frame(int /*stack_size*/) {
     Value* cm_gep = get_field(call_frame, offset::CallFrame::cm);
 
     method = b().CreateLoad(get_field(block_env, offset::BlockEnvironment::code),

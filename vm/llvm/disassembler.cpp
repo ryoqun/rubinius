@@ -2,6 +2,10 @@
 
 #include "vm/config.h"
 #include "llvm/disassembler.hpp"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include <llvm/Support/Host.h>
 #include <llvm/Instructions.h>
 #include <llvm/Support/TargetSelect.h>
@@ -14,6 +18,9 @@
 #include <llvm/MC/MCAsmInfo.h>
 #include <llvm/MC/MCInst.h>
 #include <llvm/Support/raw_ostream.h>
+
+#pragma GCC diagnostic pop
+
 #include <sstream>
 #include <iostream>
 #include <iomanip>

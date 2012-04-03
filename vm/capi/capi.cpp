@@ -139,7 +139,7 @@ namespace rubinius {
     /**
      *  Common implementation for rb_funcall*
      */
-    VALUE capi_funcall_backend(const char* file, int line,
+    VALUE capi_funcall_backend(const char*, int,
                                VALUE receiver, ID method_name,
                                size_t arg_count, VALUE* arg_array)
     {
@@ -183,7 +183,7 @@ namespace rubinius {
     }
 
     VALUE capi_funcall_backend_native(NativeMethodEnvironment* env,
-                                      const char* file, int line,
+                                      const char*, int,
                                       Object* recv, Symbol* method,
                                       size_t arg_count,
                                       Object** args, Object* block)

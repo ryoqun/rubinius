@@ -151,7 +151,7 @@ namespace rubinius {
     }
   }
 
-  Fixnum* NativeFunction::type_size_prim(STATE, Fixnum* type) {
+  Fixnum* NativeFunction::type_size_prim(UNUSED_STATE, Fixnum* type) {
     return Fixnum::from(NativeFunction::type_size(type->to_native()));
   }
 
@@ -374,7 +374,7 @@ namespace rubinius {
     return func;
   }
 
-  static void invoke_callback(ffi_cif* cif, void* retval,
+  static void invoke_callback(ffi_cif* , void* retval,
                               void** parameters, void* user_data) {
     NativeMethodEnvironment* env = NativeMethodEnvironment::get();
     FFIData* stub =

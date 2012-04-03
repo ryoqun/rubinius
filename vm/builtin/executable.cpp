@@ -59,7 +59,7 @@ namespace rubinius {
     return execute(state, call_frame, disp.method, disp.module, args);
   }
 
-  Object* Executable::default_executor(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
+  Object* Executable::default_executor(STATE, CallFrame* call_frame, Executable* exec, Module*,
                                        Arguments& args) {
     args.unshift2(state, args.recv(), args.name());
     args.set_recv(exec);
@@ -118,7 +118,7 @@ namespace rubinius {
     om->add_code_resource(this);
   }
 
-  void Inliners::cleanup(STATE, CodeManager* cm) {
+  void Inliners::cleanup(UNUSED_STATE, CodeManager*) {
     inliners_.clear();
   }
 }

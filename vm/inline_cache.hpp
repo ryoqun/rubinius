@@ -153,7 +153,7 @@ namespace rubinius {
       return vmm_;
     }
 #else
-    void set_location(int ip, VMMethod* vmm) { }
+    void set_location(int, VMMethod*) { }
 #endif
 
     void print_location(STATE, std::ostream& stream);

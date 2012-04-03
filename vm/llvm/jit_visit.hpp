@@ -443,7 +443,7 @@ namespace rubinius {
 
     // visitors.
 
-    void visit(opcode op, opcode arg1, opcode arg2) {
+    void visit(opcode /*op*/, opcode /*arg1*/, opcode /*arg2*/) {
       throw Unsupported();
     }
 
@@ -679,7 +679,7 @@ namespace rubinius {
       return invoke_inline_cache(cache);
     }
 
-    Value* block_send(InlineCache* cache, int args, bool priv=false) {
+    Value* block_send(InlineCache* cache, int args, bool /*priv*/=false) {
       sends_done_++;
       Value* cache_const = b().CreateIntToPtr(
           clong(reinterpret_cast<uintptr_t>(cache)),

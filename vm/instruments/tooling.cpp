@@ -42,7 +42,7 @@ namespace tooling {
     enable_func_(state->vm()->tooling_env());
   }
 
-  bool ToolBroker::available(STATE) {
+  bool ToolBroker::available(UNUSED_STATE) {
     if(enable_func_) return true;
     return false;
   }
@@ -61,7 +61,7 @@ namespace tooling {
     return res;
   }
 
-  void* ToolBroker::enter_method(STATE, Executable* exec, Module* o_mod,
+  void* ToolBroker::enter_method(STATE, Executable*, Module* o_mod,
                                  Arguments& args, CompiledMethod* cm)
   {
     if(!enter_method_func_) return 0;

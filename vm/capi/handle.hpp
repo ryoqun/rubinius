@@ -51,7 +51,7 @@ namespace rubinius {
       } as_;
 
     public:
-      Handle(STATE, Object* obj)
+      Handle(UNUSED_STATE, Object* obj)
         : LinkedList::Node()
         , object_(obj)
         , type_(cUnknown)

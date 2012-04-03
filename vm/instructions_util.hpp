@@ -22,7 +22,7 @@ namespace rubinius {
         set_stream(vmm->opcodes, vmm->total);
       }
 
-      void visit(opcode code, opcode arg1, opcode arg2) { }
+      void visit(opcode /*code*/, opcode /*arg1*/, opcode /*arg2*/) { }
 
 #define HANDLE_INST0(code, name) \
       void visit_ ## name() { SPECIFIC->visit(code, -1, -1); }
@@ -39,8 +39,8 @@ namespace rubinius {
 #undef HANDLE_INST1
 #undef HANDLE_INST2
 
-      void at_ip(int ip) { }
-      bool before(opcode op, opcode arg1 = 0, opcode arg2 = 0) { return true; }
+      void at_ip(int /*ip*/) {}
+      bool before(opcode /*op*/, opcode /*arg1*/ = 0, opcode /*arg2*/ = 0) { return true; }
 
       int dispatch(int ip) {
         SPECIFIC->at_ip(ip);

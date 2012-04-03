@@ -11,7 +11,7 @@ using namespace rubinius::capi;
 
 namespace rubinius {
   namespace capi {
-    RData* Handle::create_rdata(NativeMethodEnvironment* env) {
+    RData* Handle::create_rdata(NativeMethodEnvironment*) {
       type_ = cRData;
 
       RData* rdata = new RData;

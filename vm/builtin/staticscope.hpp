@@ -56,7 +56,7 @@ namespace rubinius {
     // Rubinius.primitive :static_scope_cvar_get_or_set
     Object* cvar_get_or_set(STATE, Symbol* name, Object* value);
 
-    bool top_level_p(STATE) {
+    bool top_level_p(UNUSED_STATE) {
       return parent_->nil_p();
     }
 

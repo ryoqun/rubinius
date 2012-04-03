@@ -284,14 +284,14 @@ namespace rubinius {
     return ary;
   }
 
-  Object* LookupTable::get_key(STATE, LookupTableBucket* entry) {
+  Object* LookupTable::get_key(UNUSED_STATE, LookupTableBucket* entry) {
     return entry->key();
   }
 
   Array* LookupTable::all_keys(STATE) {
     class all_keys : public CollectAction {
     public:
-      virtual Object* call(STATE, LookupTableBucket* bucket) {
+      virtual Object* call(UNUSED_STATE, LookupTableBucket* bucket) {
         return bucket->key();
       }
     } match;
@@ -317,7 +317,7 @@ namespace rubinius {
     return collect(state, this, match, ary);
   }
 
-  Object* LookupTable::get_value(STATE, LookupTableBucket* entry) {
+  Object* LookupTable::get_value(UNUSED_STATE, LookupTableBucket* entry) {
     return entry->value();
   }
 
@@ -325,7 +325,7 @@ namespace rubinius {
     return collect(state, this, get_value);
   }
 
-  Object* LookupTable::get_entry(STATE, LookupTableBucket* entry) {
+  Object* LookupTable::get_entry(UNUSED_STATE, LookupTableBucket* entry) {
     return entry;
   }
 

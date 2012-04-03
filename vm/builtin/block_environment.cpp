@@ -354,7 +354,7 @@ namespace rubinius {
   }
 
   Object* BlockEnvironment::call_prim(STATE, CallFrame* call_frame,
-                                      Executable* exec, Module* mod,
+                                      Executable*, Module*,
                                       Arguments& args)
   {
     return call(state, call_frame, args);
@@ -379,7 +379,7 @@ namespace rubinius {
   }
 
   Object* BlockEnvironment::call_under(STATE,CallFrame* call_frame,
-                                       Executable* exec, Module* mod,
+                                       Executable*, Module*,
                                        Arguments& args)
   {
     if(args.total() < 2) {
@@ -433,7 +433,7 @@ namespace rubinius {
     return be;
   }
 
-  Object* BlockEnvironment::of_sender(STATE, CallFrame* call_frame) {
+  Object* BlockEnvironment::of_sender(UNUSED_STATE, CallFrame* call_frame) {
     if(NativeMethodFrame* nmf = call_frame->previous->native_method_frame()) {
       return NativeMethodEnvironment::get()->get_object(nmf->block());
     }

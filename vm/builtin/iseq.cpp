@@ -24,8 +24,7 @@ namespace rubinius {
     return width;
   }
 
-  void InstructionSequence::post_marshal(STATE) {
-
+  void InstructionSequence::post_marshal(UNUSED_STATE) {
   }
 
 #include "gen/instruction_names.cpp"

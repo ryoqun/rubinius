@@ -14,7 +14,7 @@
 #endif
 
 namespace rubinius {
-  void ImmixGC::ObjectDescriber::added_chunk(int count) {
+  void ImmixGC::ObjectDescriber::added_chunk(int /*count*/) {
 #ifdef IMMIX_DEBUG
     std::cout << "[GC IMMIX: Added a chunk: " << count << "]\n";
 #endif

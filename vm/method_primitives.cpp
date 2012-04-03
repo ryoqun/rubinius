@@ -15,7 +15,7 @@
 
 namespace rubinius {
 
-  Object* Primitives::unknown_primitive(STATE, CallFrame* call_frame, Executable* exec, Module* mod, Arguments& args) {
+  Object* Primitives::unknown_primitive(STATE, CallFrame* /*call_frame*/, Executable* /*exec*/, Module* /*mod*/, Arguments& args) {
     std::string message = std::string("Called unbound or invalid primitive from method name: ");
     message += args.name()->to_str(state)->c_str(state);
 
@@ -25,7 +25,7 @@ namespace rubinius {
   }
 
 #ifdef ENABLE_LLVM
-  void Primitives::queue_for_jit(STATE, CallFrame* call_frame, int which) {
+  void Primitives::queue_for_jit(UNUSED_STATE, CallFrame* /*call_frame*/, int /*which*/) {
     // LLVMState* ls = LLVMState::get(state);
     // ls->compile_callframe(state, 0, call_frame, which);
   }

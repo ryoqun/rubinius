@@ -53,15 +53,15 @@ namespace agent {
       output.error("unimplemented");
     }
 
-    virtual bool read_path(Output& output, const char* ipath) {
+    virtual bool read_path(Output&, const char*) {
       return false;
     }
 
-    virtual void set(Output& output, bert::Value* val) {
+    virtual void set(Output& output, bert::Value*) {
       output.error("unimplemented");
     }
 
-    virtual bool set_path(Output& output, const char* path, bert::Value* val) {
+    virtual bool set_path(Output&, const char*, bert::Value*) {
       return false;
     }
   };

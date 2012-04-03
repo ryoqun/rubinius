@@ -1003,7 +1003,7 @@ namespace rubinius {
     return Primitives::failure();
   }
 
-  Object* System::vm_singleton_class_object(STATE, Module* mod) {
+  Object* System::vm_singleton_class_object(UNUSED_STATE, Module* mod) {
     if(SingletonClass* sc = try_as<SingletonClass>(mod)) {
       return sc->attached_instance();
     }
@@ -1015,7 +1015,7 @@ namespace rubinius {
     return obj->respond_to(state, name, cFalse);
   }
 
-  Object* System::vm_object_equal(STATE, Object* a, Object* b) {
+  Object* System::vm_object_equal(UNUSED_STATE, Object* a, Object* b) {
     return a == b ? cTrue : cFalse;
   }
 
@@ -1442,7 +1442,7 @@ namespace rubinius {
     return Primitives::failure();
   }
 
-  Object* System::vm_memory_barrier(STATE) {
+  Object* System::vm_memory_barrier(UNUSED_STATE) {
     atomic::memory_barrier();
     return cNil;
   }
@@ -1455,11 +1455,11 @@ namespace rubinius {
     return LANGUAGE_19_ENABLED(state) ? cTrue : cFalse;
   }
 
-  Object* System::vm_ruby20_p(STATE) {
+  Object* System::vm_ruby20_p(UNUSED_STATE) {
     return LANGUAGE_20_ENABLED(state) ? cTrue : cFalse;
   }
 
-  Object* System::vm_windows_p(STATE) {
+  Object* System::vm_windows_p(UNUSED_STATE) {
 #ifdef RBX_WINDOWS
     return cTrue;
 #else
@@ -1467,7 +1467,7 @@ namespace rubinius {
 #endif
   }
 
-  Object* System::vm_darwin_p(STATE) {
+  Object* System::vm_darwin_p(UNUSED_STATE) {
 #ifdef RBX_DARWIN
     return cTrue;
 #else
@@ -1475,7 +1475,7 @@ namespace rubinius {
 #endif
   }
 
-  Object* System::vm_bsd_p(STATE) {
+  Object* System::vm_bsd_p(UNUSED_STATE) {
 #ifdef RBX_BSD
     return cTrue;
 #else
@@ -1483,7 +1483,7 @@ namespace rubinius {
 #endif
   }
 
-  Object* System::vm_linux_p(STATE) {
+  Object* System::vm_linux_p(UNUSED_STATE) {
 #ifdef RBX_LINUX
     return cTrue;
 #else
@@ -1622,7 +1622,7 @@ namespace rubinius {
     return m;
   }
 
-  Fixnum* System::vm_hash_trie_item_index(STATE, Fixnum* hash,
+  Fixnum* System::vm_hash_trie_item_index(UNUSED_STATE, Fixnum* hash,
                                            Fixnum* level, Integer* map)
   {
     size_t m = map->to_ulong();

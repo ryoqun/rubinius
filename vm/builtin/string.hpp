@@ -58,7 +58,7 @@ namespace rubinius {
     void update_handle();
 
     template <class T>
-      void num_bytes(T state, Fixnum* obj) {
+      void num_bytes(T, Fixnum* obj) {
         num_bytes_ = obj;
         update_handle();
       }
@@ -100,7 +100,7 @@ namespace rubinius {
     }
 
     // Rubinius.primitive :string_equal
-    Object* equal(STATE, String* other) {
+    Object* equal(UNUSED_STATE, String* other) {
       if(this->num_bytes() != other->num_bytes()) return cFalse;
       int comp = memcmp(
           this->byte_address(),

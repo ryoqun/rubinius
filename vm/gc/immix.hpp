@@ -71,7 +71,7 @@ namespace rubinius {
 
       memory::Address copy(memory::Address original, immix::Allocator& alloc);
 
-      void walk_pointers(memory::Address addr, immix::Marker<ObjectDescriber>& mark) {
+      void walk_pointers(memory::Address addr, immix::Marker<ObjectDescriber>&) {
         gc_->scan_object(addr.as<Object>());
       }
 

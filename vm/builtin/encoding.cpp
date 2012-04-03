@@ -422,7 +422,7 @@ namespace rubinius {
     return Encoding::replicate(state, name->c_str(state), this);
   }
 
-  Object* Encoding::ascii_compatible_p(STATE) {
+  Object* Encoding::ascii_compatible_p(UNUSED_STATE) {
     bool v = encoding_->min_enc_len == 1 && dummy_ == cFalse;
     return v ? cTrue : cFalse;
   }

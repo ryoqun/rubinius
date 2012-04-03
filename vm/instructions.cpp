@@ -215,7 +215,7 @@ exception:
 Object* VMMethod::uncommon_interpreter(STATE,
                                        VMMethod* const vmm,
                                        CallFrame* const call_frame,
-                                       int32_t entry_ip,
+                                       int32_t /*entry_ip*/,
                                        native_int sp,
                                        CallFrame* const method_call_frame,
                                        jit::RuntimeDataHolder* rd,
