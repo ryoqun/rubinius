@@ -983,8 +983,6 @@ instruction meta_send_stack_pop(literal count) [ receiver +count -- ] => send
   Object* recv = stack_back(count);
   InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
 
-  SET_ALLOW_PRIVATE(false);
-
   Arguments args(cache->name, recv, cNil, count,
                  stack_back_position(count));
 
@@ -1069,8 +1067,6 @@ instruction meta_send_stack_with_block_pop(literal count) [ block receiver +coun
 
   Arguments args(cache->name, recv, block, count,
                  stack_back_position(count));
-
-  SET_ALLOW_PRIVATE(false);
 
   Object* ret = cache->execute(state, call_frame, args);
 
@@ -1177,7 +1173,6 @@ instruction meta_send_stack_with_splat_pop(literal count) [ block array receiver
   }
 
   SET_CALL_FLAGS(0);
-  SET_ALLOW_PRIVATE(false);
 
   Object* ret = cache->execute(state, call_frame, args);
 
