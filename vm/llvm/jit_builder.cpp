@@ -431,6 +431,11 @@ namespace jit {
       number_of_sends_++;
     }
 
+    void visit_meta_send_stack_pop(opcode which, opcode args) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
     void visit_send_method(opcode which) {
       number_of_sends_++;
     }
@@ -440,6 +445,15 @@ namespace jit {
     }
 
     void visit_send_stack_with_splat(opcode which, opcode args) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
+    void visit_meta_send_stack_with_block_pop(opcode which, opcode args) {
+      number_of_sends_++;
+    }
+
+    void visit_meta_send_stack_with_splat_pop(opcode which, opcode args) {
       check_for_eval(which);
       number_of_sends_++;
     }
@@ -464,6 +478,11 @@ namespace jit {
     }
 
     void visit_set_local(opcode which) {
+      LocalInfo* li = info_.get_local(which);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_pop(opcode which) {
       LocalInfo* li = info_.get_local(which);
       li->inc_set();
     }
