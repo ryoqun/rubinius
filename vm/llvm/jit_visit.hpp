@@ -293,6 +293,61 @@ namespace rubinius {
       stack_push(phi);
     }
 
+    void check_for_return_pop(Value* val) {
+      BasicBlock* cont = new_block();
+
+      Value* null = Constant::getNullValue(ObjType);
+
+      BasicBlock* orig = current_block();
+
+      Value* cmp = b().CreateICmpEQ(val, null, "null_check");
+      BasicBlock* is_break = new_block("is_break");
+
+      b().CreateCondBr(cmp, is_break, cont);
+
+      /////
+      set_block(is_break);
+
+      Signature brk(ls_, ls_->Int1Ty);
+      brk << StateTy;
+      brk << CallFrameTy;
+
+      Value* call_args[] = {
+        vm_,
+        call_frame_
+      };
+
+      Value* isit = brk.call("rbx_break_to_here", call_args, 2, "bth", b());
+
+      BasicBlock* push_break_val = new_block("push_break_val");
+      BasicBlock* next = 0;
+
+      // If there are handlers...
+      if(has_exception_handler()) {
+        next = exception_handler();
+      } else {
+        next = bail_out_;
+      }
+
+      b().CreateCondBr(isit, push_break_val, next);
+
+      ////
+      set_block(push_break_val);
+
+      Signature clear(ls_, ObjType);
+      clear << StateTy;
+      Value* crv = clear.call("rbx_clear_raise_value", &vm_, 1, "crv", b());
+
+      b().CreateBr(cont);
+
+      /////
+      set_block(cont);
+
+      PHINode* phi = b().CreatePHI(ObjType, 2, "possible_break");
+      phi->addIncoming(val, orig);
+      phi->addIncoming(crv, push_break_val);
+    }
+
     void propagate_exception() {
       // If there are handlers...
       if(has_exception_handler()) {
@@ -1150,6 +1205,11 @@ namespace rubinius {
       b().CreateStore(stack_top(), pos);
     }
 
+    void visit_meta_set_stack_local_pop(opcode which) {
+      Value* pos = stack_slot_position(vmmethod()->stack_size - which - 1);
+      b().CreateStore(stack_pop(), pos);
+    }
+
     void visit_push_local(opcode which) {
       Value* idx2[] = {
         cint(0),
@@ -1248,6 +1308,53 @@ namespace rubinius {
         val = b().CreateCall(func, outgoing_args, "ary");
       } else {
         val = stack_top();
+      }
+
+      b().CreateStore(val, pos);
+    }
+
+    void visit_meta_set_local_pop(opcode which) {
+      Value* idx2[] = {
+        cint(0),
+        cint(offset::vars_tuple),
+        cint(which)
+      };
+
+      Value* pos = b().CreateGEP(vars_, idx2, "local_pos");
+
+      Value* val;
+
+      JITStackArgs* inline_args = incoming_args();
+      if(inline_args && current_hint() == cHintLazyBlockArgs) {
+        std::vector<Type*> types;
+        types.push_back(ls_->ptr_type("State"));
+        types.push_back(ls_->Int32Ty);
+
+        FunctionType* ft = FunctionType::get(ls_->ptr_type("Object"), types, true);
+        Function* func = cast<Function>(
+            ls_->module()->getOrInsertFunction("rbx_create_array", ft));
+
+        std::vector<Value*> outgoing_args;
+        outgoing_args.push_back(vm());
+
+        int ary_size;
+        if(block_arg_shift_ >= (int)inline_args->size()) {
+          ary_size = 0;
+        } else {
+          ary_size = (int)inline_args->size() - block_arg_shift_;
+        }
+
+        outgoing_args.push_back(cint(ary_size));
+
+        if(ary_size > 0) {
+          for(size_t i = block_arg_shift_; i < inline_args->size(); i++) {
+            outgoing_args.push_back(inline_args->at(i));
+          }
+        }
+
+        val = b().CreateCall(func, outgoing_args, "ary");
+      } else {
+        val = stack_pop();
       }
 
       b().CreateStore(val, pos);
@@ -1531,6 +1638,72 @@ namespace rubinius {
       allow_private_ = false;
     }
 
+    void visit_meta_send_stack_pop(opcode which, opcode args) {
+      InlineCache* cache = reinterpret_cast<InlineCache*>(which);
+
+      MethodCacheEntry* mce = cache->cache();
+      atomic::memory_barrier();
+
+      if(mce) {
+        BasicBlock* failure = new_block("fallback");
+        BasicBlock* cont = new_block("continue");
+
+        Inliner inl(context(), *this, cache, args, failure);
+        if(inl.consider()) {
+          if(!inl.fail_to_send() && !in_inlined_block()) {
+            BasicBlock* cur = b().GetInsertBlock();
+
+            set_block(failure);
+            emit_uncommon();
+
+            set_block(cur);
+            stack_remove(args+1);
+            if(inl.check_for_exception()) {
+              check_for_exception(inl.result());
+            }
+
+            type::KnownType kt = inl.guarded_type();
+
+            if(kt.local_source_p() && kt.known_p()) {
+              current_jbb_->add_local(kt.local_id(), kt);
+            }
+
+            b().CreateBr(cont);
+
+            set_block(cont);
+          } else {
+            // Emit both the inlined code and a send for it
+            BasicBlock* inline_block = b().GetInsertBlock();
+
+            b().CreateBr(cont);
+
+            set_block(failure);
+            Value* send_res = inline_cache_send(args, cache);
+            b().CreateBr(cont);
+
+            set_block(cont);
+            PHINode* phi = b().CreatePHI(ObjType, 2, "send_result");
+            phi->addIncoming(inl.result(), inline_block);
+            phi->addIncoming(send_res, failure);
+
+            stack_remove(args + 1);
+            check_for_exception(phi);
+          }
+
+          allow_private_ = false;
+          return;
+        }
+      }
+
+      set_has_side_effects();
+
+      Value* ret = inline_cache_send(args, cache);
+      stack_remove(args + 1);
+      check_for_exception(ret);
+
+      allow_private_ = false;
+    }
+
     void visit_call_custom(opcode which, opcode args) {
       if(state()->config().jit_inline_debug) {
         ls_->log() << "generate: call_custom\n";
@@ -1679,7 +1852,8 @@ namespace rubinius {
     void visit_create_block(opcode which) {
       // If we're creating a block to pass directly to
       // send_stack_with_block, delay doing so.
-      if(next_op() == InstructionSequence::insn_send_stack_with_block) {
+      if(next_op() == InstructionSequence::insn_send_stack_with_block ||
+         next_op() == InstructionSequence::insn_meta_send_stack_with_block_pop) {
         // Push a placeholder and register which literal we would
         // use for the block. The later send handles whether to actually
         // emit the call to create the block (replacing the placeholder)
@@ -1839,6 +2013,150 @@ use_send:
       current_block_ = -1;
     }
 
+    void visit_meta_send_stack_with_block_pop(opcode which, opcode args) {
+      set_has_side_effects();
+
+      bool has_literal_block = (current_block_ >= 0);
+      bool block_on_stack = !has_literal_block;
+
+      InlineCache* cache = reinterpret_cast<InlineCache*>(which);
+      CompiledMethod* block_code = 0;
+
+      MethodCacheEntry* mce = cache->cache();
+      atomic::memory_barrier();
+
+      if(mce &&
+          ls_->config().jit_inline_blocks &&
+          !context().inlined_block()) {
+        if(has_literal_block) {
+          block_code = try_as<CompiledMethod>(literal(current_block_));
+
+          // Run the policy on the block code here, if we're not going to
+          // inline it, don't inline this either.
+          InlineOptions opts;
+          if(ls_->config().version >= 19) {
+            opts.inlining_block_19();
+          } else {
+            opts.inlining_block();
+          }
+
+          InlineDecision decision = inline_policy()->inline_p(
+                                      block_code->backend_method(), opts);
+          if(decision == cTooComplex) {
+            if(state()->config().jit_inline_debug) {
+              context().inline_log("NOT inlining")
+                        << "block was too complex\n";
+            }
+            goto use_send;
+          } else if(decision != cInline) {
+            goto use_send;
+          }
+        } else {
+          // If there is no literal block, we don't inline the method at all.
+          // This is probably overkill, we should revise this and inline
+          // the method anyway.
+          goto use_send;
+        }
+
+        // Ok, we decision was cInline, so lets do this!
+        BasicBlock* failure = new_block("fallback");
+        BasicBlock* cont = new_block("continue");
+        BasicBlock* cleanup = new_block("send_done");
+        PHINode* send_result = b().CreatePHI(ObjType, 1, "send_result");
+
+        Inliner inl(context(), *this, cache, args, failure);
+
+        VMMethod* code = 0;
+        if(block_code) code = block_code->backend_method();
+        JITInlineBlock block_info(ls_, send_result, cleanup, block_code, code, &info(),
+                                  current_block_);
+
+        inl.set_inline_block(&block_info);
+
+        int stack_cleanup = args + 2;
+
+        // So that the inliner can find recv and args properly.
+        inl.set_block_on_stack();
+
+        if(inl.consider()) {
+          if(!inl.fail_to_send() && !in_inlined_block()) {
+            send_result->addIncoming(inl.result(), b().GetInsertBlock());
+
+            b().CreateBr(cleanup);
+
+            set_block(failure);
+            if(!block_on_stack) {
+              emit_create_block(current_block_);
+              block_on_stack = true;
+            }
+            emit_uncommon();
+
+            set_block(cleanup);
+            send_result->removeFromParent();
+            cleanup->getInstList().push_back(send_result);
+
+            // send_result->moveBefore(&cleanup->back());
+
+            stack_remove(stack_cleanup);
+            if(inl.check_for_exception()) {
+              check_for_exception(send_result);
+            }
+
+            b().CreateBr(cont);
+
+            set_block(cont);
+          } else {
+            // Emit both the inlined code and a send for it
+            send_result->addIncoming(inl.result(), b().GetInsertBlock());
+
+            b().CreateBr(cleanup);
+
+            set_block(failure);
+            if(!block_on_stack) {
+              emit_create_block(current_block_);
+              block_on_stack = true;
+            }
+
+            Value* send_res = block_send(cache, args, allow_private_);
+            b().CreateBr(cleanup);
+
+            set_block(cleanup);
+            send_result->removeFromParent();
+            cleanup->getInstList().push_back(send_result);
+
+            send_result->addIncoming(send_res, failure);
+
+            stack_remove(stack_cleanup);
+            check_for_exception(send_result);
+          }
+
+          allow_private_ = false;
+
+          // Clear the current block
+          current_block_ = -1;
+          return;
+        }
+
+        // Don't need it.
+        send_result->eraseFromParent();
+      }
+
+use_send:
+
+      // Detect a literal block being created and passed here.
+      if(!block_on_stack) {
+        emit_create_block(current_block_);
+      }
+
+      Value* ret = block_send(cache, args, allow_private_);
+      stack_remove(args + 2);
+      check_for_return_pop(ret);
+      allow_private_ = false;
+
+      // Clear the current block
+      current_block_ = -1;
+    }
+
     void visit_send_stack_with_splat(opcode which, opcode args) {
       set_has_side_effects();
 
@@ -1851,6 +2169,23 @@ use_send:
       stack_remove(args + 3);
       check_for_exception(ret);
       stack_push(ret);
+      allow_private_ = false;
+
+      // Clear the current block
+      current_block_ = -1;
+    }
+
+    void visit_meta_send_stack_with_splat_pop(opcode which, opcode args) {
+      set_has_side_effects();
+
+      if(current_block_ >= 0) {
+        emit_create_block(current_block_);
+      }
+
+      InlineCache* cache = reinterpret_cast<InlineCache*>(which);
+      Value* ret = splat_send(cache->name, args, allow_private_);
+      stack_remove(args + 3);
+      check_for_exception(ret);
       allow_private_ = false;
 
       // Clear the current block
@@ -2786,6 +3121,84 @@ use_send:
       stack_push(val);
     }
 
+    void visit_meta_yield_stack_pop(opcode count) {
+      if(skip_yield_stack_) {
+        skip_yield_stack_ = false;
+        return;
+      }
+
+      set_has_side_effects();
+
+      JITInlineBlock* ib = info().inline_block();
+
+      // Hey! Look at that! We know the block we'd be yielding to
+      // statically! woo! ok, lets just emit the code for it here!
+      if(ib && ib->code()) {
+        context().set_inlined_block(true);
+
+        JITMethodInfo* creator = ib->creation_scope();
+        assert(creator);
+
+        // Count the block against the policy size total
+        inline_policy()->increase_size(ib->code());
+
+        // We inline unconditionally here, since we make the decision
+        // wrt the block when we are considering inlining the send that
+        // has the block on it.
+        Inliner inl(context(), *this, count);
+
+        // Propagate the creator's inlined block into the inlined block.
+        // This is so that if the inlined block yields, it can see the outer
+        // inlined block and emit code for it.
+        inl.set_inline_block(creator->inline_block());
+
+        // Make it's inlining info available to itself
+        inl.set_block_info(ib);
+
+        inl.set_creator(creator);
+
+        inl.inline_block(ib, get_self(creator->variables()));
+
+        stack_remove(count);
+        if(inl.check_for_exception()) {
+          check_for_exception(inl.result());
+        }
+        return;
+      }
+
+      Value* vars = vars_;
+
+      if(JITMethodInfo* home = info().home_info()) {
+        vars = home->variables();
+      }
+
+      Signature sig(ls_, ObjType);
+
+      sig << StateTy;
+      sig << CallFrameTy;
+      sig << "Object";
+      sig << ls_->Int32Ty;
+      sig << ObjArrayTy;
+
+      Value* block_obj = b().CreateLoad(
+          b().CreateConstGEP2_32(vars, 0, offset::vars_block),
+          "block");
+
+      Value* call_args[] = {
+        vm_,
+        call_frame_,
+        block_obj,
+        cint(count),
+        stack_objects(count)
+      };
+
+      flush_ip();
+      Value* val = sig.call("rbx_yield_stack", call_args, 5, "ys", b());
+      stack_remove(count);
+
+      check_for_exception(val);
+    }
+
     void visit_yield_splat(opcode count) {
       set_has_side_effects();
 
@@ -3444,6 +3857,73 @@ use_send:
       // TODO: why would rbx_push_ivar raise an exception?
       // check_for_exception(val);
       stack_push(val);
+    }
+
+    void visit_meta_set_ivar_pop(opcode which) {
+      Symbol* name = as<Symbol>(literal(which));
+
+      if(Class* klass = try_as<Class>(info().self_class())) {
+
+        if(ls_->config().jit_inline_debug) {
+          context().inline_log("inline ivar write")
+            << ls_->symbol_debug_str(name);
+        }
+
+        // slot ivars (Array#@size for example) have type checks, so use the slow
+        // path for now.
+
+        Value* self = get_self();
+
+        LookupTable* pii = klass->packed_ivar_info();
+        if(!pii->nil_p()) {
+          bool found = false;
+
+          Fixnum* which = try_as<Fixnum>(pii->fetch(0, name, &found));
+          if(found) {
+            int index = which->to_native();
+            int offset = sizeof(Object) + (sizeof(Object*) * index);
+
+            set_object_slot(self, offset, stack_pop());
+
+            if(ls_->config().jit_inline_debug) {
+              ls_->log() << " (packed index: " << index << ", " << offset << ")\n";
+            }
+            return;
+          }
+        }
+
+        if(ls_->config().jit_inline_debug) {
+          ls_->log() << " (abort, using slow write)\n";
+        }
+      }
+
+      if(ls_->config().jit_inline_debug) {
+        context().inline_log("slow ivar write")
+          << ls_->symbol_debug_str(name) << "\n";
+      }
+
+      set_has_side_effects();
+
+      Signature sig(ls_, ObjType);
+
+      sig << StateTy;
+      sig << "CallFrame";
+      sig << ObjType;
+      sig << ObjType;
+      sig << ObjType;
+
+      Value* self = get_self();
+
+      Value* call_args[] = {
+        vm_,
+        call_frame_,
+        self,
+        constant(as<Symbol>(literal(which))),
+        stack_pop()
+      };
+
+      Value* ret = sig.call("rbx_set_ivar", call_args, 5, "ivar", b());
+      check_for_exception(ret, false);
     }
 
     void visit_set_ivar(opcode which) {
