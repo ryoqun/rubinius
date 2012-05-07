@@ -324,13 +324,36 @@ end
 #     end
 
 instruction push_local_depth(depth index) [ -- value ]
-  VariableScope* scope = call_frame->scope->parent();
+  if(depth == 0) {
+    Exception::internal_error(state, call_frame,
+                              "illegal push_local_depth usage");
+    RUN_EXCEPTION();
+  } else {
+    VariableScope* scope = call_frame->scope->parent();
 
-  for(int j = 1; j < depth; j++) {
-    scope = scope->parent();
+    if(!scope || scope->nil_p()) {
+      Exception::internal_error(state, call_frame,
+                                "illegal push_local_depth usage, no parent");
+      RUN_EXCEPTION();
+    }
+
+    for(int j = 1; j < depth; j++) {
+      scope = scope->parent();
+      if(!scope || scope->nil_p()) {
+        Exception::internal_error(state, call_frame,
+                                  "illegal push_local_depth usage, no parent");
+        RUN_EXCEPTION();
+      }
+    }
+
+    if(index >= scope->number_of_locals()) {
+      Exception::internal_error(state, call_frame,
+                                "illegal push_local_depth usage, bad index");
+      RUN_EXCEPTION();
+    }
+
+    stack_push(scope->get_local(index));
   }
-
-  stack_push(scope->get_local(index));
 end
 
 # [Description]
@@ -349,15 +372,37 @@ end
 #     end
 
 instruction set_local_depth(depth index) [ value -- value ]
-  VariableScope* scope = call_frame->scope->parent();
+  if(depth == 0) {
+    Exception::internal_error(state, call_frame,
+                              "illegal set_local_depth usage");
+    RUN_EXCEPTION();
+  } else {
+    VariableScope* scope = call_frame->scope->parent();
 
-  for(int j = 1; j < depth; j++) {
-    scope = scope->parent();
+    if(!scope || scope->nil_p()) {
+      Exception::internal_error(state, call_frame,
+                                "illegal set_local_depth usage, no parent");
+      RUN_EXCEPTION();
+    }
+
+    for(int j = 1; j < depth; j++) {
+      scope = scope->parent();
+      if(!scope || scope->nil_p()) {
+        Exception::internal_error(state, call_frame,
+                                  "illegal set_local_depth usage, no parent");
+        RUN_EXCEPTION();
+      }
+    }
+
+    if(index >= scope->number_of_locals()) {
+      Exception::internal_error(state, call_frame,
+                                "illegal set_local_depth usage, bad index");
+      RUN_EXCEPTION();
+    }
+    Object* val = stack_pop();
+    scope->set_local(state, index, val);
+    stack_push(val);
   }
-
-  Object* val = stack_pop();
-  scope->set_local(state, index, val);
-  stack_push(val);
 end
 
 # [Description]
@@ -376,14 +421,36 @@ end
 #     end
 
 instruction meta_set_local_depth_pop(depth index) [ value -- ]
-  VariableScope* scope = call_frame->scope->parent();
+  if(depth == 0) {
+    Exception::internal_error(state, call_frame,
+                              "illegal set_local_depth usage");
+    RUN_EXCEPTION();
+  } else {
+    VariableScope* scope = call_frame->scope->parent();
 
-  for(int j = 1; j < depth; j++) {
-    scope = scope->parent();
+    if(!scope || scope->nil_p()) {
+      Exception::internal_error(state, call_frame,
+                                "illegal set_local_depth usage, no parent");
+      RUN_EXCEPTION();
+    }
+
+    for(int j = 1; j < depth; j++) {
+      scope = scope->parent();
+      if(!scope || scope->nil_p()) {
+        Exception::internal_error(state, call_frame,
+                                  "illegal set_local_depth usage, no parent");
+        RUN_EXCEPTION();
+      }
+    }
+
+    if(index >= scope->number_of_locals()) {
+      Exception::internal_error(state, call_frame,
+                                "illegal set_local_depth usage, bad index");
+      RUN_EXCEPTION();
+    }
+    Object* val = stack_pop();
+    scope->set_local(state, index, val);
   }
-
-  Object* val = stack_pop();
-  scope->set_local(state, index, val);
 end
 
 # [Description]
@@ -1299,7 +1366,6 @@ instruction create_block(literal) [ -- block ]
   // TODO: We do not need to be doing this everytime.
   cm->scope(state, call_frame->static_scope());
 
-  //std::cout << state << cm << vmm << call_frame << literal << std::endl;
   Object* be = BlockEnvironment::under_call_frame(state, gct, cm, vmm, call_frame);
 
   CHECK_AND_PUSH(be);
