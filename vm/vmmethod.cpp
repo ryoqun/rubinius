@@ -563,9 +563,9 @@ namespace rubinius {
       VMMethod* vmm = cm->backend_method();
 
       StackVariables* scope = ALLOCA_STACKVARIABLES(vmm->number_of_locals);
-      // Originally, I tried using msg.module directly, but what happens is if
+      // Originally, I tried using mod directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
-      // being called recursively, msg.module can change, causing super() to
+      // being called recursively, mod can change, causing super() to
       // look in the wrong place.
       //
       // Thus, we have to cache the value in the StackVariables.
@@ -637,12 +637,6 @@ namespace rubinius {
     VMMethod* vmm = cm->backend_method();
 
     StackVariables* scope = ALLOCA_STACKVARIABLES(vmm->number_of_locals);
-    // Originally, I tried using msg.module directly, but what happens is if
-    // super is used, that field is read. If you combine that with the method
-    // being called recursively, msg.module can change, causing super() to
-    // look in the wrong place.
-    //
-    // Thus, we have to cache the value in the StackVariables.
     scope->initialize(G(main), cNil, G(object), vmm->number_of_locals);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
