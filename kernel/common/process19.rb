@@ -242,6 +242,13 @@ module Rubinius
 end
 
 module Process
+  Rubinius::Globals.read_only :$?
+  Rubinius::Globals.set_hook(:$?) { Thread.current[:$?] }
+
+  def self.set_status_global(status)
+    Thread.current[:$?] = status
+  end
+
   def self.daemon(stay_in_dir=false, keep_stdio_open=false)
     # Do not run at_exit handlers in the parent
     exit!(0) if fork
@@ -288,6 +295,23 @@ module Process
 
       pid
     end
+  end
+
+  # TODO: Should an error be raised on ECHILD? --rue
+  #
+  # TODO: This operates on the assumption that waiting on
+  #       the event consumes very little resources. If this
+  #       is not the case, the check should be made WNOHANG
+  #       and called periodically.
+  #
+  def self.detach(pid)
+    raise ArgumentError, "Only positive pids may be detached" unless pid > 0
+
+    thread = Thread.new { Process.wait pid; $? }
+    thread[:pid] = pid
+    def thread.pid; self[:pid] end
+
+    thread
   end
 end
 

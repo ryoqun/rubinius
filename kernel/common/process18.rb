@@ -1,4 +1,10 @@
 module Process
+  Rubinius::Globals.read_only :$?
+
+  def self.set_status_global(status)
+    Rubinius::Globals.set! :$?, status
+  end
+
   def self.exec(cmd, *args)
     if args.empty? and cmd.kind_of? String
       raise Errno::ENOENT if cmd.empty?
@@ -24,6 +30,20 @@ module Process
 
       Process.perform_exec prog, argv
     end
+  end
+
+  # TODO: Should an error be raised on ECHILD? --rue
+  #
+  # TODO: This operates on the assumption that waiting on
+  #       the event consumes very little resources. If this
+  #       is not the case, the check should be made WNOHANG
+  #       and called periodically.
+  #
+  def self.detach(pid)
+    raise ArgumentError, "Only positive pids may be detached" unless pid > 0
+
+    # The evented system does not need a loop
+    Thread.new { Process.wait pid; $? }
   end
 end
 

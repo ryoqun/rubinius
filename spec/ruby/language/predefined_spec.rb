@@ -382,12 +382,14 @@ describe "Execution variable $:" do
     end
   end
 
-  it "does not include '.' when the taint check level > 1" do
-    begin
-      orig_opts, ENV['RUBYOPT'] = ENV['RUBYOPT'], '-T'
-      `#{RUBY_EXE} -e 'p $:.include?(".")'`.should == "false\n"
-    ensure
-      ENV['RUBYOPT'] = orig_opts
+  not_compliant_on :rubinius do
+    it "does not include '.' when the taint check level > 1" do
+      begin
+        orig_opts, ENV['RUBYOPT'] = ENV['RUBYOPT'], '-T'
+        `#{RUBY_EXE} -e 'p $:.include?(".")'`.should == "false\n"
+      ensure
+        ENV['RUBYOPT'] = orig_opts
+      end
     end
   end
 
@@ -453,6 +455,21 @@ describe "Global variable $?" do
     lambda {
       $? = nil
     }.should raise_error(NameError)
+  end
+
+  ruby_version_is ""..."1.9" do
+    it "is shared across threads" do
+      system("true")
+      pid = $?.pid
+      Thread.new { $?.pid.should == pid }.join
+    end
+  end
+
+  ruby_version_is "1.9" do
+    it "is thread-local" do
+      system("true")
+      Thread.new { $?.should be_nil }.join
+    end
   end
 end
 

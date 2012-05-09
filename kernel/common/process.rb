@@ -337,7 +337,7 @@ module Process
     status, termsig, stopsig, pid = value
 
     status = Process::Status.new(pid, status, termsig, stopsig)
-    Rubinius::Globals.set! :$?, status
+    set_status_global status
     [pid, status]
   end
 
@@ -374,27 +374,6 @@ module Process
   class << self
     alias_method :waitpid, :wait
     alias_method :waitpid2, :wait2
-  end
-
-  #
-  # Indicate disinterest in child process.
-  #
-  # Sets up an internal wait on the given process ID.
-  # Only possibly real pids, i.e. positive numbers,
-  # may be waited for.
-  #
-  # TODO: Should an error be raised on ECHILD? --rue
-  #
-  # TODO: This operates on the assumption that waiting on
-  #       the event consumes very little resources. If this
-  #       is not the case, the check should be made WNOHANG
-  #       and called periodically.
-  #
-  def self.detach(pid)
-    raise ArgumentError, "Only positive pids may be detached" unless pid > 0
-
-    # The evented system does not need a loop
-    Thread.new { Process.wait pid }
   end
 
   #--
