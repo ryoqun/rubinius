@@ -383,6 +383,12 @@ module Rubinius
             instruction[:remove] = true
           end
 
+          if ENV["SEND_METHOD"] and [:send_stack].include?(instruction[:name]) and instruction[:stream].last.zero?
+            instruction[:name] = :send_method
+            instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[:send_method]
+            instruction[:stream].pop
+          end
+
           if [:pop].include?(instruction[:name]) and
              [:send_stack].include?(last_instruction[:name]) and
              slot.jumps.empty?
