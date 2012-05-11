@@ -5,4 +5,11 @@ describe :marshal_load, :shared => true do
     atomic_reference.class.should == Rubinius::AtomicReference
     atomic_reference.value.should == 0
   end
+
+  it "loads a WeakRef" do
+    data = "\x04\bU:\fWeakRefi\x00"
+    atomic_reference = Marshal.send(@method, data)
+    atomic_reference.class.should == WeakRef
+    atomic_reference.__object__.should == 0
+  end
 end

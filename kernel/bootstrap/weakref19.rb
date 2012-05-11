@@ -1,6 +1,14 @@
 # -*- encoding: us-ascii -*-
 
 class WeakRef < BasicObject
+  def respond_to?(method)
+    if method == :marshal_dump || method == :marshal_load
+      true
+    else
+      super
+    end
+  end
+
   def respond_to_missing?(method, include_private)
     target = __getobj__
     target.respond_to?(method, include_private) and

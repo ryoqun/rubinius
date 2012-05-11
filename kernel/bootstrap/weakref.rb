@@ -19,6 +19,18 @@ class WeakRef
     ::Kernel.raise PrimitiveFailure, "WeakRef#__object__ failed"
   end
 
+  def class
+    WeakRef
+  end
+
+  def marshal_dump
+    __object__
+  end
+
+  def marshal_load(data)
+    __setobj__(data)
+  end
+
   def __getobj__
     obj = __object__()
     unless weakref_alive?

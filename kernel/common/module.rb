@@ -321,6 +321,11 @@ class Module
       if exec.kind_of? Rubinius::DelegatedMethod
         cm = exec
       else
+        if Rubinius::Type.object_kind_of?(meth.defined_in, Class) and
+           Rubinius::Type.singleton_class_object(meth.defined_in) and
+           not Rubinius::Type.object_kind_of?(Rubinius::Type.singleton_class_object(self), Class) and
+          raise TypeError, "illegal attempt to rebind a singleton method to another object"
+        end
         cm = Rubinius::DelegatedMethod.new(name, :call_on_instance, meth, true)
       end
     else
