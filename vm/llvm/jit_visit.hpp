@@ -1766,6 +1766,22 @@ namespace rubinius {
       visit_meta_send_stack_pop(which, 0);
     }
 
+    void visit_meta_send_stack_1(opcode which) {
+      visit_send_stack(which, 1);
+    }
+
+    void visit_meta_send_stack_1_pop(opcode which) {
+      visit_meta_send_stack_pop(which, 1);
+    }
+
+    void visit_meta_send_stack_2(opcode which) {
+      visit_send_stack(which, 2);
+    }
+
+    void visit_meta_send_stack_2_pop(opcode which) {
+      visit_meta_send_stack_pop(which, 2);
+    }
+
     bool in_inlined_block() {
       return for_inlined_method() && info().is_block;
     }
