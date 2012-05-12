@@ -500,8 +500,8 @@ module Rubinius
 
         if instruction[:name] == :send_stack
           count = instruction[:stream].last
-          if count == 0
-            meta = :meta_send_stack_0
+          if count <= 2
+            meta = :"meta_send_stack_#{count}"
             instruction[:name] = meta
             instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
             instruction[:stream].pop
@@ -510,8 +510,8 @@ module Rubinius
 
         if instruction[:name] == :meta_send_stack_pop
           count = instruction[:stream].last
-          if count == 0
-            meta = :meta_send_stack_0_pop
+          if count <= 2
+            meta = :"meta_send_stack_#{count}_pop"
             instruction[:name] = meta
             instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
             instruction[:stream].pop

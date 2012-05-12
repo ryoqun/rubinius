@@ -1070,6 +1070,32 @@ instruction meta_send_stack_0(literal) [ receiver -- value ] => send
   CHECK_AND_PUSH(ret);
 end
 
+instruction meta_send_stack_1(literal) [ receiver arg -- value ] => send
+  flush_ip();
+  Object* recv = stack_back(1);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, cNil, 1, stack_back_position(1));
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(2);
+
+  CHECK_AND_PUSH(ret);
+end
+
+instruction meta_send_stack_2(literal) [ receiver arg1 arg2 -- value ] => send
+  flush_ip();
+  Object* recv = stack_back(2);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, cNil, 2, stack_back_position(2));
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(3);
+
+  CHECK_AND_PUSH(ret);
+end
+
 instruction meta_send_stack_pop(literal count) [ receiver +count -- ] => send
   flush_ip();
   Object* recv = stack_back(count);
@@ -1097,6 +1123,33 @@ instruction meta_send_stack_0_pop(literal) [ receiver -- ] => send
 
   CHECK(ret);
 end
+
+instruction meta_send_stack_1_pop(literal) [ receiver arg -- ] => send
+  flush_ip();
+  Object* recv = stack_back(1);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, cNil, 1, stack_back_position(1));
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(2);
+
+  CHECK(ret);
+end
+
+instruction meta_send_stack_2_pop(literal) [ receiver arg1 arg2 -- ] => send
+  flush_ip();
+  Object* recv = stack_back(2);
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, cNil, 2, stack_back_position(2));
+  Object* ret = cache->execute(state, call_frame, args);
+
+  stack_clear(3);
+
+  CHECK(ret);
+end
+
 
 # [Description]
 #   Sends a message with arguments and a block on the stack

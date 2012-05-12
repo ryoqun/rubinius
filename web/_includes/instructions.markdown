@@ -1262,6 +1262,35 @@
 <tr><td>...</td><td>...</td></tr>
 </tbody>
 </table>
+<h3><a class="instruction" name="meta_send_stack_1">meta_send_stack_1(literal)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>receiver</td><td>value</td></tr>
+<tr><td>arg</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_send_stack_2">meta_send_stack_2(literal)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>receiver</td><td>value</td></tr>
+<tr><td>arg1</td><td>...</td></tr>
+<tr><td>arg2</td><td></td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="meta_send_stack_pop">meta_send_stack_pop(literal, count)</a></h3>
 
 
@@ -1285,6 +1314,35 @@
 </thead>
 <tbody>
 <tr><td>receiver</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_send_stack_1_pop">meta_send_stack_1_pop(literal)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>receiver</td><td>...</td></tr>
+<tr><td>arg</td><td></td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_send_stack_2_pop">meta_send_stack_2_pop(literal)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>receiver</td><td>...</td></tr>
+<tr><td>arg1</td><td></td></tr>
+<tr><td>arg2</td><td></td></tr>
 <tr><td>...</td><td></td></tr>
 </tbody>
 </table>

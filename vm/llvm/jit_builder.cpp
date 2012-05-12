@@ -436,12 +436,32 @@ namespace jit {
       number_of_sends_++;
     }
 
+    void visit_meta_send_stack_1(opcode which) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
+    void visit_meta_send_stack_2(opcode which) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
     void visit_meta_send_stack_pop(opcode which, opcode args) {
       check_for_eval(which);
       number_of_sends_++;
     }
 
     void visit_meta_send_stack_0_pop(opcode which) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
+    void visit_meta_send_stack_1_pop(opcode which) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
+    void visit_meta_send_stack_2_pop(opcode which) {
       check_for_eval(which);
       number_of_sends_++;
     }

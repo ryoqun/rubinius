@@ -160,6 +160,10 @@ namespace rubinius {
         case InstructionSequence::insn_send_stack:
         case InstructionSequence::insn_meta_send_stack_0:
         case InstructionSequence::insn_meta_send_stack_0_pop:
+        case InstructionSequence::insn_meta_send_stack_1:
+        case InstructionSequence::insn_meta_send_stack_1_pop:
+        case InstructionSequence::insn_meta_send_stack_2:
+        case InstructionSequence::insn_meta_send_stack_2_pop:
         case InstructionSequence::insn_meta_send_stack_pop:
         case InstructionSequence::insn_meta_send_stack_with_block_pop:
         case InstructionSequence::insn_meta_send_stack_with_splat_pop:
@@ -229,6 +233,10 @@ namespace rubinius {
       case InstructionSequence::insn_send_stack:
       case InstructionSequence::insn_meta_send_stack_0:
       case InstructionSequence::insn_meta_send_stack_0_pop:
+      case InstructionSequence::insn_meta_send_stack_1:
+      case InstructionSequence::insn_meta_send_stack_1_pop:
+      case InstructionSequence::insn_meta_send_stack_2:
+      case InstructionSequence::insn_meta_send_stack_2_pop:
       case InstructionSequence::insn_send_stack_with_block:
       case InstructionSequence::insn_send_stack_with_splat:
       case InstructionSequence::insn_meta_send_stack_pop:
