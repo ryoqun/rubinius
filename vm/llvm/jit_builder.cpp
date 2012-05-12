@@ -431,7 +431,17 @@ namespace jit {
       number_of_sends_++;
     }
 
+    void visit_meta_send_stack_0(opcode which) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
     void visit_meta_send_stack_pop(opcode which, opcode args) {
+      check_for_eval(which);
+      number_of_sends_++;
+    }
+
+    void visit_meta_send_stack_0_pop(opcode which) {
       check_for_eval(which);
       number_of_sends_++;
     }
@@ -477,6 +487,21 @@ namespace jit {
       li->inc_push();
     }
 
+    void visit_meta_push_local_0() {
+      LocalInfo* li = info_.get_local(0);
+      li->inc_push();
+    }
+
+    void visit_meta_push_local_1() {
+      LocalInfo* li = info_.get_local(1);
+      li->inc_push();
+    }
+
+    void visit_meta_push_local_2() {
+      LocalInfo* li = info_.get_local(2);
+      li->inc_push();
+    }
+
     void visit_set_local(opcode which) {
       LocalInfo* li = info_.get_local(which);
       li->inc_set();
@@ -484,6 +509,36 @@ namespace jit {
 
     void visit_meta_set_local_pop(opcode which) {
       LocalInfo* li = info_.get_local(which);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_0() {
+      LocalInfo* li = info_.get_local(0);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_1() {
+      LocalInfo* li = info_.get_local(1);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_2() {
+      LocalInfo* li = info_.get_local(2);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_0_pop() {
+      LocalInfo* li = info_.get_local(0);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_1_pop() {
+      LocalInfo* li = info_.get_local(1);
+      li->inc_set();
+    }
+
+    void visit_meta_set_local_2_pop() {
+      LocalInfo* li = info_.get_local(2);
       li->inc_set();
     }
   };

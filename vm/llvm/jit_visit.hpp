@@ -1251,6 +1251,18 @@ namespace rubinius {
       }
     }
 
+    void visit_meta_push_local_0() {
+      visit_push_local(0);
+    }
+
+    void visit_meta_push_local_1() {
+      visit_push_local(1);
+    }
+
+    void visit_meta_push_local_2() {
+      visit_push_local(2);
+    }
+
     void set_scope_local(Value* scope, opcode which) {
       Value* pos = b().CreateConstGEP2_32(scope, 0, offset::varscope_locals,
                                      "locals_pos");
@@ -1313,6 +1325,18 @@ namespace rubinius {
       b().CreateStore(val, pos);
     }
 
+    void visit_meta_set_local_0() {
+      visit_set_local(0);
+    }
+
+    void visit_meta_set_local_1() {
+      visit_set_local(1);
+    }
+
+    void visit_meta_set_local_2() {
+      visit_set_local(2);
+    }
+
     void visit_meta_set_local_pop(opcode which) {
       Value* idx2[] = {
         cint(0),
@@ -1358,6 +1382,18 @@ namespace rubinius {
       }
 
       b().CreateStore(val, pos);
+    }
+
+    void visit_meta_set_local_0_pop() {
+      visit_meta_set_local_pop(0);
+    }
+
+    void visit_meta_set_local_1_pop() {
+      visit_meta_set_local_pop(1);
+    }
+
+    void visit_meta_set_local_2_pop() {
+      visit_meta_set_local_pop(2);
     }
 
     Instruction* get_self(Value* vars = 0) {
@@ -1723,6 +1759,14 @@ namespace rubinius {
 
     void visit_send_method(opcode which) {
       visit_send_stack(which, 0);
+    }
+
+    void visit_meta_send_stack_0(opcode which) {
+      visit_send_stack(which, 0);
+    }
+
+    void visit_meta_send_stack_0_pop(opcode which) {
+      visit_meta_send_stack_pop(which, 0);
     }
 
     bool in_inlined_block() {

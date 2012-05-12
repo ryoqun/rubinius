@@ -407,6 +407,45 @@
 <ul class="insn_cross_ref">
 <li><a href="#push_local">push_local</a></li>
 </ul>
+<h3><a class="instruction" name="meta_set_local_0">meta_set_local_0()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>value</td></tr>
+<tr><td>...</td><td>...</td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_set_local_1">meta_set_local_1()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>value</td></tr>
+<tr><td>...</td><td>...</td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_set_local_2">meta_set_local_2()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>value</td></tr>
+<tr><td>...</td><td>...</td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="meta_set_local_pop">meta_set_local_pop(local)</a></h3>
 
    Read the top of the stack and set the local variable identified by operand
@@ -427,6 +466,45 @@
 <ul class="insn_cross_ref">
 <li><a href="#push_local">push_local</a></li>
 </ul>
+<h3><a class="instruction" name="meta_set_local_0_pop">meta_set_local_0_pop()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_set_local_1_pop">meta_set_local_1_pop()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_set_local_2_pop">meta_set_local_2_pop()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>value</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="push_local">push_local(local)</a></h3>
 
    Retrieves the current value of the local variable referenced by operand
@@ -447,6 +525,45 @@
 <ul class="insn_cross_ref">
 <li><a href="#set_local">set_local</a></li>
 </ul>
+<h3><a class="instruction" name="meta_push_local_0">meta_push_local_0()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>...</td><td>value</td></tr>
+<tr><td></td><td>...</td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_push_local_1">meta_push_local_1()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>...</td><td>value</td></tr>
+<tr><td></td><td>...</td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_push_local_2">meta_push_local_2()</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>...</td><td>value</td></tr>
+<tr><td></td><td>...</td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="push_local_depth">push_local_depth(depth, index)</a></h3>
 
    Pushes the value of a local from an enclosing scope onto the stack
@@ -1132,15 +1249,8 @@
 <ul class="insn_cross_ref">
 <li><a href="#send_stack_with_block">send_stack_with_block</a></li>
 </ul>
-<h3><a class="instruction" name="meta_send_stack_pop">meta_send_stack_pop(literal, count)</a></h3>
+<h3><a class="instruction" name="meta_send_stack_0">meta_send_stack_0(literal)</a></h3>
 
-   Sends a message with arguments on the stack
-
-   Pops the _receiver_ of the message off the stack and sends the message
-   specified by the operand _literal_ with _count_ arguments. The arguments
-   are removed from the stack also.
-
-   When the method returns, the return value is pushed on the stack.
 
 
 <table class="stack_effect">
@@ -1148,31 +1258,36 @@
 <tr><th>Before</th><th>After</th></tr>
 </thead>
 <tbody>
-<tr><td>   argN
-</td><td>   value
-</td></tr>
-<tr><td>   ...
-</td><td>   ...
-</td></tr>
-<tr><td>   arg2
-</td><td></td></tr>
-<tr><td>   arg1
-</td><td></td></tr>
-<tr><td>   receiver
-</td><td></td></tr>
+<tr><td>receiver</td><td>value</td></tr>
+<tr><td>...</td><td>...</td></tr>
 </tbody>
 </table>
-
-#### Notes
-   This opcode does not pass a block to the receiver; see
-   `send_stack_with_block` for the equivalent op code used when a block is to
-   be passed.
+<h3><a class="instruction" name="meta_send_stack_pop">meta_send_stack_pop(literal, count)</a></h3>
 
 
-<h4>See Also</h4>
-<ul class="insn_cross_ref">
-<li><a href="#send_stack_with_block">send_stack_with_block</a></li>
-</ul>
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>receiver</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="meta_send_stack_0_pop">meta_send_stack_0_pop(literal)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>receiver</td><td>...</td></tr>
+<tr><td>...</td><td></td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="send_stack_with_block">send_stack_with_block(literal, count)</a></h3>
 
    Sends a message with arguments and a block on the stack

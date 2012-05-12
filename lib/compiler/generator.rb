@@ -484,6 +484,50 @@ module Rubinius
       @instruction_slots.reject! do |slot|
         slot.instruction and slot.instruction[:name] and slot.instruction[:remove]
       end
+
+      used_slots.each_with_index do |slot, index|
+        instruction = slot.instruction
+
+        if instruction[:name] == :set_local
+          index = instruction[:stream].last
+          if index <= 2
+            meta = :"meta_set_local_#{index}"
+            instruction[:name] = meta
+            instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
+            instruction[:stream].pop
+          end
+        end
+
+        if instruction[:name] == :send_stack
+          count = instruction[:stream].last
+          if count == 0
+            meta = :meta_send_stack_0
+            instruction[:name] = meta
+            instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
+            instruction[:stream].pop
+          end
+        end
+
+        if instruction[:name] == :meta_set_local_pop
+          index = instruction[:stream].last
+          if index <= 2
+            meta = :"meta_set_local_#{index}_pop"
+            instruction[:name] = meta
+            instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
+            instruction[:stream].pop
+          end
+        end
+
+        if instruction[:name] == :push_local
+          index = instruction[:stream].last
+          if index <= 2
+            meta = :"meta_push_local_#{index}"
+            instruction[:name] = meta
+            instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
+            instruction[:stream].pop
+          end
+        end
+      end
     end
 
     def materialize
