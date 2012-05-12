@@ -508,6 +508,16 @@ module Rubinius
           end
         end
 
+        if instruction[:name] == :meta_send_stack_pop
+          count = instruction[:stream].last
+          if count == 0
+            meta = :meta_send_stack_0_pop
+            instruction[:name] = meta
+            instruction[:stream][0] = Rubinius::InstructionSet.opcodes_map[meta]
+            instruction[:stream].pop
+          end
+        end
+
         if instruction[:name] == :meta_set_local_pop
           index = instruction[:stream].last
           if index <= 2
