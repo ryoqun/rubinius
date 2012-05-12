@@ -285,6 +285,18 @@ instruction set_local(local) [ value -- value ]
   call_frame->scope->set_local(local, stack_top());
 end
 
+instruction meta_set_local_0() [ value -- value ]
+  call_frame->scope->set_local(0, stack_top());
+end
+
+instruction meta_set_local_1() [ value -- value ]
+  call_frame->scope->set_local(1, stack_top());
+end
+
+instruction meta_set_local_2() [ value -- value ]
+  call_frame->scope->set_local(2, stack_top());
+end
+
 # [Description]
 #   Read the top of the stack and set the local variable identified by operand
 #   _local_ to it. The stack is not modified by this instruction.
@@ -295,6 +307,18 @@ instruction meta_set_local_pop(local) [ value -- ]
   call_frame->scope->set_local(local, stack_pop());
 end
 
+instruction meta_set_local_0_pop() [ value -- ]
+  call_frame->scope->set_local(0, stack_pop());
+end
+
+instruction meta_set_local_1_pop() [ value -- ]
+  call_frame->scope->set_local(1, stack_pop());
+end
+
+instruction meta_set_local_2_pop() [ value -- ]
+  call_frame->scope->set_local(2, stack_pop());
+end
+
 # [Description]
 #   Retrieves the current value of the local variable referenced by operand
 #   _local_ and push it onto the stack.
@@ -303,6 +327,18 @@ end
 
 instruction push_local(local) [ -- value ]
   stack_push(call_frame->scope->get_local(local));
+end
+
+instruction meta_push_local_0() [ -- value ]
+  stack_push(call_frame->scope->get_local(0));
+end
+
+instruction meta_push_local_1() [ -- value ]
+  stack_push(call_frame->scope->get_local(1));
+end
+
+instruction meta_push_local_2() [ -- value ]
+  stack_push(call_frame->scope->get_local(2));
 end
 
 # [Description]
@@ -1021,29 +1057,18 @@ instruction send_stack(literal count) [ receiver +count -- value ] => send
   CHECK_AND_PUSH(ret);
 end
 
-# [Description]
-#   Sends a message with arguments on the stack
-#
-#   Pops the _receiver_ of the message off the stack and sends the message
-#   specified by the operand _literal_ with _count_ arguments. The arguments
-#   are removed from the stack also.
-#
-#   When the method returns, the return value is pushed on the stack.
-# [Stack Before]
-#   argN
-#   ...
-#   arg2
-#   arg1
-#   receiver
-# [Stack After]
-#   value
-#   ...
-# [See Also]
-#   send_stack_with_block
-# [Notes]
-#   This opcode does not pass a block to the receiver; see
-#   `send_stack_with_block` for the equivalent op code used when a block is to
-#   be passed.
+instruction meta_send_stack_0(literal) [ receiver -- value ] => send
+  flush_ip();
+  Object* recv = stack_top();
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, cNil, 0, 0);
+  Object* ret = cache->execute(state, call_frame, args);
+
+  (void)stack_pop();
+
+  CHECK_AND_PUSH(ret);
+end
 
 instruction meta_send_stack_pop(literal count) [ receiver +count -- ] => send
   flush_ip();
@@ -1056,6 +1081,19 @@ instruction meta_send_stack_pop(literal count) [ receiver +count -- ] => send
   Object* ret = cache->execute(state, call_frame, args);
 
   stack_clear(count + 1);
+
+  CHECK(ret);
+end
+
+instruction meta_send_stack_0_pop(literal) [ receiver -- ] => send
+  flush_ip();
+  Object* recv = stack_top();
+  InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
+
+  Arguments args(cache->name, recv, cNil, 0, 0);
+  Object* ret = cache->execute(state, call_frame, args);
+
+  (void)stack_pop();
 
   CHECK(ret);
 end
