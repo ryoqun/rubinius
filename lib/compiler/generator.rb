@@ -545,9 +545,9 @@ module Rubinius
       last_line = nil
       @instruction_slots.each do |slot|
         if slot.line
-          #if last_line != slot.line
+          if last_line != slot.line
             slot.instruction[:new_line] = true
-          #end
+          end
           last_line = slot.line
         end
       end
