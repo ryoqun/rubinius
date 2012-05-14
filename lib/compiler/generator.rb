@@ -539,21 +539,22 @@ module Rubinius
           end
         end
       end
+    end
 
-      return
+    def source
       last_line = nil
       @instruction_slots.each do |slot|
         if slot.line
-          if last_line != slot.line and not slot.line.zero?
+          #if last_line != slot.line
             slot.instruction[:new_line] = true
-          end
+          #end
           last_line = slot.line
         end
       end
 
       slots = []
       @instruction_slots.each do |slot|
-        if slot.instruction and slot.instruction[:new_line]
+        if slot.instruction and slot.instruction[:new_line] and not slot.line.zero?
           new_slot = Slot.new
           new_slot.instruction = slot.instruction
           new_slot.line = slot.line
@@ -1021,7 +1022,8 @@ module Rubinius
     end
 
     def encode
-      @instruction_list.optimize
+      #@instruction_list.optimize
+      @instruction_list.source
       @instruction_list.materialize
       @instruction_list.validate_stack
 
