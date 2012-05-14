@@ -17,6 +17,18 @@
 <ul class="insn_cross_ref">
 <li><a href="#pop">pop</a></li>
 </ul>
+<h3><a class="instruction" name="source">source(line)</a></h3>
+
+
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>...</td><td>...</td></tr>
+</tbody>
+</table>
 <h3><a class="instruction" name="push_nil">push_nil()</a></h3>
 
    The special object `nil` is pushed onto the stack.

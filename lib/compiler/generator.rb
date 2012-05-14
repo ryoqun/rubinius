@@ -2,7 +2,7 @@
 
 module Rubinius
   class Slot
-    attr_accessor :instruction, :basic_blocks, :jumps
+    attr_accessor :instruction, :basic_blocks, :jumps, :line
 
     def initialize
       @instruction = nil
@@ -242,9 +242,10 @@ module Rubinius
       @instruction_slots.last
     end
 
-    def create_instruction(name)
+    def create_instruction(name, current_line)
       instruction = {:name => name}
       last_slot.instruction = instruction
+      last_slot.line = current_line
       @instruction_slots << Slot.new
       instruction
     end
@@ -538,6 +539,35 @@ module Rubinius
           end
         end
       end
+
+      return
+      last_line = nil
+      @instruction_slots.each do |slot|
+        if slot.line
+          if last_line != slot.line and not slot.line.zero?
+            slot.instruction[:new_line] = true
+          end
+          last_line = slot.line
+        end
+      end
+
+      slots = []
+      @instruction_slots.each do |slot|
+        if slot.instruction and slot.instruction[:new_line]
+          new_slot = Slot.new
+          new_slot.instruction = slot.instruction
+          new_slot.line = slot.line
+
+          instruction = {:stream => [1, slot.line], :name => :source, :stack => [0, 0]}
+          slot.instruction = instruction
+
+          slots << slot
+          slots << new_slot
+        else
+          slots << slot
+        end
+      end
+      @instruction_slots = slots
     end
 
     def materialize
@@ -620,6 +650,33 @@ module Rubinius
       InstructionSequence.new(instruction_stream.to_tuple)
     end
 
+    def lines
+      lines = []
+      last_line = nil
+
+      used_slots.each.with_index do |slot, index|
+        if lines.empty?
+          if slot.line
+            lines << 0
+            lines << slot.line
+            last_line = slot.line
+          end
+        else
+          if slot.line != last_line
+            if lines[-2] == @instruction_slots[index].instruction[:ip]
+              lines[-1] = slot.line
+            else
+              lines << @instruction_slots[index].instruction[:ip]
+              lines << slot.line
+            end
+            last_line = slot.line
+          end
+        end
+      end
+      lines << last_slot.instruction[:ip]
+      lines
+    end
+
     def new_basic_block
       BasicBlock.new(self)
     end
@@ -645,7 +702,7 @@ module Rubinius
     alias_method :swap, :swap_stack
 
     def create_instruction(name)
-      @instruction = @instruction_list.create_instruction(name)
+      @instruction = @instruction_list.create_instruction(name, @current_line)
     end
 
     def push(what)
@@ -835,47 +892,26 @@ module Rubinius
 
     module Lines
       def initialize_lines
-        @last_line = nil
-        @lines = []
+        @current_line = nil
       end
 
       def close
-        if @lines.empty?
+        if @current_line.nil?
           msg = "closing a method definition with no line info: #{file}:#{line}"
           raise Exception, msg
         end
-
-        @lines << ip
       end
 
       def set_line(line)
         raise Exception, "source code line cannot be nil" unless line
-
-        if !@last_line
-          @lines << ip
-          @lines << line
-          @last_line = line
-        elsif line != @last_line
-          if @lines[-2] == ip
-            @lines[-1] = line
-          else
-            @lines << ip
-            @lines << line
-          end
-
-          @last_line = line
-        end
+        @current_line = line
       end
 
       def definition_line(line)
         unless @instruction_list.empty?
           raise Exception, "only use #definition_line first"
         end
-
-        @lines << -1
-        @lines << line
-
-        @last_line = line
+        @current_line = line
       end
     end
 
@@ -990,6 +1026,7 @@ module Rubinius
       @instruction_list.validate_stack
 
       @iseq = @instruction_list.iseq
+      @lines = @instruction_list.lines
 
       @generators.each do |index|
         @literals[index].encode

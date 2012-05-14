@@ -112,6 +112,7 @@ namespace rubinius {
     TypedRoot<Module*> type;
     TypedRoot<Class*> vm_class;
     TypedRoot<Class*> atomic_ref;
+    TypedRoot<LookupTable*> coverage;
 
     /* Add new globals above this line. */
 
@@ -221,7 +222,8 @@ namespace rubinius {
       encoding(&roots),
       type(&roots),
       vm_class(&roots),
-      atomic_ref(&roots)
+      atomic_ref(&roots),
+      coverage(&roots)
 
       /* Add initialize of globals above this line. */
     { }

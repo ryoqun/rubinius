@@ -17,6 +17,7 @@
 #include "builtin/class.hpp"
 #include "builtin/location.hpp"
 #include "builtin/global_cache_entry.hpp"
+#include "builtin/lookuptable.hpp"
 
 #include "instructions.hpp"
 
@@ -204,6 +205,20 @@ namespace rubinius {
     for(size_t ip = 0; ip < total;) {
       opcode op = opcodes[ip];
       switch(op) {
+      case InstructionSequence::insn_source: {
+        size_t line = opcodes[ip + 1];
+        bool found;
+        Array* lines = (Array*)G(coverage)->fetch(state, original->file(), &found);
+        if(!found) {
+          lines = Array::create(state, 100000);
+          G(coverage)->store(state, original->file(), lines);
+        }
+        Fixnum *count = (Fixnum *)lines->get(state, line);
+        if(count == cNil) {
+          lines->set(state, line, Fixnum::from(0));
+        }
+        break;
+      }
       case InstructionSequence::insn_invoke_primitive: {
         Symbol* name = try_as<Symbol>(original->literals()->at(opcodes[ip + 1]));
         if(!name) {

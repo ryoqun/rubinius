@@ -52,6 +52,11 @@ module Rubinius
     raise PrimitiveFailure, "Rubinius.vm_memory_size failed"
   end
 
+  def self.coverage
+    Rubinius.primitive :vm_coverage
+    raise PrimitiveFailure, "Rubinius.vm_coverage failed"
+  end
+
   def self.throw(dest, obj)
     Rubinius.primitive :vm_throw
     raise PrimitiveFailure, "Rubinius.throw failed"
