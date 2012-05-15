@@ -915,7 +915,6 @@ module Rubinius
         end
 
         @definition_line = line
-        @current_line = line
       end
     end
 
