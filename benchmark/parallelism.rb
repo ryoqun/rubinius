@@ -166,4 +166,4 @@ end
 
 wu = ParallelismCalculator.new
 
-wu.parallel_best(5, 4, 2).describe
+wu.parallel_best(5, 2, 4).describe

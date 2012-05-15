@@ -894,6 +894,7 @@ module Rubinius
     module Lines
       def initialize_lines
         @current_line = nil
+        @definition_line = nil
       end
 
       def close
@@ -912,6 +913,8 @@ module Rubinius
         unless @instruction_list.empty?
           raise Exception, "only use #definition_line first"
         end
+
+        @definition_line = line
         @current_line = line
       end
     end
@@ -1022,13 +1025,20 @@ module Rubinius
     end
 
     def encode
-      #@instruction_list.optimize
-      @instruction_list.source
+      @instruction_list.optimize
+      #@instruction_list.source
       @instruction_list.materialize
       @instruction_list.validate_stack
 
       @iseq = @instruction_list.iseq
-      @lines = @instruction_list.lines
+
+      if @definition_line
+        lines = [-1, @definition_line] + @instruction_list.lines
+      else
+        lines = @instruction_list.lines
+      end
+
+      @lines = lines
 
       @generators.each do |index|
         @literals[index].encode
