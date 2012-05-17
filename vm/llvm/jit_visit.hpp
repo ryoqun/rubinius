@@ -505,6 +505,10 @@ namespace rubinius {
     void visit_noop() {
     }
 
+    void visit_source(opcode line) {
+      (void)line;
+    }
+
     void visit_pop() {
       stack_remove(1);
     }

@@ -13,12 +13,13 @@ instruction noop() [ -- ]
 end
 
 instruction source(line) [ -- ]
+  (void) line;
   //std::cout << call_frame->cm->file()->cpp_str(state) << ": " << line << std::endl;
   //(void)line;
   bool found;
   Array* lines = (Array*)G(coverage)->fetch(state, call_frame->cm->file(), &found);
   if(!found) {
-    lines = Array::create(state, 100000);
+    lines = Array::create(state, 0);
     G(coverage)->store(state, call_frame->cm->file(), lines);
   }
   Fixnum *count = (Fixnum *)lines->get(state, line);

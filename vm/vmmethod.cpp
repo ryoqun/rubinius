@@ -210,7 +210,7 @@ namespace rubinius {
         bool found;
         Array* lines = (Array*)G(coverage)->fetch(state, original->file(), &found);
         if(!found) {
-          lines = Array::create(state, 100000);
+          lines = Array::create(state, 0);
           G(coverage)->store(state, original->file(), lines);
         }
         Fixnum *count = (Fixnum *)lines->get(state, line);
