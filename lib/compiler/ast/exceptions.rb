@@ -7,7 +7,7 @@ module Rubinius
 
       def initialize(line, body)
         @line = line
-        @rescue = body || NilLiteral.new(line)
+        @rescue = body || NilLiteral.new(0)
       end
 
       def bytecode(g)

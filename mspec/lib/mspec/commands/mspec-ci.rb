@@ -6,6 +6,8 @@ require 'mspec/version'
 require 'mspec/utils/options'
 require 'mspec/utils/script'
 
+require "simplecov"
+SimpleCov.start
 
 class MSpecCI < MSpecScript
   def options(argv=ARGV)

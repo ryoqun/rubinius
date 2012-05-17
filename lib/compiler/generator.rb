@@ -559,7 +559,7 @@ module Rubinius
           new_slot.instruction = slot.instruction
           new_slot.line = slot.line
 
-          instruction = {:stream => [1, slot.line], :name => :source, :stack => [0, 0]}
+          instruction = {:stream => [1, slot.line - 1], :name => :source, :stack => [0, 0]}
           slot.instruction = instruction
 
           slots << slot
