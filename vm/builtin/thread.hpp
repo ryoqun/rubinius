@@ -40,6 +40,8 @@ namespace rubinius {
 
     Randomizer* randomizer_; // slot
 
+    LookupTable* coverage_; // slot
+
     LookupTable* locals_; // slot
 
     thread::SpinLock init_lock_;
@@ -70,6 +72,8 @@ namespace rubinius {
     attr_accessor(thread_id, Fixnum);
 
     attr_accessor(randomizer, Randomizer);
+
+    attr_accessor(coverage, LookupTable);
 
     attr_accessor(locals, LookupTable);
 

@@ -160,9 +160,6 @@ namespace rubinius {
     // Rubinius.primitive :vm_memory_size
     static Fixnum* vm_memory_size(STATE, Object* obj);
 
-    // Rubinius.primitive :vm_coverage
-    static LookupTable* vm_coverage(STATE);
-
     // Rubinius.primitive :vm_watch_signal
     static Object*  vm_watch_signal(STATE, Fixnum* sig, Object* ignored);
 

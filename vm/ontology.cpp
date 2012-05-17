@@ -382,7 +382,6 @@ namespace rubinius {
      */
 
     GO(external_ivars).set(LookupTable::create(state));
-    GO(coverage).set(LookupTable::create(state));
 
     initialize_platform_data(state);
   }

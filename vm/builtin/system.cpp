@@ -1102,10 +1102,6 @@ namespace rubinius {
     return Fixnum::from(0);
   }
 
-  LookupTable* System::vm_coverage(STATE) {
-    return G(coverage);
-  }
-
   Object* System::vm_throw(STATE, Object* dest, Object* value) {
     state->vm()->thread_state()->raise_throw(dest, value);
     return NULL;
