@@ -346,10 +346,67 @@ module Rubinius
       @states.pop
     end
 
+    def push_modifiers
+      @instruction_list.push_modifiers
+    end
+
+    def pop_modifiers
+      @instruction_list.pop_modifiers
+    end
+
+    def definition_line(line)
+      unless @instruction_list.empty?
+        raise Exception, "only use #definition_line first"
+      end
+
+      @definition_line = line
+    end
+
+    def set_line(line)
+      raise Exception, "source code line cannot be nil" unless line
+      @current_line = line
+    end
+
+    def line
+      @last_line
+    end
+
+    def ip_to_line(ip)
+      total = @lines.size - 2
+      i = 0
+
+      while i < total
+        if ip >= @lines[i] and ip <= @lines[i+2]
+          return @lines[i+1]
+        end
+
+        i += 2
+      end
+    end
+
+    def close
+      if @current_line.nil?
+        msg = "closing a method definition with no line info: #{file}:#{line}"
+        raise Exception, msg
+      end
+    end
+
+    def send_primitive(name)
+      @primitive = name
+    end
+
+    def new_label
+      @instruction_list.new_label
+    end
+
+    # Aliases
+
     alias_method :dup,  :dup_top
     alias_method :git,  :goto_if_true
     alias_method :gif,  :goto_if_false
     alias_method :swap, :swap_stack
+
+    # Helpers
 
     def create_instruction(name)
       @instruction = @instruction_list.create_instruction(name, @current_line)
@@ -506,42 +563,9 @@ module Rubinius
         @instruction_list.retry = label
       end
 
-      def push_modifiers
-        @instruction_list.push_modifiers
-      end
-
-      def pop_modifiers
-        @instruction_list.pop_modifiers
-      end
-    end
-
-    module Lines
-      def close
-        if @current_line.nil?
-          msg = "closing a method definition with no line info: #{file}:#{line}"
-          raise Exception, msg
-        end
-      end
-
-      def set_line(line)
-        raise Exception, "source code line cannot be nil" unless line
-        @current_line = line
-      end
-
-      def definition_line(line)
-        unless @instruction_list.empty?
-          raise Exception, "only use #definition_line first"
-        end
-
-        @definition_line = line
-      end
     end
 
     module InstructionListDelegator
-      def new_label
-        @instruction_list.new_label
-      end
-
       def new_stack_local
         @instruction_list.new_stack_local
       end
@@ -573,7 +597,6 @@ module Rubinius
     include Literals
     include SendMethods
     include Modifiers
-    include Lines
     include InstructionListDelegator
     include DetectionHelper
 
@@ -587,10 +610,6 @@ module Rubinius
       index = push_literal generator
       @generators << index
       index
-    end
-
-    def send_primitive(name)
-      @primitive = name
     end
   end
 
