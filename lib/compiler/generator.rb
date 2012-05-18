@@ -97,6 +97,9 @@ module Rubinius
         @max_size = @stack if @stack > @max_size
       end
 
+      def open
+      end
+
       def close
         @closed = true
       end
