@@ -266,6 +266,10 @@ module Rubinius
                   :local_count, :local_names, :primitive, :for_block,
                   :detected_args, :detected_locals
 
+    def ip
+      @instruction_list.ip
+    end
+
     def execute(node)
       node.bytecode self
     end
@@ -585,49 +589,37 @@ module Rubinius
       super find_literal(name)
     end
 
-    module Modifiers
-      def break
-        @instruction_list.break
-      end
-
-      def break=(label)
-        @instruction_list.break = label
-      end
-
-      def redo
-        @instruction_list.redo
-      end
-
-      def redo=(label)
-        @instruction_list.redo = label
-      end
-
-      def next
-        @instruction_list.next
-      end
-
-      def next=(label)
-        @instruction_list.next = label
-      end
-
-      def retry
-        @instruction_list.retry
-      end
-
-      def retry=(label)
-        @instruction_list.retry = label
-      end
-
+    def break
+      @instruction_list.break
     end
 
-    module InstructionListDelegator
-      def ip
-        @instruction_list.ip
-      end
+    def break=(label)
+      @instruction_list.break = label
     end
 
-    include Modifiers
-    include InstructionListDelegator
+    def redo
+      @instruction_list.redo
+    end
+
+    def redo=(label)
+      @instruction_list.redo = label
+    end
+
+    def next
+      @instruction_list.next
+    end
+
+    def next=(label)
+      @instruction_list.next = label
+    end
+
+    def retry
+      @instruction_list.retry
+    end
+
+    def retry=(label)
+      @instruction_list.retry = label
+    end
   end
 
   class Slot
