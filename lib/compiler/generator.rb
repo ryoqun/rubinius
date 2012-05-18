@@ -101,19 +101,19 @@ module Rubinius
       def open
       end
 
-      def close
+      def close(record_exit=false)
         @closed = true
-      end
 
-      def close_and_exit(exit_instruction)
-        close
-        @exit_size = @stack
-        @exit_ip = exit_instruction[:ip]
+        if record_exit
+          @exit_size = @stack
+          @exit_ip = record_exit[:ip]
+        end
       end
 
       def location(ip=nil)
-        line = nil #@generator.ip_to_line(ip)
-        "#name: line: #{line}, IP: #{ip}"
+        ip ||= @ip
+        line = @generator.ip_to_line(ip)
+        "#{@generator.name}: line: #{line}, IP: #{ip}"
       end
 
       SEPARATOR_SIZE = 40
@@ -270,6 +270,10 @@ module Rubinius
       @instruction_list.ip
     end
 
+    def create_instruction(name)
+      @instruction = @instruction_list.create_instruction(name, @current_line)
+    end
+
     def execute(node)
       node.bytecode self
     end
@@ -318,14 +322,13 @@ module Rubinius
       cm.local_names    = local_names.to_tuple if local_names
 
       cm.stack_size     = max_stack_size
-      cm.file           = file
-      cm.name           = name
+      cm.file           = @file
+      cm.name           = @name
       cm.primitive      = @primitive
 
       if @for_block
         cm.add_metadata :for_block, true
       end
-      cm.verify_bytecode if cm.respond_to?(:verify_bytecode)
 
       cm
     end
@@ -419,10 +422,6 @@ module Rubinius
     alias_method :swap, :swap_stack
 
     # Helpers
-
-    def create_instruction(name)
-      @instruction = @instruction_list.create_instruction(name, @current_line)
-    end
 
     def max_stack_size
       size = @instruction_list.max_stack_size + local_count
@@ -774,7 +773,7 @@ module Rubinius
           current.close
           current = current.right = new_basic_block
         when :ret, :raise_return, :ensure_return
-          current.close_and_exit instruction
+          current.close(instruction)
           current = new_basic_block
         when :raise_exc, :reraise, :break
           current.close
