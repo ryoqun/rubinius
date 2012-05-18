@@ -240,6 +240,27 @@ module Rubinius
       end
     end
 
+    def initialize
+      @instruction_list = InstructionList.new
+      @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
+      @literals = []
+      @primitive = nil
+      @for_block = nil
+
+      @required_args = 0
+      @post_args = 0
+      @total_args = 0
+
+      @detected_args = 0
+      @detected_locals = 0
+
+      @states = []
+      @generators = []
+
+      @current_line = nil
+      @definition_line = nil
+    end
+
     alias_method :dup,  :dup_top
     alias_method :git,  :goto_if_true
     alias_method :gif,  :goto_if_false
@@ -283,11 +304,6 @@ module Rubinius
     end
 
     module Literals
-      def initialize_literals
-        @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
-        @literals = []
-      end
-
       def find_literal(literal)
         @literals_map[literal]
       end
@@ -415,10 +431,6 @@ module Rubinius
     end
 
     module States
-      def initialize_states
-        @states = []
-      end
-
       def state
         @states.last
       end
@@ -433,11 +445,6 @@ module Rubinius
     end
 
     module Lines
-      def initialize_lines
-        @current_line = nil
-        @definition_line = nil
-      end
-
       def close
         if @current_line.nil?
           msg = "closing a method definition with no line info: #{file}:#{line}"
@@ -475,11 +482,6 @@ module Rubinius
 
     module DetectionHelper
       attr_accessor :detected_args, :detected_locals
-      def initialize_detection
-        @detected_args = 0
-        @detected_locals = 0
-      end
-
       def use_detected
         if @required_args < @detected_args
           @required_args = @detected_args
@@ -525,23 +527,6 @@ module Rubinius
     attr_accessor :local_count, :local_names
     attr_accessor :required_args, :post_args, :total_args, :splat_index
     attr_accessor :for_block
-
-    def initialize
-      @generators = []
-      @instruction_list = InstructionList.new
-
-      @required_args = 0
-      @post_args = 0
-      @total_args = 0
-
-      @for_block = nil
-      @primitive = nil
-
-      initialize_literals
-      initialize_states
-      initialize_lines
-      initialize_detection
-    end
 
     def execute(node)
       node.bytecode self
