@@ -318,6 +318,34 @@ module Rubinius
       cm
     end
 
+    def use_detected
+      if @required_args < @detected_args
+        @required_args = @detected_args
+      end
+
+      if @total_args < @detected_args
+        @total_args = @detected_args
+      end
+
+      if @local_count < @detected_locals
+        @local_count = @detected_locals
+      end
+    end
+
+    # Commands (these don't generate data in the stream)
+
+    def state
+      @states.last
+    end
+
+    def push_state(scope)
+      @states << AST::State.new(scope)
+    end
+
+    def pop_state
+      @states.pop
+    end
+
     alias_method :dup,  :dup_top
     alias_method :git,  :goto_if_true
     alias_method :gif,  :goto_if_false
@@ -487,20 +515,6 @@ module Rubinius
       end
     end
 
-    module States
-      def state
-        @states.last
-      end
-
-      def push_state(scope)
-        @states << AST::State.new(scope)
-      end
-
-      def pop_state
-        @states.pop
-      end
-    end
-
     module Lines
       def close
         if @current_line.nil?
@@ -538,20 +552,6 @@ module Rubinius
     end
 
     module DetectionHelper
-      def use_detected
-        if @required_args < @detected_args
-          @required_args = @detected_args
-        end
-
-        if @total_args < @detected_args
-          @total_args = @detected_args
-        end
-
-        if @local_count < @detected_locals
-          @local_count = @detected_locals
-        end
-      end
-
       def push_local(idx)
         if @detected_locals <= idx
           @detected_locals = idx + 1
@@ -573,7 +573,6 @@ module Rubinius
     include Literals
     include SendMethods
     include Modifiers
-    include States
     include Lines
     include InstructionListDelegator
     include DetectionHelper
