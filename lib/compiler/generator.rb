@@ -254,7 +254,7 @@ module Rubinius
       @detected_args = 0
       @detected_locals = 0
 
-      @states = []
+      @state = []
       @generators = []
 
       @current_line = nil
@@ -338,15 +338,15 @@ module Rubinius
     # Commands (these don't generate data in the stream)
 
     def state
-      @states.last
+      @state.last
     end
 
     def push_state(scope)
-      @states << AST::State.new(scope)
+      @state << AST::State.new(scope)
     end
 
     def pop_state
-      @states.pop
+      @state.pop
     end
 
     def push_modifiers
