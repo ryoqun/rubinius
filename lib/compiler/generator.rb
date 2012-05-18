@@ -261,6 +261,11 @@ module Rubinius
       @definition_line = nil
     end
 
+    attr_accessor :file, :name,
+                  :required_args, :post_args, :total_args, :splat_index,
+                  :local_count, :local_names, :primitive, :for_block,
+                  :detected_args, :detected_locals
+
     alias_method :dup,  :dup_top
     alias_method :git,  :goto_if_true
     alias_method :gif,  :goto_if_false
@@ -481,7 +486,6 @@ module Rubinius
     end
 
     module DetectionHelper
-      attr_accessor :detected_args, :detected_locals
       def use_detected
         if @required_args < @detected_args
           @required_args = @detected_args
@@ -514,7 +518,6 @@ module Rubinius
     end
 
 
-    include GeneratorMethods
     include Literals
     include SendMethods
     include Modifiers
@@ -522,11 +525,6 @@ module Rubinius
     include Lines
     include InstructionListDelegator
     include DetectionHelper
-    attr_accessor :name, :file
-
-    attr_accessor :local_count, :local_names
-    attr_accessor :required_args, :post_args, :total_args, :splat_index
-    attr_accessor :for_block
 
     def execute(node)
       node.bytecode self
