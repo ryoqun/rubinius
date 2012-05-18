@@ -24,6 +24,7 @@
 #include "builtin/location.hpp"
 #include "builtin/cache.hpp"
 #include "builtin/encoding.hpp"
+#include "builtin/thread.hpp"
 
 #include "instruments/tooling.hpp"
 
@@ -945,6 +946,21 @@ extern "C" {
 
     state->checkpoint(gct, call_frame);
     return cTrue;
+  }
+
+  void rbx_source(STATE, CallFrame* call_frame, size_t line) {
+    bool found;
+    Array* lines = (Array*)Thread::current(state)->coverage()->fetch(state, call_frame->cm->file(), &found);
+    if(!found) {
+      lines = Array::create(state, 0);
+      Thread::current(state)->coverage()->store(state, call_frame->cm->file(), lines);
+    }
+    Fixnum *count = (Fixnum *)lines->get(state, line);
+    if(count == cNil) {
+      lines->set(state, line, Fixnum::from(1));
+    } else {
+      lines->set(state, line, count->add(state, Fixnum::from(1)));
+    }
   }
 
   int rbx_enter_unmanaged(STATE, CallFrame* call_frame) {

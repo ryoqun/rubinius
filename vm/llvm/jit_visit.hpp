@@ -506,7 +506,22 @@ namespace rubinius {
     }
 
     void visit_source(opcode line) {
-      (void)line;
+      //stack_push(constant(cNil), type::KnownType::nil());
+      //stack_remove(1);
+      //return;
+
+      Signature sig(ls_, ls_->VoidTy);
+      sig << "State";
+      sig << "CallFrame";
+      sig << ls_->Int32Ty;
+
+      Value* call_args[] = {
+        vm_,
+        call_frame_,
+        cint(line)
+      };
+
+      sig.call("rbx_source", call_args, 3, "", b());
     }
 
     void visit_pop() {

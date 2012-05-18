@@ -1024,7 +1024,7 @@ module Rubinius
     end
 
     def encode
-      #@instruction_list.optimize
+      @instruction_list.optimize
       @instruction_list.source
       @instruction_list.materialize
       @instruction_list.validate_stack
