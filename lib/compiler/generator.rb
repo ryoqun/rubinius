@@ -237,6 +237,419 @@ module Rubinius
       end
     end
 
+  module GeneratorMethods
+    alias_method :dup,  :dup_top
+    alias_method :git,  :goto_if_true
+    alias_method :gif,  :goto_if_false
+    alias_method :swap, :swap_stack
+
+    def create_instruction(name)
+      @instruction = @instruction_list.create_instruction(name, @current_line)
+    end
+
+    def push(what)
+      case what
+      when :true
+        push_true
+      when :false
+        push_false
+      when :self
+        push_self
+      when :nil
+        push_nil
+      when Integer
+        push_int what
+      else
+        raise CompileError, "Unknown push argument '#{what.inspect}'"
+      end
+    end
+
+    def push_const(name)
+      push_const_fast find_literal(name), add_literal(nil)
+    end
+
+    alias_method :__meta_to_s, :meta_to_s
+    def meta_to_s(name=:to_s, priv=true)
+      allow_private if priv
+      __meta_to_s find_literal(name)
+    end
+
+    def last_match(mode, which)
+      push_int Integer(mode)
+      push_int Integer(which)
+      invoke_primitive :regexp_last_match_result, 2
+    end
+  end
+
+  class Generator
+    module Literals
+      def initialize_literals
+        @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
+        @literals = []
+      end
+
+      def find_literal(literal)
+        @literals_map[literal]
+      end
+
+      def add_literal(literal)
+        index = @literals.size
+        @literals << literal
+        index
+      end
+
+      def push_literal(literal)
+        index = find_literal literal
+        emit_push_literal index
+        index
+      end
+
+      def push_unique_literal(literal)
+        index = add_literal literal
+        emit_push_literal index
+        index
+      end
+
+      def push_literal_at(index)
+        emit_push_literal index
+        index
+      end
+    end
+
+    module SendMethods
+      def send(meth, count, priv=false)
+        allow_private if priv
+
+        unless count.kind_of? Fixnum
+          raise CompileError, "count must be a number"
+        end
+
+        idx = find_literal(meth)
+
+        # Don't use send_method, it's only for when the syntax
+        # specified no arguments and no parens.
+        send_stack idx, count
+      end
+
+      # Do a private send to self with no arguments specified, ie, a vcall
+      # style send.
+      def send_vcall(meth)
+        idx = find_literal(meth)
+        send_method idx
+      end
+
+      def send_with_block(meth, count, priv=false)
+        allow_private if priv
+
+        unless count.kind_of? Fixnum
+          raise CompileError, "count must be a number"
+        end
+
+        idx = find_literal(meth)
+
+        send_stack_with_block idx, count
+      end
+
+      def send_with_splat(meth, args, priv=false, concat=false)
+        val = 0
+        val |= InstructionSet::CALL_FLAG_CONCAT if concat
+        set_call_flags val unless val == 0
+
+        allow_private if priv
+
+        idx = find_literal(meth)
+        send_stack_with_splat idx, args
+      end
+
+      def send_super(meth, args, splat=false)
+        idx = find_literal(meth)
+
+        if splat
+          send_super_stack_with_splat idx, args
+        else
+          send_super_stack_with_block idx, args
+        end
+      end
+    end
+
+    module Modifiers
+      def break
+        @instruction_list.break
+      end
+
+      def break=(label)
+        @instruction_list.break = label
+      end
+
+      def redo
+        @instruction_list.redo
+      end
+
+      def redo=(label)
+        @instruction_list.redo = label
+      end
+
+      def next
+        @instruction_list.next
+      end
+
+      def next=(label)
+        @instruction_list.next = label
+      end
+
+      def retry
+        @instruction_list.retry
+      end
+
+      def retry=(label)
+        @instruction_list.retry = label
+      end
+
+      def push_modifiers
+        @instruction_list.push_modifiers
+      end
+
+      def pop_modifiers
+        @instruction_list.pop_modifiers
+      end
+    end
+
+    module States
+      def initialize_states
+        @states = []
+      end
+
+      def state
+        @states.last
+      end
+
+      def push_state(scope)
+        @states << AST::State.new(scope)
+      end
+
+      def pop_state
+        @states.pop
+      end
+    end
+
+    module Lines
+      def initialize_lines
+        @current_line = nil
+        @definition_line = nil
+      end
+
+      def close
+        if @current_line.nil?
+          msg = "closing a method definition with no line info: #{file}:#{line}"
+          raise Exception, msg
+        end
+      end
+
+      def set_line(line)
+        raise Exception, "source code line cannot be nil" unless line
+        @current_line = line
+      end
+
+      def definition_line(line)
+        unless @instruction_list.empty?
+          raise Exception, "only use #definition_line first"
+        end
+
+        @definition_line = line
+      end
+    end
+
+    module InstructionListDelegator
+      def new_label
+        @instruction_list.new_label
+      end
+
+      def new_stack_local
+        @instruction_list.new_stack_local
+      end
+
+      def ip
+        @instruction_list.ip
+      end
+    end
+
+    module DetectionHelper
+      attr_accessor :detected_args, :detected_locals
+      def initialize_detection
+        @detected_args = 0
+        @detected_locals = 0
+      end
+
+      def use_detected
+        if @required_args < @detected_args
+          @required_args = @detected_args
+        end
+
+        if @total_args < @detected_args
+          @total_args = @detected_args
+        end
+
+        if @local_count < @detected_locals
+          @local_count = @detected_locals
+        end
+      end
+
+      def push_local(idx)
+        if @detected_locals <= idx
+          @detected_locals = idx + 1
+        end
+
+        super
+      end
+
+      def set_local(idx)
+        if @detected_locals <= idx
+          @detected_locals = idx + 1
+        end
+
+        super
+      end
+    end
+
+
+    include GeneratorMethods
+    include Literals
+    include SendMethods
+    include Modifiers
+    include States
+    include Lines
+    include InstructionListDelegator
+    include DetectionHelper
+    attr_accessor :name, :file
+
+    attr_accessor :local_count, :local_names
+    attr_accessor :required_args, :post_args, :total_args, :splat_index
+    attr_accessor :for_block
+
+    def initialize
+      @generators = []
+      @instruction_list = InstructionList.new
+
+      @required_args = 0
+      @post_args = 0
+      @total_args = 0
+
+      @for_block = nil
+      @primitive = nil
+
+      initialize_literals
+      initialize_states
+      initialize_lines
+      initialize_detection
+    end
+
+    def execute(node)
+      node.bytecode self
+    end
+    alias_method :run, :execute
+
+    def max_stack_size
+      size = @instruction_list.max_stack_size + local_count
+      size += 1 if @for_block
+      size
+    end
+
+    def push_generator(generator)
+      index = push_literal generator
+      @generators << index
+      index
+    end
+
+    def send_primitive(name)
+      @primitive = name
+    end
+
+    def encode
+      @instruction_list.optimize
+      @instruction_list.source
+      @instruction_list.materialize
+      @instruction_list.validate_stack
+
+      @iseq = @instruction_list.iseq
+
+      if @definition_line
+        lines = [-1, @definition_line] + @instruction_list.lines
+      else
+        lines = @instruction_list.lines
+      end
+
+      @lines = lines
+
+      @generators.each do |index|
+        @literals[index].encode
+      end
+    end
+
+    def package(klass)
+      @generators.each do |index|
+        @literals[index] = @literals[index].package klass
+      end
+
+      lines = @lines.collect do |line|
+        if line.respond_to?(:materialize)
+          line_ = nil
+          catch(:last) do
+            line_ = line.materialize
+          end
+          line_ || 1000
+        else
+          line
+        end
+      end
+
+      #raise @iseq.inspect
+
+      cm = klass.new
+      cm.iseq           = @iseq
+      cm.literals       = @literals.to_tuple
+      cm.lines          = lines.to_tuple
+
+      cm.required_args  = required_args
+      cm.post_args      = post_args
+      cm.total_args     = total_args
+      cm.splat          = splat_index
+
+      cm.local_count    = local_count
+      cm.local_names    = local_names.to_tuple if local_names
+
+      cm.stack_size     = max_stack_size
+
+      cm.file           = file
+      cm.name           = name
+
+      cm.primitive      = @primitive
+      if @for_block
+        cm.add_metadata :for_block, true
+      end
+      cm.verify_bytecode if cm.respond_to?(:verify_bytecode)
+
+      cm
+    end
+  end
+
+  class Slot
+    attr_accessor :instruction, :basic_blocks, :jumps, :line
+
+    def initialize
+      @instruction = nil
+      @basic_blocks = []
+      @jumps = []
+    end
+
+    def jump_from(instruction)
+      @jumps << instruction
+    end
+
+    def materialize
+      @instruction[:ip]
+    end
+  end
+
   class InstructionList
     def initialize
       @instruction_slots = [Slot.new]
@@ -748,419 +1161,6 @@ module Rubinius
         stream += instruction[:stream]
       end
       stream
-    end
-  end
-
-  module GeneratorMethods
-    alias_method :dup,  :dup_top
-    alias_method :git,  :goto_if_true
-    alias_method :gif,  :goto_if_false
-    alias_method :swap, :swap_stack
-
-    def create_instruction(name)
-      @instruction = @instruction_list.create_instruction(name, @current_line)
-    end
-
-    def push(what)
-      case what
-      when :true
-        push_true
-      when :false
-        push_false
-      when :self
-        push_self
-      when :nil
-        push_nil
-      when Integer
-        push_int what
-      else
-        raise CompileError, "Unknown push argument '#{what.inspect}'"
-      end
-    end
-
-    def push_const(name)
-      push_const_fast find_literal(name), add_literal(nil)
-    end
-
-    alias_method :__meta_to_s, :meta_to_s
-    def meta_to_s(name=:to_s, priv=true)
-      allow_private if priv
-      __meta_to_s find_literal(name)
-    end
-
-    def last_match(mode, which)
-      push_int Integer(mode)
-      push_int Integer(which)
-      invoke_primitive :regexp_last_match_result, 2
-    end
-  end
-
-  class Generator
-    module Literals
-      def initialize_literals
-        @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
-        @literals = []
-      end
-
-      def find_literal(literal)
-        @literals_map[literal]
-      end
-
-      def add_literal(literal)
-        index = @literals.size
-        @literals << literal
-        index
-      end
-
-      def push_literal(literal)
-        index = find_literal literal
-        emit_push_literal index
-        index
-      end
-
-      def push_unique_literal(literal)
-        index = add_literal literal
-        emit_push_literal index
-        index
-      end
-
-      def push_literal_at(index)
-        emit_push_literal index
-        index
-      end
-    end
-
-    module SendMethods
-      def send(meth, count, priv=false)
-        allow_private if priv
-
-        unless count.kind_of? Fixnum
-          raise CompileError, "count must be a number"
-        end
-
-        idx = find_literal(meth)
-
-        # Don't use send_method, it's only for when the syntax
-        # specified no arguments and no parens.
-        send_stack idx, count
-      end
-
-      # Do a private send to self with no arguments specified, ie, a vcall
-      # style send.
-      def send_vcall(meth)
-        idx = find_literal(meth)
-        send_method idx
-      end
-
-      def send_with_block(meth, count, priv=false)
-        allow_private if priv
-
-        unless count.kind_of? Fixnum
-          raise CompileError, "count must be a number"
-        end
-
-        idx = find_literal(meth)
-
-        send_stack_with_block idx, count
-      end
-
-      def send_with_splat(meth, args, priv=false, concat=false)
-        val = 0
-        val |= InstructionSet::CALL_FLAG_CONCAT if concat
-        set_call_flags val unless val == 0
-
-        allow_private if priv
-
-        idx = find_literal(meth)
-        send_stack_with_splat idx, args
-      end
-
-      def send_super(meth, args, splat=false)
-        idx = find_literal(meth)
-
-        if splat
-          send_super_stack_with_splat idx, args
-        else
-          send_super_stack_with_block idx, args
-        end
-      end
-    end
-
-    module Modifiers
-      def break
-        @instruction_list.break
-      end
-
-      def break=(label)
-        @instruction_list.break = label
-      end
-
-      def redo
-        @instruction_list.redo
-      end
-
-      def redo=(label)
-        @instruction_list.redo = label
-      end
-
-      def next
-        @instruction_list.next
-      end
-
-      def next=(label)
-        @instruction_list.next = label
-      end
-
-      def retry
-        @instruction_list.retry
-      end
-
-      def retry=(label)
-        @instruction_list.retry = label
-      end
-
-      def push_modifiers
-        @instruction_list.push_modifiers
-      end
-
-      def pop_modifiers
-        @instruction_list.pop_modifiers
-      end
-    end
-
-    module States
-      def initialize_states
-        @states = []
-      end
-
-      def state
-        @states.last
-      end
-
-      def push_state(scope)
-        @states << AST::State.new(scope)
-      end
-
-      def pop_state
-        @states.pop
-      end
-    end
-
-    module Lines
-      def initialize_lines
-        @current_line = nil
-        @definition_line = nil
-      end
-
-      def close
-        if @current_line.nil?
-          msg = "closing a method definition with no line info: #{file}:#{line}"
-          raise Exception, msg
-        end
-      end
-
-      def set_line(line)
-        raise Exception, "source code line cannot be nil" unless line
-        @current_line = line
-      end
-
-      def definition_line(line)
-        unless @instruction_list.empty?
-          raise Exception, "only use #definition_line first"
-        end
-
-        @definition_line = line
-      end
-    end
-
-    module InstructionListDelegator
-      def new_label
-        @instruction_list.new_label
-      end
-
-      def new_stack_local
-        @instruction_list.new_stack_local
-      end
-
-      def ip
-        @instruction_list.ip
-      end
-    end
-
-    module DetectionHelper
-      attr_accessor :detected_args, :detected_locals
-      def initialize_detection
-        @detected_args = 0
-        @detected_locals = 0
-      end
-
-      def use_detected
-        if @required_args < @detected_args
-          @required_args = @detected_args
-        end
-
-        if @total_args < @detected_args
-          @total_args = @detected_args
-        end
-
-        if @local_count < @detected_locals
-          @local_count = @detected_locals
-        end
-      end
-
-      def push_local(idx)
-        if @detected_locals <= idx
-          @detected_locals = idx + 1
-        end
-
-        super
-      end
-
-      def set_local(idx)
-        if @detected_locals <= idx
-          @detected_locals = idx + 1
-        end
-
-        super
-      end
-    end
-
-
-    include GeneratorMethods
-    include Literals
-    include SendMethods
-    include Modifiers
-    include States
-    include Lines
-    include InstructionListDelegator
-    include DetectionHelper
-    attr_accessor :name, :file
-
-    attr_accessor :local_count, :local_names
-    attr_accessor :required_args, :post_args, :total_args, :splat_index
-    attr_accessor :for_block
-
-    def initialize
-      @generators = []
-      @instruction_list = InstructionList.new
-
-      @required_args = 0
-      @post_args = 0
-      @total_args = 0
-
-      @for_block = nil
-      @primitive = nil
-
-      initialize_literals
-      initialize_states
-      initialize_lines
-      initialize_detection
-    end
-
-    def execute(node)
-      node.bytecode self
-    end
-    alias_method :run, :execute
-
-    def max_stack_size
-      size = @instruction_list.max_stack_size + local_count
-      size += 1 if @for_block
-      size
-    end
-
-    def push_generator(generator)
-      index = push_literal generator
-      @generators << index
-      index
-    end
-
-    def send_primitive(name)
-      @primitive = name
-    end
-
-    def encode
-      @instruction_list.optimize
-      @instruction_list.source
-      @instruction_list.materialize
-      @instruction_list.validate_stack
-
-      @iseq = @instruction_list.iseq
-
-      if @definition_line
-        lines = [-1, @definition_line] + @instruction_list.lines
-      else
-        lines = @instruction_list.lines
-      end
-
-      @lines = lines
-
-      @generators.each do |index|
-        @literals[index].encode
-      end
-    end
-
-    def package(klass)
-      @generators.each do |index|
-        @literals[index] = @literals[index].package klass
-      end
-
-      lines = @lines.collect do |line|
-        if line.respond_to?(:materialize)
-          line_ = nil
-          catch(:last) do
-            line_ = line.materialize
-          end
-          line_ || 1000
-        else
-          line
-        end
-      end
-
-      #raise @iseq.inspect
-
-      cm = klass.new
-      cm.iseq           = @iseq
-      cm.literals       = @literals.to_tuple
-      cm.lines          = lines.to_tuple
-
-      cm.required_args  = required_args
-      cm.post_args      = post_args
-      cm.total_args     = total_args
-      cm.splat          = splat_index
-
-      cm.local_count    = local_count
-      cm.local_names    = local_names.to_tuple if local_names
-
-      cm.stack_size     = max_stack_size
-
-      cm.file           = file
-      cm.name           = name
-
-      cm.primitive      = @primitive
-      if @for_block
-        cm.add_metadata :for_block, true
-      end
-      cm.verify_bytecode if cm.respond_to?(:verify_bytecode)
-
-      cm
-    end
-  end
-
-  class Slot
-    attr_accessor :instruction, :basic_blocks, :jumps, :line
-
-    def initialize
-      @instruction = nil
-      @basic_blocks = []
-      @jumps = []
-    end
-
-    def jump_from(instruction)
-      @jumps << instruction
-    end
-
-    def materialize
-      @instruction[:ip]
     end
   end
 
