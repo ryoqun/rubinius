@@ -7,6 +7,8 @@
 #include "builtin/tuple.hpp"
 #include "builtin/fixnum.hpp"
 #include "builtin/symbol.hpp"
+#include "builtin/thread.hpp"
+#include "builtin/array.hpp"
 
 #include "vmmethod.hpp"
 #include "object_utils.hpp"
@@ -256,6 +258,21 @@ namespace rubinius {
       if(sp > max_stack_seen_) max_stack_seen_ = sp;
 
       switch(op) {
+      case InstructionSequence::insn_source: {
+        //std::cout << method_->file()->cpp_str(state) << std::endl;
+        size_t line = arg1;
+        bool found;
+        Array* lines = (Array*)Thread::current(state)->coverage()->fetch(state, method_->file(), &found);
+        if(!found) {
+          lines = Array::create(state, 0);
+          Thread::current(state)->coverage()->store(state, method_->file(), lines);
+        }
+        Fixnum *count = (Fixnum *)lines->get(state, line);
+        if(count == cNil) {
+          lines->set(state, line, Fixnum::from(0));
+        }
+        break;
+      }
       case InstructionSequence::insn_push_local:
       case InstructionSequence::insn_set_local:
         if((native_int)arg1 < 0 || (native_int)arg1 >= locals_) {

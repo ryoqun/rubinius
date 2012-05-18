@@ -15,6 +15,11 @@ module Rubinius
       raise PrimitiveFailure, "CompiledMethod#dup primitive failed"
     end
 
+    def verify_bytecode
+      Rubinius.primitive :compiledmethod_verify_bytecode
+      raise PrimitiveFailure, "CompiledMethod#verify_bytecode failed"
+    end
+
     # Return the CompiledMethod for caller of the method that called
     # .of_sender.
     #

@@ -60,6 +60,22 @@ namespace rubinius {
     return cm;
   }
 
+
+  Object* CompiledMethod::verify_bytecode(STATE) {
+    CompiledMethod* self = this;
+    OnStack<1> os(state, self);
+
+    {
+      BytecodeVerification bv(self);
+      if(!bv.verify(state)) {
+        std::cerr << "Error validating bytecode: " << bv.failure_reason() << "\n";
+        return cFalse;
+      }
+    }
+
+    return cTrue;
+  }
+
   CompiledMethod* CompiledMethod::dup_cm(STATE) {
     CompiledMethod* cm = CompiledMethod::create(state);
     cm->copy_object(state, this);

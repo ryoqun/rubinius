@@ -89,6 +89,9 @@ namespace rubinius {
 
     static Object* primitive_failed(STATE, CallFrame* call_frame, Executable* exec, Module* mod, Arguments& args);
 
+    // Rubinius.primitive :compiledmethod_verify_bytecode
+    Object* verify_bytecode(STATE);
+
     int start_line(STATE);
     int start_line();
     int line(STATE, int ip);

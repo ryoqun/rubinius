@@ -243,6 +243,8 @@ namespace rubinius {
 
     cm->post_marshal(state);
 
+    cm->verify_bytecode(state);
+
     return cm;
   }
 

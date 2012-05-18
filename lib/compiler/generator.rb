@@ -1085,6 +1085,7 @@ module Rubinius
       if @for_block
         cm.add_metadata :for_block, true
       end
+      cm.verify_bytecode if cm.respond_to?(:verify_bytecode)
 
       cm
     end
