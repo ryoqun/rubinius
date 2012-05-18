@@ -1,43 +1,46 @@
 # -*- encoding: us-ascii -*-
 
 module Rubinius
-  class Slot
-    attr_accessor :instruction, :basic_blocks, :jumps, :line
-
-    def initialize
-      @instruction = nil
-      @basic_blocks = []
-      @jumps = []
-    end
-
-    def jump_from(instruction)
-      @jumps << instruction
-    end
-
-    def materialize
-      @instruction[:ip]
-    end
-  end
-
   class InstructionList
+
+    ##
+    # Jump label for the branch instructions. The use scenarios for labels:
+    #   1. Used and then set
+    #        g.gif label
+    #        ...
+    #        label.set!
+    #   2. Set and then used
+    #        label.set!
+    #        ...
+    #        g.git label
+    #   3. 1, 2
+    #
+    # Many labels are only used once. This class employs two small
+    # optimizations. First, for the case where a label is used once then set,
+    # the label merely records the point it was used and updates that location
+    # to the concrete IP when the label is set. In the case where the label is
+    # used multiple times, it records each location and updates them to an IP
+    # when the label is set. In both cases, once the label is set, each use
+    # after that updates the instruction stream with a concrete IP at the
+    # point the label is used. This avoids the need to ever record all the
+    # labels or search through the stream later to change symbolic labels into
+    # concrete IP's.
+
     class Label
-      attr_reader :basic_block
-      attr_reader :used
+      attr_reader :used, :basic_block
       alias_method :used?, :used
 
       def initialize(generator)
         @generator   = generator
         @basic_block = generator.new_basic_block
+        @used        = false
 
         @slot           = nil
-        @used           = false
         @instruction    = nil
         @instructions   = nil
       end
 
       def set!
-        raise "existing slot" if @slot
-
         @slot = @generator.ip
         @slot.basic_blocks << @basic_block
 
@@ -1091,4 +1094,23 @@ module Rubinius
       cm
     end
   end
+
+  class Slot
+    attr_accessor :instruction, :basic_blocks, :jumps, :line
+
+    def initialize
+      @instruction = nil
+      @basic_blocks = []
+      @jumps = []
+    end
+
+    def jump_from(instruction)
+      @jumps << instruction
+    end
+
+    def materialize
+      @instruction[:ip]
+    end
+  end
+
 end
