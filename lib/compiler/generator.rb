@@ -795,7 +795,7 @@ module Rubinius
       lines = []
       last_line = nil
 
-      used_slots.each.with_index do |slot, index|
+      used_slots.each do |slot|
         if lines.empty?
           if slot.line
             lines << 0
@@ -804,10 +804,10 @@ module Rubinius
           end
         else
           if slot.line != last_line
-            if lines[-2] == @instruction_slots[index].instruction[:ip]
+            if lines[-2] == slot.instruction[:ip]
               lines[-1] = slot.line
             else
-              lines << @instruction_slots[index].instruction[:ip]
+              lines << slot.instruction[:ip]
               lines << slot.line
             end
             last_line = slot.line
