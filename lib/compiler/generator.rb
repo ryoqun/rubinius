@@ -131,33 +131,34 @@ module Rubinius
       end
 
       def flow_stack_size(stack)
-        return if @visited
-        @visited = true
+        unless @visited
+          @visited = true
 
-        @generator.accumulate_stack(@enter_size + @max_size)
+          @generator.accumulate_stack(@enter_size + @max_size)
 
-        net_size = @enter_size + @stack
+          net_size = @enter_size + @stack
 
-        if net_size < 0
-          invalid "net stack underflow in block starting at #{location}"
-        end
+          if net_size < 0
+            invalid "net stack underflow in block starting at #{location}"
+          end
 
-        if @enter_size + @min_size < 0
-          invalid "minimum stack underflow in block starting at #{location}"
-        end
+          if @enter_size + @min_size < 0
+            invalid "minimum stack underflow in block starting at #{location}"
+          end
 
-        if @exit_size and @enter_size + @exit_size < 1
-          invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
-        end
+          if @exit_size and @enter_size + @exit_size < 1
+            invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
+          end
 
-        if @left
-          @left.check_stack net_size
-          stack.push @left unless @left.visited?
-        end
+          if @left
+            @left.check_stack net_size
+            stack.push @left unless @left.visited?
+          end
 
-        if @right
-          @right.check_stack net_size
-          stack.push @right unless @right.visited?
+          if @right
+            @right.check_stack net_size
+            stack.push @right unless @right.visited?
+          end
         end
       end
 
