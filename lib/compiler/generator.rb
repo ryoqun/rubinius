@@ -412,6 +412,12 @@ module Rubinius
       @instruction = @instruction_list.create_instruction(name, @current_line)
     end
 
+    def max_stack_size
+      size = @instruction_list.max_stack_size + local_count
+      size += 1 if @for_block
+      size
+    end
+
     def push(what)
       case what
       when :true
@@ -429,6 +435,55 @@ module Rubinius
       end
     end
 
+    def push_generator(generator)
+      index = push_literal generator
+      @generators << index
+      index
+    end
+
+    # Find the index for the specified literal, or create a new slot if the
+    # literal has not been encountered previously.
+    def find_literal(literal)
+      @literals_map[literal]
+    end
+
+    # Add literal exists to allow RegexLiteral's to create a new regex literal
+    # object at run-time. All other literals should be added via find_literal,
+    # which re-use an existing matching literal if one exists.
+    def add_literal(literal)
+      index = @literals.size
+      @literals << literal
+      index
+    end
+
+    # Pushes the specified literal value into the literal's tuple
+    def push_literal(literal)
+      index = find_literal literal
+      emit_push_literal index
+      return index
+    end
+
+    # Puts +what+ is the literals tuple without trying to see if
+    # something that is like +what+ is already there.
+    def push_unique_literal(literal)
+      index = add_literal literal
+      emit_push_literal index
+      return index
+    end
+
+    # Pushes the literal value on the stack into the specified position in the
+    # literals tuple. Most timees, push_literal should be used instead; this
+    # method exists to support RegexLiteral, where the compiled literal value
+    # (a Regex object) does not exist until runtime.
+    def push_literal_at(index)
+      emit_push_literal index
+      return index
+    end
+
+    # The push_const instruction itself is unused right now. The instruction
+    # parser does not emit a GeneratorMethods#push_const. This method/opcode
+    # was used in the compiler before the push_const_fast instruction. Rather
+    # than changing the compiler code, this helper was used.
     def push_const(name)
       push_const_fast find_literal(name), add_literal(nil)
     end
@@ -443,35 +498,6 @@ module Rubinius
       push_int Integer(mode)
       push_int Integer(which)
       invoke_primitive :regexp_last_match_result, 2
-    end
-
-    module Literals
-      def find_literal(literal)
-        @literals_map[literal]
-      end
-
-      def add_literal(literal)
-        index = @literals.size
-        @literals << literal
-        index
-      end
-
-      def push_literal(literal)
-        index = find_literal literal
-        emit_push_literal index
-        index
-      end
-
-      def push_unique_literal(literal)
-        index = add_literal literal
-        emit_push_literal index
-        index
-      end
-
-      def push_literal_at(index)
-        emit_push_literal index
-        index
-      end
     end
 
     module SendMethods
@@ -593,24 +619,10 @@ module Rubinius
       end
     end
 
-
-    include Literals
     include SendMethods
     include Modifiers
     include InstructionListDelegator
     include DetectionHelper
-
-    def max_stack_size
-      size = @instruction_list.max_stack_size + local_count
-      size += 1 if @for_block
-      size
-    end
-
-    def push_generator(generator)
-      index = push_literal generator
-      @generators << index
-      index
-    end
   end
 
   class Slot
