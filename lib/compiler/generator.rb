@@ -266,6 +266,58 @@ module Rubinius
                   :local_count, :local_names, :primitive, :for_block,
                   :detected_args, :detected_locals
 
+    def execute(node)
+      node.bytecode self
+    end
+
+    alias_method :run, :execute
+
+    # Formalizers
+
+    def encode
+      @instruction_list.optimize
+      @instruction_list.source
+      @instruction_list.materialize
+      @instruction_list.validate_stack
+      @iseq = @instruction_list.iseq
+
+      if @definition_line
+        @lines = [-1, @definition_line] + @instruction_list.lines
+      else
+        @lines = @instruction_list.lines
+      end
+
+      @generators.each { |x| @literals[x].encode }
+    end
+
+    def package(klass)
+      @generators.each { |x| @literals[x] = @literals[x].package klass }
+
+      cm = klass.new
+      cm.iseq           = @iseq
+      cm.literals       = @literals.to_tuple
+      cm.lines          = @lines.to_tuple
+
+      cm.required_args  = required_args
+      cm.post_args      = post_args
+      cm.total_args     = total_args
+      cm.splat          = splat_index
+      cm.local_count    = local_count
+      cm.local_names    = local_names.to_tuple if local_names
+
+      cm.stack_size     = max_stack_size
+      cm.file           = file
+      cm.name           = name
+      cm.primitive      = @primitive
+
+      if @for_block
+        cm.add_metadata :for_block, true
+      end
+      cm.verify_bytecode if cm.respond_to?(:verify_bytecode)
+
+      cm
+    end
+
     alias_method :dup,  :dup_top
     alias_method :git,  :goto_if_true
     alias_method :gif,  :goto_if_false
@@ -526,11 +578,6 @@ module Rubinius
     include InstructionListDelegator
     include DetectionHelper
 
-    def execute(node)
-      node.bytecode self
-    end
-    alias_method :run, :execute
-
     def max_stack_size
       size = @instruction_list.max_stack_size + local_count
       size += 1 if @for_block
@@ -545,73 +592,6 @@ module Rubinius
 
     def send_primitive(name)
       @primitive = name
-    end
-
-    def encode
-      @instruction_list.optimize
-      @instruction_list.source
-      @instruction_list.materialize
-      @instruction_list.validate_stack
-
-      @iseq = @instruction_list.iseq
-
-      if @definition_line
-        lines = [-1, @definition_line] + @instruction_list.lines
-      else
-        lines = @instruction_list.lines
-      end
-
-      @lines = lines
-
-      @generators.each do |index|
-        @literals[index].encode
-      end
-    end
-
-    def package(klass)
-      @generators.each do |index|
-        @literals[index] = @literals[index].package klass
-      end
-
-      lines = @lines.collect do |line|
-        if line.respond_to?(:materialize)
-          line_ = nil
-          catch(:last) do
-            line_ = line.materialize
-          end
-          line_ || 1000
-        else
-          line
-        end
-      end
-
-      #raise @iseq.inspect
-
-      cm = klass.new
-      cm.iseq           = @iseq
-      cm.literals       = @literals.to_tuple
-      cm.lines          = lines.to_tuple
-
-      cm.required_args  = required_args
-      cm.post_args      = post_args
-      cm.total_args     = total_args
-      cm.splat          = splat_index
-
-      cm.local_count    = local_count
-      cm.local_names    = local_names.to_tuple if local_names
-
-      cm.stack_size     = max_stack_size
-
-      cm.file           = file
-      cm.name           = name
-
-      cm.primitive      = @primitive
-      if @for_block
-        cm.add_metadata :for_block, true
-      end
-      cm.verify_bytecode if cm.respond_to?(:verify_bytecode)
-
-      cm
     end
   end
 
