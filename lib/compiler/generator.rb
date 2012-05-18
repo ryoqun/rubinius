@@ -279,9 +279,18 @@ module Rubinius
     # Formalizers
 
     def encode
-      @instruction_list.source
       @instruction_list.materialize
-      @instruction_list.validate_stack
+
+      begin
+        # Validate the stack and calculate the max depth
+        @instruction_list.validate_stack
+      rescue Exception => e
+        if $DEBUG
+          puts "Error computing stack for #{@name}: #{e.message} (#{e.class})"
+        end
+        raise e
+      end
+
       @iseq = @instruction_list.iseq
 
       if @definition_line
@@ -711,36 +720,6 @@ module Rubinius
       last_slot
     end
 
-    def source
-      last_line = nil
-      @instruction_slots.each do |slot|
-        if slot.line
-          if last_line != slot.line
-            slot.instruction[:new_line] = true
-          end
-          last_line = slot.line
-        end
-      end
-
-      slots = []
-      @instruction_slots.each do |slot|
-        if slot.instruction and slot.instruction[:new_line] and slot.line > 0
-          new_slot = Slot.new
-          new_slot.instruction = slot.instruction
-          new_slot.line = slot.line
-
-          instruction = {:stream => [1, slot.line - 1], :name => :source, :stack => [0, 0]}
-          slot.instruction = instruction
-
-          slots << slot
-          slots << new_slot
-        else
-          slots << slot
-        end
-      end
-      @instruction_slots = slots
-    end
-
     def materialize
       @instruction_slots.freeze
 
@@ -805,16 +784,7 @@ module Rubinius
     end
 
     def validate_stack
-      #pp(@instruction_slots.collect(&:instruction).compact.collect do |instruction| {:ip => instruction[:ip], :name => instruction[:name], :stream => instruction[:stream]} end) if ENV["DEBUG"]
-      begin
-        # Validate the stack and calculate the max depth
-        @enter_block.validate_stack
-      rescue Exception => e
-        if $DEBUG
-          puts "Error computing stack for #{@name}: #{e.message} (#{e.class})"
-        end
-        raise e
-      end
+      @enter_block.validate_stack
     end
 
     def iseq
