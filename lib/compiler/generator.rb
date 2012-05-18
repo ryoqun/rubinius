@@ -418,6 +418,10 @@ module Rubinius
       size
     end
 
+    def new_stack_local
+      @instruction_list.new_stack_local
+    end
+
     def push(what)
       case what
       when :true
@@ -453,7 +457,7 @@ module Rubinius
     def add_literal(literal)
       index = @literals.size
       @literals << literal
-      index
+      return index
     end
 
     # Pushes the specified literal value into the literal's tuple
@@ -488,10 +492,32 @@ module Rubinius
       push_const_fast find_literal(name), add_literal(nil)
     end
 
-    alias_method :__meta_to_s, :meta_to_s
-    def meta_to_s(name=:to_s, priv=true)
-      allow_private if priv
-      __meta_to_s find_literal(name)
+    def push_local(idx)
+      if @detected_locals <= idx
+        @detected_locals = idx + 1
+      end
+
+      super
+    end
+
+    def set_local(idx)
+      if @detected_locals <= idx
+        @detected_locals = idx + 1
+      end
+
+      super
+    end
+
+    # Minor meta operations that can be used to detect
+    # the number of method arguments needed
+    def push_arg(idx)
+      push_local(idx)
+      @detected_args = @detected_locals
+    end
+
+    def set_arg(idx)
+      set_local(idx)
+      @detected_args = @detected_locals
     end
 
     def last_match(mode, which)
@@ -500,60 +526,63 @@ module Rubinius
       invoke_primitive :regexp_last_match_result, 2
     end
 
-    module SendMethods
-      def send(meth, count, priv=false)
-        allow_private if priv
+    def send(meth, count, priv=false)
+      allow_private if priv
 
-        unless count.kind_of? Fixnum
-          raise CompileError, "count must be a number"
-        end
-
-        idx = find_literal(meth)
-
-        # Don't use send_method, it's only for when the syntax
-        # specified no arguments and no parens.
-        send_stack idx, count
+      unless count.kind_of? Fixnum
+        raise CompileError, "count must be a number"
       end
 
-      # Do a private send to self with no arguments specified, ie, a vcall
-      # style send.
-      def send_vcall(meth)
-        idx = find_literal(meth)
-        send_method idx
+      idx = find_literal(meth)
+
+      # Don't use send_method, it's only for when the syntax
+      # specified no arguments and no parens.
+      send_stack idx, count
+    end
+
+    # Do a private send to self with no arguments specified, ie, a vcall
+    # style send.
+    def send_vcall(meth)
+      idx = find_literal(meth)
+      send_method idx
+    end
+
+    def send_with_block(meth, count, priv=false)
+      allow_private if priv
+
+      unless count.kind_of? Fixnum
+        raise CompileError, "count must be a number"
       end
 
-      def send_with_block(meth, count, priv=false)
-        allow_private if priv
+      idx = find_literal(meth)
 
-        unless count.kind_of? Fixnum
-          raise CompileError, "count must be a number"
-        end
+      send_stack_with_block idx, count
+    end
 
-        idx = find_literal(meth)
+    def send_with_splat(meth, args, priv=false, concat=false)
+      val = 0
+      val |= InstructionSet::CALL_FLAG_CONCAT if concat
+      set_call_flags val unless val == 0
 
-        send_stack_with_block idx, count
+      allow_private if priv
+
+      idx = find_literal(meth)
+      send_stack_with_splat idx, args
+    end
+
+    def send_super(meth, args, splat=false)
+      idx = find_literal(meth)
+
+      if splat
+        send_super_stack_with_splat idx, args
+      else
+        send_super_stack_with_block idx, args
       end
+    end
 
-      def send_with_splat(meth, args, priv=false, concat=false)
-        val = 0
-        val |= InstructionSet::CALL_FLAG_CONCAT if concat
-        set_call_flags val unless val == 0
-
-        allow_private if priv
-
-        idx = find_literal(meth)
-        send_stack_with_splat idx, args
-      end
-
-      def send_super(meth, args, splat=false)
-        idx = find_literal(meth)
-
-        if splat
-          send_super_stack_with_splat idx, args
-        else
-          send_super_stack_with_block idx, args
-        end
-      end
+    def meta_to_s(name=:to_s, priv=true)
+      allow_private if priv
+      super find_literal(name)
     end
 
     module Modifiers
@@ -592,37 +621,13 @@ module Rubinius
     end
 
     module InstructionListDelegator
-      def new_stack_local
-        @instruction_list.new_stack_local
-      end
-
       def ip
         @instruction_list.ip
       end
     end
 
-    module DetectionHelper
-      def push_local(idx)
-        if @detected_locals <= idx
-          @detected_locals = idx + 1
-        end
-
-        super
-      end
-
-      def set_local(idx)
-        if @detected_locals <= idx
-          @detected_locals = idx + 1
-        end
-
-        super
-      end
-    end
-
-    include SendMethods
     include Modifiers
     include InstructionListDelegator
-    include DetectionHelper
   end
 
   class Slot
