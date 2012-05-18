@@ -1,8 +1,6 @@
 # -*- encoding: us-ascii -*-
 
 module Rubinius
-  class InstructionList
-
     ##
     # Jump label for the branch instructions. The use scenarios for labels:
     #   1. Used and then set
@@ -226,26 +224,20 @@ module Rubinius
 
       def check_stack(stack_size)
         if @enter_size
-          check_unbalanced(stack_size)
+          unless stack_size == @enter_size
+            invalid "unbalanced stack at #{location}: #{stack_size} != #{@enter_size}"
+          end
         else
-          check_closed
+          if not @closed
+            invalid "control fails to exit properly at #{location}"
+          end
+
           @enter_size = stack_size
-        end
-      end
-
-      def check_unbalanced(stack_size)
-        unless @enter_size == stack_size
-          invalid "unbalanced stack at #{location}: #{stack_size} != #{@enter_size}"
-        end
-      end
-
-      def check_closed
-        unless @closed
-          invalid "control fails to exit properly at #{location}"
         end
       end
     end
 
+  class InstructionList
     def initialize
       @instruction_slots = [Slot.new]
 
