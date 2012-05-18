@@ -1,6 +1,9 @@
 # -*- encoding: us-ascii -*-
 
 module Rubinius
+  class Generator
+    include GeneratorMethods
+
     ##
     # Jump label for the branch instructions. The use scenarios for labels:
     #   1. Used and then set
@@ -237,7 +240,6 @@ module Rubinius
       end
     end
 
-  module GeneratorMethods
     alias_method :dup,  :dup_top
     alias_method :git,  :goto_if_true
     alias_method :gif,  :goto_if_false
@@ -279,9 +281,7 @@ module Rubinius
       push_int Integer(which)
       invoke_primitive :regexp_last_match_result, 2
     end
-  end
 
-  class Generator
     module Literals
       def initialize_literals
         @literals_map = Hash.new { |h,k| h[k] = add_literal(k) }
@@ -1147,11 +1147,11 @@ module Rubinius
     end
 
     def new_basic_block
-      BasicBlock.new(self)
+      Generator::BasicBlock.new(self)
     end
 
     def new_label
-      Label.new(self)
+      Generator::Label.new(self)
     end
 
     private
