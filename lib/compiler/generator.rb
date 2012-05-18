@@ -33,43 +33,40 @@ module Rubinius
       def initialize(generator)
         @generator   = generator
         @basic_block = generator.new_basic_block
+        @position    = nil
         @used        = false
-
-        @slot           = nil
-        @instruction    = nil
-        @instructions   = nil
+        @location    = nil
+        @locations   = nil
       end
 
       def set!
-        @slot = @generator.ip
-        @slot.basic_blocks << @basic_block
+        @position = @generator.ip
+        @position.basic_blocks << @basic_block
 
-        if @instructions
-          @instructions.each do |instruction|
-            set_jump_slot(instruction)
-          end
-        elsif @instruction
-          set_jump_slot(@instruction)
+        if @locations
+          @locations.each { |x| set_jump_slot(x) }
+        elsif @location
+          set_jump_slot(@location)
         end
       end
 
-      def used_at(instruction)
-        if @slot
-          set_jump_slot(instruction)
-        elsif !@instruction
-          @instruction = instruction
-        elsif @instructions
-          @instructions << instruction
+      def used_at(ip)
+        if @position
+          set_jump_slot(ip)
+        elsif !@location
+          @location = ip
+        elsif @locations
+          @locations << ip
         else
-          @instructions = [@instruction, instruction]
+          @locations = [@location, ip]
         end
         @used = true
       end
 
       private
-      def set_jump_slot(instruction)
-        @slot.jump_from(instruction)
-        instruction[:slot] = @slot
+      def set_jump_slot(ip)
+        @position.jump_from(ip)
+        ip[:slot] = @position
       end
     end
 
