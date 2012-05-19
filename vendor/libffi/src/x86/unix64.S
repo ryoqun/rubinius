@@ -347,11 +347,7 @@ ffi_closure_unix64:
 	.long	.LEFDE1-.LASFDE1	/* FDE Length */
 .LASFDE1:
 	.long	.LASFDE1-.Lframe1	/* FDE CIE offset */
-#if HAVE_AS_X86_PCREL
 	.long	.LUW0-.			/* FDE initial location */
-#else
-	.long	.LUW0@rel
-#endif
 	.long	.LUW4-.LUW0		/* FDE address range */
 	.uleb128 0x0			/* Augmentation size */
 
@@ -389,11 +385,7 @@ ffi_closure_unix64:
 	.long	.LEFDE3-.LASFDE3	/* FDE Length */
 .LASFDE3:
 	.long	.LASFDE3-.Lframe1	/* FDE CIE offset */
-#if HAVE_AS_X86_PCREL
 	.long	.LUW5-.			/* FDE initial location */
-#else
-	.long	.LUW5@rel
-#endif
 	.long	.LUW9-.LUW5		/* FDE address range */
 	.uleb128 0x0			/* Augmentation size */
 

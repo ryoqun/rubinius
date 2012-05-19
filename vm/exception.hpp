@@ -104,7 +104,7 @@ namespace rubinius {
 
   public:   /* Interface */
 
-    static void raise(Exception* exception, bool make_backtrace = false);
+    noreturn(static void raise(Exception* exception, bool make_backtrace = false));
 
     /**
      * Prints out the exception message and the Ruby backtrace.
