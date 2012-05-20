@@ -1133,9 +1133,10 @@ failed: /* try next '*' position */
     struct iovec vec[1];
     char buf[1];
 
+    static const int cmsg_space = CMSG_SPACE(sizeof(int));
     union {
       struct cmsghdr hdr;
-      unsigned char buf[CMSG_SPACE(sizeof(int))];
+      unsigned char buf[cmsg_space];
     } cmsg;
 
     fd = io->descriptor()->to_native();
@@ -1178,9 +1179,10 @@ failed: /* try next '*' position */
     struct iovec vec[1];
     char buf[1];
 
+    static const int cmsg_space = CMSG_SPACE(sizeof(int));
     union {
       struct cmsghdr hdr;
-      unsigned char buf[CMSG_SPACE(sizeof(int))];
+      unsigned char buf[cmsg_space];
     } cmsg;
 
     msg.msg_name = NULL;
