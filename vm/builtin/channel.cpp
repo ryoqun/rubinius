@@ -134,15 +134,17 @@ namespace rubinius {
     if(!self->value_->empty_p()) return self->value_->shift(state);
 
     // Otherwise, we need to wait for a value.
-    struct timespec ts = {0,0};
     bool use_timed_wait = true;
 
+    struct timespec *ts = (struct timespec *)alloca(sizeof(struct timespec));
+    memset(ts, 0, sizeof(*ts));
+
     if(Fixnum* fix = try_as<Fixnum>(duration)) {
-      ts.tv_sec = fix->to_native();
+      ts->tv_sec = fix->to_native();
     } else if(Float* flt = try_as<Float>(duration)) {
       uint64_t nano = (uint64_t)(flt->val * NANOSECONDS);
-      ts.tv_sec  =  (time_t)(nano / NANOSECONDS);
-      ts.tv_nsec =    (long)(nano % NANOSECONDS);
+      ts->tv_sec  =  (time_t)(nano / NANOSECONDS);
+      ts->tv_nsec =    (long)(nano % NANOSECONDS);
     } else if(duration->nil_p()) {
       use_timed_wait = false;
     } else {
@@ -158,9 +160,9 @@ namespace rubinius {
     struct timeval tv = {0,0};
     if(use_timed_wait) {
       gettimeofday(&tv, 0);
-      uint64_t nano = ts.tv_nsec + tv.tv_usec * 1000;
-      ts.tv_sec  += tv.tv_sec + nano / NANOSECONDS;
-      ts.tv_nsec  = nano % NANOSECONDS;
+      uint64_t nano = ts->tv_nsec + tv.tv_usec * 1000;
+      ts->tv_sec  += tv.tv_sec + nano / NANOSECONDS;
+      ts->tv_nsec  = nano % NANOSECONDS;
     }
 
     // We lock to manipulate the wait condition on the VM* so that
@@ -184,7 +186,7 @@ namespace rubinius {
         GCIndependent gc_guard(state, call_frame);
 
         if(use_timed_wait) {
-          if(self->condition_.wait_until(self->mutex_, &ts) == thread::cTimedOut) break;
+          if(self->condition_.wait_until(self->mutex_, ts) == thread::cTimedOut) break;
         } else {
           self->condition_.wait(self->mutex_);
         }
