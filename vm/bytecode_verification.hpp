@@ -49,6 +49,9 @@ namespace rubinius {
 
     const char* failure_reason() { return fail_reason_; }
     int failure_ip() { return fail_ip_; }
+
+  private:
+    bool verify_sections(STATE, std::list<Section>& ips);
   };
 }
 #endif

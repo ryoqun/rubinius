@@ -121,12 +121,13 @@ namespace rubinius {
     if(!vmm) {
       {
         BytecodeVerification bv(self);
-        if(!bv.verify(state)) {
-          if(reason) *reason = bv.failure_reason();
-          if(ip) *ip = bv.failure_ip();
-          std::cerr << "Error validating bytecode: " << bv.failure_reason() << "\n";
-          return 0;
-        }
+        bv.verify(state);
+        //if(!bv.verify(state)) {
+          //if(reason) *reason = bv.failure_reason();
+          //if(ip) *ip = bv.failure_ip();
+          //std::cerr << "Error validating bytecode: " << bv.failure_reason() << "\n";
+        //  return 0;
+        //}
       }
 
       vmm = new VMMethod(state, self);

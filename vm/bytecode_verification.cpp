@@ -119,8 +119,23 @@ namespace rubinius {
       stack_[i] = -1;
     }
 
-    std::list<Section> ips;
-    ips.push_back(Section(0, 0));
+    std::list<Section>* ips = new std::list<Section>;
+    ips->push_back(Section(0, 0));
+    if(!verify_sections(state, *ips)) {
+      return false;
+    }
+    delete ips;
+
+    // Now, check there is a enough space for the stack locals.
+    if(max_stack_seen_ + max_stack_local_ >= max_stack_allowed_) {
+      fail("not enough space for stack locals", -1);
+      return false;
+    }
+
+    return true;
+  }
+
+  bool BytecodeVerification::verify_sections(STATE, std::list<Section>& ips) {
 
     while(!ips.empty()) {
       Section& section = ips.front();
@@ -133,14 +148,9 @@ namespace rubinius {
       if(!verify_from(state, sp, ip, ips)) return false;
     }
 
-    // Now, check there is a enough space for the stack locals.
-    if(max_stack_seen_ + max_stack_local_ >= max_stack_allowed_) {
-      fail("not enough space for stack locals", -1);
-      return false;
-    }
-
     return true;
   }
+
 
   namespace {
 #include "gen/instruction_effects.hpp"
