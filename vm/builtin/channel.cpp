@@ -157,11 +157,12 @@ namespace rubinius {
       rubinius::bug("unable to pin Channel");
     }
 
-    struct timeval tv = {0,0};
+    struct timeval *tv = (struct timeval*)alloca(sizeof(struct timeval));
+    memset(tv, 0, sizeof(*tv));
     if(use_timed_wait) {
-      gettimeofday(&tv, 0);
-      uint64_t nano = ts->tv_nsec + tv.tv_usec * 1000;
-      ts->tv_sec  += tv.tv_sec + nano / NANOSECONDS;
+      gettimeofday(tv, 0);
+      uint64_t nano = ts->tv_nsec + tv->tv_usec * 1000;
+      ts->tv_sec  += tv->tv_sec + nano / NANOSECONDS;
       ts->tv_nsec  = nano % NANOSECONDS;
     }
 

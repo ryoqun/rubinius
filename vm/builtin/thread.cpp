@@ -266,8 +266,10 @@ namespace rubinius {
   }
 
   Object* Thread::pass(STATE, CallFrame* calling_environment) {
-    struct timespec ts = {0, 0};
-    nanosleep(&ts, NULL);
+    struct timespec *ts = (struct timespec *)malloc(sizeof(struct timespec));
+    memset(ts, 0, sizeof(*ts));
+    nanosleep(ts, NULL);
+    free(ts);
     return cNil;
   }
 
