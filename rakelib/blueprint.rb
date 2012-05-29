@@ -2,7 +2,7 @@ Daedalus.blueprint do |i|
   gcc = i.gcc!
 
   gcc.cflags << "-Ivm -Ivm/test/cxxtest -I. "
-  gcc.cflags << "-pipe -Wall -fno-omit-frame-pointer"
+  gcc.cflags << "-pipe -Wall -fomit-frame-pointer"
   gcc.cflags << "-Wno-unused-function"
   gcc.cflags << "-g -ggdb3 -Werror"
   gcc.cflags << "-DRBX_PROFILER"
