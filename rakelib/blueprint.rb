@@ -6,7 +6,7 @@ Daedalus.blueprint do |i|
   # -fno-omit-frame-pointer is needed to get a backtrace on FreeBSD.
   # It is enabled by default on OS X, on the other hand, not on Linux.
   # To use same build flags across platforms, it is added explicitly.
-  gcc.cflags << "-pipe -Wall -fno-omit-frame-pointer"
+  gcc.cflags << "-pipe -Wall -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer"
 
   gcc.cflags << "-Wno-unused-function"
   gcc.cflags << "-g -ggdb3 -Werror"
@@ -195,6 +195,7 @@ Daedalus.blueprint do |i|
       flags.delete_if { |x| x.index("-O") == 0 || x.index("-I") == 0 }
       flags.delete_if { |x| x =~ /-D__STDC/ }
       flags.delete_if { |x| x == "-DNDEBUG" }
+      flags.delete_if { |x| x == "-fomit-frame-pointer" }
       flags << "-Ivendor/llvm/include" << "-DENABLE_LLVM"
       l.cflags = flags
 
@@ -222,6 +223,7 @@ Daedalus.blueprint do |i|
     flags.delete_if { |x| x.index("-O") == 0 }
     flags.delete_if { |x| x =~ /-D__STDC/ }
     flags.delete_if { |x| x == "-DNDEBUG" }
+    flags.delete_if { |x| x == "-fomit-frame-pointer" }
     flags << "-DENABLE_LLVM"
     gcc.cflags.concat flags
     gcc.ldflags.concat `#{perl} #{conf} --ldflags --libfiles`.strip.split(/\s+/)
