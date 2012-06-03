@@ -364,7 +364,7 @@ namespace immix {
       lines_used_ = 0;
       bool in_hole = false;
       for(int i = 0; i < cLineTableSize; i++) {
-        if(lines_[i] == 0) {
+        if(is_line_free(i)) {
           if(!in_hole) holes_++;
           in_hole = true;
         } else {
@@ -1058,13 +1058,17 @@ namespace immix {
 
       // Find the Block the address relates to
       Block* block = Block::from_address(addr);
-      if(block->status() == cEvacuate && !desc.pinned(addr)) {
-        // Block is marked for evacuation, so copy the object to a new Block
-        fwd = desc.copy(addr, alloc);
-        desc.set_forwarding_pointer(addr, fwd);
+      if(block->status() == cEvacuate) {
+        if(!desc.pinned(addr)) {
+          // Block is marked for evacuation, so copy the object to a new Block
+          fwd = desc.copy(addr, alloc);
+          desc.set_forwarding_pointer(addr, fwd);
 
-        addr = fwd;
-        block = Block::from_address(addr);
+          addr = fwd;
+          block = Block::from_address(addr);
+        } else {
+          block->set_status(cUnavailable);
+        }
       }
 
       // Mark the line(s) in the Block that this object occupies as in use
