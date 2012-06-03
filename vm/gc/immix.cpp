@@ -55,8 +55,8 @@ namespace rubinius {
       immix::Allocator& alloc) {
     Object* orig = original.as<Object>();
 
-    memory::Address copy_addr = alloc.allocate(
-        orig->size_in_bytes(object_memory_->state()));
+    int bytes = orig->size_in_bytes(object_memory_->state());
+    memory::Address copy_addr = alloc.allocate(bytes);
 
     Object* copy = copy_addr.as<Object>();
 

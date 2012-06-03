@@ -729,7 +729,7 @@ namespace immix {
       return chunk;
     }
 
-    void reset() {
+    void reset_cursor() {
       for(Chunks::iterator i = chunks_.begin();
           i != chunks_.end();
           ++i) {
@@ -997,7 +997,6 @@ namespace immix {
 
   template <typename Describer>
   class GC : public Triggers {
-    BlockList evacuate_;
     BlockAllocator block_allocator_;
 
     Describer desc;
@@ -1025,30 +1024,13 @@ namespace immix {
     }
 
     /**
-     * Sets a Block up for evacuation.
-     */
-    void evacuate_block(Block& block) {
-      block.set_status(cEvacuate);
-      evacuate_.push_back(&block);
-    }
-
-    /**
      * Converts evacuated Blocks back to free Blocks.
      *
      * @todo Does this need to check if an evacuated block is empty - what
      * about pinned objects?
      */
     void sweep_blocks() {
-      for(BlockList::const_iterator i = evacuate_.begin();
-          i != evacuate_.end();
-          ++i) {
-        Block* block = *i;
-        if(block->status() == cEvacuate) {
-          block->set_status(cFree);
-        }
-      }
-
-      block_allocator_.reset();
+      block_allocator_.reset_cursor();
     }
 
     /**
