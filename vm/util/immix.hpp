@@ -377,7 +377,11 @@ namespace immix {
       if(lines_used_ <= 1) {
         status_ = cFree;
       } else if(holes_ >= 1) {
-        status_ = cRecyclable;
+        //if(fragmentation_ratio() > 0.05) {
+          status_ = cRecyclable;
+        //} else {
+        //  status_ = cEvacuate;
+        //}
       } else {
         status_ = cUnavailable;
       }
@@ -624,6 +628,8 @@ namespace immix {
     // Stats
     size_t bytes_allocated_;
 
+    bool near_last_;
+
   public:
 
     BlockAllocator(Triggers& trig)
@@ -632,6 +638,7 @@ namespace immix {
       , chunk_cursor_(0)
       , block_cursor_(0)
       , bytes_allocated_(0)
+      , near_last_(false)
     {}
 
     ~BlockAllocator() {
@@ -685,8 +692,9 @@ namespace immix {
         }
 
         Block& block = current_chunk_->get_block(block_cursor_++);
-        if(chunk_cursor_ == chunks_.size() - 1 &&
-            block_cursor_ == (size_t)cBlocksPerChunk - 5) {
+        if(!near_last_ && ((double)chunk_cursor_ /
+                           (double)chunks_.size()) > 0.90) {
+          near_last_ = true;
           triggers_.last_block();
         }
 
@@ -739,6 +747,7 @@ namespace immix {
       chunk_cursor_ = 0;
       block_cursor_ = 0;
       current_chunk_ = chunks_[chunk_cursor_];
+      near_last_ = false;
     }
 
   };
@@ -1030,6 +1039,15 @@ namespace immix {
      * about pinned objects?
      */
     void sweep_blocks() {
+      AllBlockIterator iter(block_allocator_.chunks());
+
+      while(Block* block = iter.next()) {
+        if(block->status() == cEvacuate) {
+          block->set_status(cFree);
+          block->clear_lines();
+        }
+      }
+
       block_allocator_.reset_cursor();
     }
 
@@ -1061,10 +1079,7 @@ namespace immix {
       if(block->status() == cEvacuate) {
         if(!desc.pinned(addr)) {
           // Block is marked for evacuation, so copy the object to a new Block
-          fwd = desc.copy(addr, alloc);
-          desc.set_forwarding_pointer(addr, fwd);
-
-          addr = fwd;
+          addr = desc.copy(addr, alloc);
           block = Block::from_address(addr);
         } else {
           block->set_status(cUnavailable);

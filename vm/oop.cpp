@@ -523,40 +523,6 @@ step2:
     clear_forwarded();
   }
 
-  void ObjectHeader::initialize_full_state(VM* state, Object* other, unsigned int age) {
-    assert(type_id() == other->type_id());
-    set_age(age);
-    klass_ = other->klass_;
-    ivars_ = other->ivars_;
-
-    HeaderWord hdr = other->header;
-
-    switch(hdr.f.meaning) {
-    case eAuxWordObjID:
-    case eAuxWordLock:
-      header.f.meaning = hdr.f.meaning;
-      header.f.aux_word = hdr.f.aux_word;
-    }
-
-    //if(other->object_id() > 0) {
-   //   set_object_id(state, state->om, other->object_id());
-    //}
-
-    clear_forwarded();
-
-    if(other->is_tainted_p()) set_tainted();
-
-    copy_body(state, other);
-
-    state->om->write_barrier((Object*)this, ivars_);
-    state->om->write_barrier((Object*)this, klass_);
-
-    // This method is only used by the GC to move an object, so must retain
-    // the settings flags.
-    flags().Frozen =  other->flags().Frozen;
-    flags().Tainted = other->flags().Tainted;
-  }
-
   void ObjectHeader::copy_body(VM* state, Object* other) {
     void* src = other->__body__;
     void* dst = this->__body__;

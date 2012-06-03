@@ -55,8 +55,6 @@ namespace rubinius {
       void added_chunk(int count);
       void last_block();
 
-      void set_forwarding_pointer(memory::Address from, memory::Address to);
-
       memory::Address forwarding_pointer(memory::Address cur) {
         Object* obj = cur.as<Object>();
 

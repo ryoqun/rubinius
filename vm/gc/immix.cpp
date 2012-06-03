@@ -15,9 +15,7 @@
 
 namespace rubinius {
   void ImmixGC::ObjectDescriber::added_chunk(int count) {
-#ifdef IMMIX_DEBUG
     std::cout << "[GC IMMIX: Added a chunk: " << count << "]\n";
-#endif
 
     if(object_memory_) {
       if(gc_->dec_chunks_left() <= 0) {
@@ -33,13 +31,10 @@ namespace rubinius {
    * collection.
    */
   void ImmixGC::ObjectDescriber::last_block() {
+    std::cout << "[GC IMMIX: last block]\n";
     if(object_memory_) {
       object_memory_->collect_mature_now = true;
     }
-  }
-
-  void ImmixGC::ObjectDescriber::set_forwarding_pointer(memory::Address from, memory::Address to) {
-    from.as<Object>()->set_forward(to.as<Object>());
   }
 
   ImmixGC::ImmixGC(ObjectMemory* om)
@@ -60,10 +55,19 @@ namespace rubinius {
 
     Object* copy = copy_addr.as<Object>();
 
-    copy->initialize_full_state(object_memory_->state(), orig, 0);
+    memcpy(copy, orig, bytes);
 
-    copy->set_zone(MatureObjectZone);
+    if(copy->inflated_header_p()) {
+      orig->deflate_header();
+      copy->inflated_header()->set_object(copy);
+    }
+
+    copy->flags().zone = MatureObjectZone;
+    copy->flags().age = 0;
+
     copy->set_in_immix();
+
+    orig->set_forward(copy);
 
     return copy_addr;
   }
@@ -242,10 +246,32 @@ namespace rubinius {
 
     int live_bytes = 0;
     int total_bytes = 0;
+    int blocks = 0;
+    int free_blocks = 0;
+    int recyclable_blocks = 0;
+    int unavailable_blocks = 0;
+    int evacuate_blocks = 0;
 
     while(immix::Block* block = iter.next()) {
       total_bytes += immix::cBlockSize;
       live_bytes += block->bytes_from_lines();
+      switch(block->status()) {
+      case immix::cFree:
+        ++free_blocks;
+        break;
+      case immix::cRecyclable:
+        ++recyclable_blocks;
+        break;
+      case immix::cUnavailable:
+        ++unavailable_blocks;
+        break;
+      case immix::cEvacuate:
+        ++evacuate_blocks;
+        break;
+      default:
+        break;
+      }
+      ++blocks;
     }
 
     double percentage_live = (double)live_bytes / (double)total_bytes;
@@ -257,7 +283,14 @@ namespace rubinius {
                 << via_handles_ << " handles "
                 << (int)(percentage_live * 100) << "% live"
                 << ", " << live_bytes << "/" << total_bytes
+                << ", " << blocks << " blocks ("
+                << free_blocks << "/" << recyclable_blocks << "/" << unavailable_blocks << "/" << evacuate_blocks << ")"
+                << " " << gc_.block_allocator().chunks().size() << " chunks"
                 << "]\n";
+    }
+
+    if(percentage_live < 0.50) {
+      //gc_.block_allocator().add_chunk();
     }
 
     if(percentage_live >= 0.90) {
