@@ -181,6 +181,10 @@ namespace immix {
      * available for allocation.
      */
     void clear_lines() {
+      if(status_ != cFree && fragmentation_ratio() < 0.05) {
+        //std::cout << "fragmented..." << std::endl;
+        status_ = cEvacuate;
+      }
       objects_ = 0;
       object_bytes_ = 0;
       memset(lines_, 0, sizeof(lines_));
@@ -374,10 +378,18 @@ namespace immix {
       }
 
       // The first line is always used for metadata
+      if(status_ == cEvacuate) {
+        return;
+      }
+
       if(lines_used_ <= 1) {
         status_ = cFree;
       } else if(holes_ >= 1) {
-        status_ = cRecyclable;
+        //if(lines_used_ > 30) {
+          status_ = cRecyclable;
+        //} else {
+        //  status_ = cEvacuate;
+        //}
       } else {
         status_ = cUnavailable;
       }
@@ -997,7 +1009,6 @@ namespace immix {
 
   template <typename Describer>
   class GC : public Triggers {
-    BlockList evacuate_;
     BlockAllocator block_allocator_;
 
     Describer desc;
@@ -1025,26 +1036,18 @@ namespace immix {
     }
 
     /**
-     * Sets a Block up for evacuation.
-     */
-    void evacuate_block(Block& block) {
-      block.set_status(cEvacuate);
-      evacuate_.push_back(&block);
-    }
-
-    /**
      * Converts evacuated Blocks back to free Blocks.
      *
      * @todo Does this need to check if an evacuated block is empty - what
      * about pinned objects?
      */
     void sweep_blocks() {
-      for(BlockList::const_iterator i = evacuate_.begin();
-          i != evacuate_.end();
-          ++i) {
-        Block* block = *i;
+      AllBlockIterator iter(block_allocator_.chunks());
+
+      while(Block* block = iter.next()) {
         if(block->status() == cEvacuate) {
-          block->set_status(cFree);
+          //block->set_status(cFree);
+          //block->clear_lines();
         }
       }
 
@@ -1076,13 +1079,19 @@ namespace immix {
 
       // Find the Block the address relates to
       Block* block = Block::from_address(addr);
-      if(block->status() == cEvacuate && !desc.pinned(addr)) {
-        // Block is marked for evacuation, so copy the object to a new Block
-        fwd = desc.copy(addr, alloc);
-        desc.set_forwarding_pointer(addr, fwd);
+      if(block->status() == cEvacuate) {
+        if(!desc.pinned(addr)) {
+          //std::cout << "not pinned" << std::endl;
+          // Block is marked for evacuation, so copy the object to a new Block
+          fwd = desc.copy(addr, alloc);
+          desc.set_forwarding_pointer(addr, fwd);
 
-        addr = fwd;
-        block = Block::from_address(addr);
+          addr = fwd;
+          block = Block::from_address(addr);
+        } else {
+          //std::cout << "pinned...." << std::endl;
+          block->set_status(cRecyclable);
+        }
       }
 
       // Mark the line(s) in the Block that this object occupies as in use

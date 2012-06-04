@@ -524,7 +524,7 @@ step2:
   }
 
   void ObjectHeader::initialize_full_state(VM* state, Object* other, unsigned int age) {
-    assert(type_id() == other->type_id());
+    set_obj_type(other->type_id());
     set_age(age);
     klass_ = other->klass_;
     ivars_ = other->ivars_;
@@ -534,6 +534,7 @@ step2:
     switch(hdr.f.meaning) {
     case eAuxWordObjID:
     case eAuxWordLock:
+    case eAuxWordInflated:
       header.f.meaning = hdr.f.meaning;
       header.f.aux_word = hdr.f.aux_word;
     }

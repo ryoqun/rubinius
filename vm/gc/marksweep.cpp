@@ -108,15 +108,6 @@ namespace rubinius {
     return obj;
   }
 
-  Object* MarkSweepGC::copy_object(Object* orig) {
-    bool collect;
-    Object* obj = allocate(orig->size_in_bytes(object_memory_->state()), &collect);
-
-    obj->initialize_full_state(object_memory_->state(), orig, 0);
-
-    return obj;
-  }
-
   Object* MarkSweepGC::saw_object(Object* obj) {
     if(obj->marked_p(object_memory_->mark())) return NULL;
     obj->mark(object_memory_->mark());

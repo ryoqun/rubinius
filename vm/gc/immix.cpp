@@ -242,10 +242,32 @@ namespace rubinius {
 
     int live_bytes = 0;
     int total_bytes = 0;
+    int blocks = 0;
+    int free_blocks = 0;
+    int recyclable_blocks = 0;
+    int unavailable_blocks = 0;
+    int evacuate_blocks = 0;
 
     while(immix::Block* block = iter.next()) {
       total_bytes += immix::cBlockSize;
       live_bytes += block->bytes_from_lines();
+      switch(block->status()) {
+      case immix::cFree:
+        ++free_blocks;
+        break;
+      case immix::cRecyclable:
+        ++recyclable_blocks;
+        break;
+      case immix::cUnavailable:
+        ++unavailable_blocks;
+        break;
+      case immix::cEvacuate:
+        ++evacuate_blocks;
+        break;
+      default:
+        break;
+      }
+      ++blocks;
     }
 
     double percentage_live = (double)live_bytes / (double)total_bytes;
@@ -257,6 +279,8 @@ namespace rubinius {
                 << via_handles_ << " handles "
                 << (int)(percentage_live * 100) << "% live"
                 << ", " << live_bytes << "/" << total_bytes
+                << ", " << blocks << " blocks ("
+                << free_blocks << "/" << recyclable_blocks << "/" << unavailable_blocks << "/" << evacuate_blocks << ")"
                 << "]\n";
     }
 
@@ -269,7 +293,7 @@ namespace rubinius {
       gc_.block_allocator().add_chunk();
     }
 
-#ifdef IMMIX_DEBUG
+{
     std::cout << "Immix: RS size cleared: " << cleared << "\n";
 
     immix::Chunks& chunks = gc_.block_allocator().chunks();
@@ -320,7 +344,7 @@ namespace rubinius {
 
     delete[] holes;
     holes = NULL;
-#endif
+}
   }
 
   void ImmixGC::check_finalize() {
