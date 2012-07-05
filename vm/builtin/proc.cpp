@@ -33,6 +33,10 @@ namespace rubinius {
 
   Proc* Proc::from_env(STATE, Object* self, Object* env) {
     if(Proc* p = try_as<Proc>(env)) {
+      if(p->klass() != self) {
+        p = as<Proc>(p->duplicate(state));
+        p->klass(state, as<Class>(self));
+      }
       return p;
     }
 
