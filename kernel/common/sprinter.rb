@@ -423,6 +423,15 @@ module Rubinius
           end
         end
 
+        def convert_case
+          # 'B' also returns an uppercase string, but there, the
+          # only alpha character is in the prefix -- and that's
+          # already uppercase
+          if @format_code == 'X'
+            @g.send :upcase, 0
+          end
+        end
+
         def set_value(ref)
           @field_index = @b.next_index(ref)
         end
@@ -631,13 +640,21 @@ module Rubinius
           @has_precision || (@has_width && @f_zero)
         end
 
-        def zero_pad(pad="0", &readjust)
+        def zero_pad(pad="0", offset=0, &readjust)
           if @has_precision
             push_precision(&readjust)
+            unless offset.zero?
+              @g.push offset
+              @b.meta_op_minus
+            end
             @g.push_literal pad
             @g.send :rjust, 2
           elsif @has_width && @f_zero
             push_width true, &readjust
+            unless offset.zero?
+              @g.push offset
+              @b.meta_op_minus
+            end
             @g.push_literal pad
             @g.send :rjust, 2
           end
@@ -886,6 +903,9 @@ module Rubinius
 
             @g.push radix
             @g.send :to_s, 1
+
+            convert_case
+            zero_pad
           else
             have_formatted = @g.new_label
 
@@ -893,33 +913,14 @@ module Rubinius
             @b.is_negative
 
             @b.if_false do
-              @g.push radix
-              @g.send :to_s, 1
+              handle_positive_int(radix)
               @g.goto have_formatted
             end
 
-            padding = format_negative_int(radix)
-
-            if zero_pad?
-              zero_pad padding
-
-            elsif !precision? && !@f_zero
-              @g.push_literal ".."
-              @g.string_dup
-              @g.string_append
-            end
+            handle_negative_int(radix)
 
             have_formatted.set!
           end
-
-          # 'B' also returns an uppercase string, but there, the
-          # only alpha character is in the prefix -- and that's
-          # already uppercase
-          if @format_code == 'X'
-            @g.send :upcase, 0
-          end
-
-          zero_pad
 
           prepend_prefix
 
@@ -947,9 +948,52 @@ module Rubinius
 
           @b.append_str
         end
+
+        def handle_positive_int(radix)
+          @g.push radix
+          @g.send :to_s, 1
+
+          convert_case
+          zero_pad
+        end
+
+        def handle_negative_int(radix)
+          padding = format_negative_int(radix)
+
+          if zero_pad?
+            zero_pad padding, 2
+            @g.push_literal ".."
+            @g.string_dup
+            @g.string_append
+            convert_case
+            zero_pad "0", 2
+          else
+            @g.push_literal ".."
+            @g.string_dup
+            @g.string_append
+            convert_case
+            zero_pad
+          end
+        end
       end
 
       class ExtIntegerAtomU < ExtIntegerAtom
+        def handle_negative_int(radix)
+          format_done = @g.new_label
+
+          @g.dup
+          @b.is_negative
+          @b.if_true do
+            # Specifally treat like %d
+            handle_positive_int(radix)
+            @g.goto format_done
+          end
+
+          super
+
+          format_done.set!
+        end
+
         def format_negative_int(radix)
           # Now we need to find how many bits we need to
           # represent the number, starting with a native int,
