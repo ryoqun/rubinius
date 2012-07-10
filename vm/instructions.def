@@ -1136,7 +1136,15 @@ section "Manipulate blocks"
 #   push_proc
 
 instruction push_block() [ -- block ]
-  stack_push(call_frame->scope->block());
+  Object* block = call_frame->scope->block();
+  if(CompiledMethod* cm = try_as<CompiledMethod>(block)) {
+    // TODO: We do not need to be doing this everytime.
+    cm->scope(state, call_frame->scope->block_frame()->constant_scope());
+    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->scope->block_frame());
+    stack_push(env);
+  } else {
+    stack_push(block);
+  }
   is.block_frame = call_frame->scope->block_frame();
 end
 
