@@ -32,7 +32,6 @@ namespace rubinius {
       cCustomConstantScope =  1 << 1,
       cMultipleScopes =     1 << 2,
       cInlineFrame =        1 << 3,
-      cClosedScope =        1 << 4,
       cBlockAsMethod =      1 << 5,
       cJITed =              1 << 6,
       cBlock =              1 << 7,
@@ -180,10 +179,6 @@ namespace rubinius {
 
     bool is_inline_block() {
       return flags & cInlineBlock;
-    }
-
-    bool has_closed_scope_p() {
-      return flags & cClosedScope;
     }
 
     bool native_method_p() {

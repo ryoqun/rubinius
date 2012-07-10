@@ -76,7 +76,7 @@ namespace rubinius {
 
     Object* last_match(STATE);
 
-    VariableScope* create_heap_alias(STATE, CallFrame* call_frame, bool full=true);
+    VariableScope* create_heap_alias(STATE, CallFrame* call_frame);
     void flush_to_heap(STATE);
 
     friend class GarbageCollector;

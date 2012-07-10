@@ -45,7 +45,7 @@ namespace rubinius {
   }
 
   VariableScope* CallFrame::promote_scope_full(STATE) {
-    return scope->create_heap_alias(state, this, !has_closed_scope_p());
+    return scope->create_heap_alias(state, this);
   }
 
   VariableScope* CallFrame::method_scope(STATE) {

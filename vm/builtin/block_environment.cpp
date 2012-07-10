@@ -364,7 +364,7 @@ namespace rubinius {
     VariableScope* top_scope = block_frame->top_scope(state); // XXX
     CompiledMethod* code = cm; // XXX;
     Module *module = block_frame->module(); //XXX
-    BlockInvocation invocation(variable_scope->self(), code->scope(), flags);
+    BlockInvocation invocation(block_frame->scope->self(), code->scope(), flags);
 
     //return invoke(state, call_frame, this, args, invocation);
 
