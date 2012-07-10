@@ -1161,12 +1161,16 @@ instruction create_block(literal) [ -- block ]
   Object* _lit = call_frame->cm->literals()->at(state, literal);
   CompiledMethod* cm = as<CompiledMethod>(_lit);
 
-  // TODO: We do not need to be doing this everytime.
-  cm->scope(state, call_frame->constant_scope());
+  if(getenv("AAAAA")) {
+    CHECK_AND_PUSH(cm);
+  } else {
+    // TODO: We do not need to be doing this everytime.
+    cm->scope(state, call_frame->constant_scope());
 
-  Object* be = BlockEnvironment::under_call_frame(state, gct, cm, vmm, call_frame);
+    Object* be = BlockEnvironment::under_call_frame(state, gct, cm, call_frame);
 
-  CHECK_AND_PUSH(be);
+    CHECK_AND_PUSH(be);
+  }
 end
 
 # [Description]
@@ -1337,6 +1341,11 @@ instruction yield_stack(count) [ +count -- value ] => yield
     ret = env->call(state, call_frame, args);
   } else if(Proc* proc = try_as<Proc>(t1)) {
     ret = proc->yield(state, call_frame, args);
+  } else if(CompiledMethod *cm = try_as<CompiledMethod>(t1)) {
+    // TODO: We do not need to be doing this everytime.
+    cm->scope(state, call_frame->previous->constant_scope());
+    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+    ret = env->call(state, call_frame, args);
   } else if(t1->nil_p()) {
     state->raise_exception(Exception::make_lje(state, call_frame));
     ret = NULL;
@@ -1382,6 +1391,11 @@ instruction yield_splat(count) [ array +count -- value ] => yield
     ret = env->call(state, call_frame, args);
   } else if(Proc* proc = try_as<Proc>(t1)) {
     ret = proc->yield(state, call_frame, args);
+  } else if(CompiledMethod *cm = try_as<CompiledMethod>(t1)) {
+    // TODO: We do not need to be doing this everytime.
+    cm->scope(state, call_frame->previous->constant_scope());
+    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+    ret = env->call(state, call_frame, args);
   } else if(t1->nil_p()) {
     state->raise_exception(Exception::make_lje(state, call_frame));
     ret = NULL;
@@ -1979,6 +1993,11 @@ instruction meta_send_call(literal count) [ receiver +count -- value ] => send
     ret = env->call(state, call_frame, out_args);
   } else if(Proc* proc = try_as<Proc>(t1)) {
     ret = proc->call(state, call_frame, out_args);
+  } else if(CompiledMethod *cm = try_as<CompiledMethod>(t1)) {
+    // TODO: We do not need to be doing this everytime.
+    cm->scope(state, call_frame->previous->constant_scope());
+    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+    ret = env->call(state, call_frame, out_args);
   } else {
     InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
     ret = cache->execute(state, call_frame, out_args);
@@ -2149,8 +2168,21 @@ instruction push_proc() [ -- value ]
 
   Object* obj = call_frame->arguments->block();
   if(CBOOL(obj)) {
-    Object* prc = Proc::from_env(state, G(proc), obj);
-    if(prc == Primitives::failure()) {
+    Proc *prc;
+    if(Proc *p = try_as<Proc>(obj)) {
+      prc = p;
+    } else if(BlockEnvironment* be = try_as<BlockEnvironment>(obj)) {
+      Proc* proc = Proc::create(state, G(proc));
+      proc->block(state, be);
+      prc = proc;
+    } else if(CompiledMethod* cm = try_as<CompiledMethod>(obj)) {
+      // TODO: We do not need to be doing this everytime.
+      cm->scope(state, call_frame->previous->constant_scope());
+      BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+      Proc* proc = Proc::create(state, G(proc));
+      proc->block(state, env);
+      prc = proc;
+    } else {
       Exception::internal_error(state, call_frame, "invalid block type");
       RUN_EXCEPTION();
     }

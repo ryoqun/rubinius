@@ -396,7 +396,7 @@ namespace rubinius {
 
 
   BlockEnvironment* BlockEnvironment::under_call_frame(STATE, GCToken gct,
-      CompiledMethod* cm, VMMethod* caller,
+      CompiledMethod* cm,
       CallFrame* call_frame)
   {
     OnStack<1> os(state, cm);
@@ -408,8 +408,6 @@ namespace rubinius {
       Exception::internal_error(state, call_frame, "invalid bytecode method");
       return 0;
     }
-
-    vmm->set_parent(caller);
 
     BlockEnvironment* be = state->new_object<BlockEnvironment>(G(blokenv));
     be->scope(state, call_frame->promote_scope(state));

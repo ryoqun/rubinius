@@ -49,9 +49,6 @@ namespace rubinius {
       eJITDisable,
     };
 
-  private:
-    VMMethod* parent_;
-
   public:
     InterpreterRunner run;
 
@@ -122,18 +119,6 @@ namespace rubinius {
 
     size_t inline_cache_count() {
       return number_of_caches_;
-    }
-
-    VMMethod* parent() {
-      return parent_;
-    }
-
-    void set_parent(VMMethod* parent) {
-      parent_ = parent;
-    }
-
-    bool for_block() {
-      return parent_ != 0;
     }
 
     Symbol* name() {

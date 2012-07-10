@@ -53,8 +53,7 @@ namespace rubinius {
    * Turns a CompiledMethod's InstructionSequence into a C array of opcodes.
    */
   VMMethod::VMMethod(STATE, CompiledMethod* meth)
-    : parent_(NULL)
-    , run(VMMethod::interpreter)
+    : run(VMMethod::interpreter)
     , type(NULL)
     , uncommon_count(0)
     , number_of_caches_(0)

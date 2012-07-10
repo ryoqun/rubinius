@@ -62,7 +62,7 @@ namespace rubinius {
                             BlockInvocation& invocation);
 
     static BlockEnvironment* under_call_frame(STATE, GCToken gct, CompiledMethod* cm,
-      VMMethod* caller, CallFrame* call_frame);
+      CallFrame* call_frame);
 
     static Object* execute_interpreter(STATE, CallFrame* previous,
                             BlockEnvironment* env, Arguments& args,
