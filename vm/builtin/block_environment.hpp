@@ -68,6 +68,8 @@ namespace rubinius {
                             BlockEnvironment* env, Arguments& args,
                             BlockInvocation& invocation);
 
+    static Object* call_as_block(STATE, GCToken gct, CallFrame* current, CompiledMethod* cm, CallFrame* block_frame, Arguments& args, int flags=0);
+
     Object* call(STATE, CallFrame* call_frame, Arguments& args, int flags=0);
 
     // Rubinius.primitive? :block_call

@@ -349,6 +349,92 @@ namespace rubinius {
     return invoke(state, call_frame, this, args, invocation);
   }
 
+
+  Object* BlockEnvironment::call_as_block(STATE,
+                                          GCToken gct,
+                                          CallFrame* current,
+                                          CompiledMethod* cm,
+                                          CallFrame* block_frame,
+                                          Arguments& args,
+                                          int flags)
+  {
+    VariableScope* variable_scope = current->promote_scope(state); // XXX; // renamed from scope
+    VariableScope* top_scope = current->top_scope(state); // XXX
+    CompiledMethod* code = cm; // XXX;
+    Module *module = current->module(); //XXX
+    BlockInvocation invocation(variable_scope->self(), code->scope(), flags);
+
+    //return invoke(state, call_frame, this, args, invocation);
+
+    VMMethod* vmm = code->backend_method();
+
+    if(!vmm) {
+      OnStack<1> os(state, args.argument_container_location());
+      GCTokenImpl gct;
+      vmm = code->internalize(state, gct);
+
+      if(!vmm) {
+        Exception::internal_error(state, current, "invalid bytecode method");
+        return 0;
+      }
+    }
+
+    //return execute_interpreter(state, current, env, args, invocation);
+    // Don't use env->vmmethod() because it might lock and the work should already
+    // be done.
+    StackVariables* scope = ALLOCA_STACKVARIABLES(vmm->number_of_locals);
+
+    Module* mod = invocation.module;
+    if(!mod) mod = module;
+    scope->initialize(invocation.self, top_scope->block(), top_scope->block_frame(),
+                      mod, vmm->number_of_locals);
+    scope->set_parent(variable_scope);
+
+    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
+
+    frame->prepare(vmm->stack_size);
+
+    frame->previous = current;
+    frame->constant_scope_ = invocation.constant_scope;
+
+    frame->arguments = &args;
+    frame->dispatch_data = NULL; // XXX
+    frame->cm =       code;
+    frame->scope =    scope;
+    frame->top_scope_ = top_scope;
+    frame->flags =    invocation.flags | CallFrame::cCustomConstantScope
+                                       | CallFrame::cMultipleScopes
+                                       | CallFrame::cBlock;
+
+    // TODO: this is a quick hack to process block arguments in 1.9.
+    if(!LANGUAGE_18_ENABLED(state)) {
+      if(!GenericArguments::call(state, current, vmm, scope, args, invocation.flags)) {
+        return NULL;
+      }
+    }
+
+    // Check the stack and interrupts here rather than in the interpreter
+    // loop itself.
+
+    GCTokenImpl new_gct;
+
+    if(state->detect_stack_condition(frame)) {
+      if(!state->check_interrupts(new_gct, frame, frame)) return NULL;
+    }
+
+    state->checkpoint(new_gct, frame);
+
+#ifdef RBX_PROFILER
+    if(unlikely(state->vm()->tooling())) {
+      throw "not supported";
+    } else {
+      return (*vmm->run)(state, vmm, frame);
+    }
+#else
+    return (*vmm->run)(state, vmm, frame);
+#endif
+  }
+
   Object* BlockEnvironment::call_prim(STATE, CallFrame* call_frame,
                                       Executable* exec, Module* mod,
                                       Arguments& args)
