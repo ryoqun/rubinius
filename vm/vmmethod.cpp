@@ -572,6 +572,13 @@ namespace rubinius {
       scope->initialize(args.recv(), args.block(), mod, vmm->number_of_locals);
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
+      frame->prepare(vmm->stack_size);
+      frame->previous = previous;
+      frame->flags =    0;
+      frame->arguments = &args;
+      frame->dispatch_data = 0;
+      frame->cm =       cm;
+      frame->scope =    scope;
 
       // If argument handling fails..
       if(ArgumentHandler::call(state, vmm, scope, args) == false) {
@@ -582,15 +589,6 @@ namespace rubinius {
 
         return NULL;
       }
-
-      frame->prepare(vmm->stack_size);
-
-      frame->previous = previous;
-      frame->flags =    0;
-      frame->arguments = &args;
-      frame->dispatch_data = 0;
-      frame->cm =       cm;
-      frame->scope =    scope;
 
 #ifdef ENABLE_LLVM
       // A negative call_count means we've disabled usage based JIT
