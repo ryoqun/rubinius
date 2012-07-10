@@ -358,10 +358,12 @@ namespace rubinius {
                                           Arguments& args,
                                           int flags)
   {
-    VariableScope* variable_scope = current->promote_scope(state); // XXX; // renamed from scope
-    VariableScope* top_scope = current->top_scope(state); // XXX
+    state->set_call_frame(block_frame);
+
+    VariableScope* variable_scope = block_frame->promote_scope(state); // XXX; // renamed from scope
+    VariableScope* top_scope = block_frame->top_scope(state); // XXX
     CompiledMethod* code = cm; // XXX;
-    Module *module = current->module(); //XXX
+    Module *module = block_frame->module(); //XXX
     BlockInvocation invocation(variable_scope->self(), code->scope(), flags);
 
     //return invoke(state, call_frame, this, args, invocation);
@@ -408,7 +410,7 @@ namespace rubinius {
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {
-      if(!GenericArguments::call(state, current, vmm, scope, args, invocation.flags)) {
+      if(!GenericArguments::call(state, frame, vmm, scope, args, invocation.flags)) {
         return NULL;
       }
     }
