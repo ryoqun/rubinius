@@ -984,7 +984,7 @@ instruction send_stack_with_block(literal count) [ block receiver +count -- valu
   Object* recv = stack_back(count);
   InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
 
-  Arguments args(cache->name, recv, block, call_frame, count,
+  Arguments args(cache->name, recv, block, is.block_frame, count,
                  stack_back_position(count));
 
   Object* ret = cache->execute(state, call_frame, args);
@@ -1027,7 +1027,7 @@ instruction send_stack_with_splat(literal count) [ block array receiver +count -
   Object* recv =  stack_back(count);
   InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
 
-  Arguments args(cache->name, recv, block, call_frame, count,
+  Arguments args(cache->name, recv, block, is.block_frame, count,
                  stack_back_position(count));
 
   if(!ary->nil_p()) {
@@ -1069,7 +1069,7 @@ instruction send_super_stack_with_block(literal count) [ block +count -- value ]
   InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
   Object* const recv = call_frame->self();
 
-  Arguments new_args(cache->name, recv, block, call_frame, count,
+  Arguments new_args(cache->name, recv, block, is.block_frame, count,
                      stack_back_position(count));
 
   Object* ret = cache->execute(state, call_frame, new_args);
@@ -1102,7 +1102,7 @@ instruction send_super_stack_with_splat(literal count) [ block array +count -- v
   Object* const recv = call_frame->self();
   InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
 
-  Arguments new_args(cache->name, recv, block, call_frame, count,
+  Arguments new_args(cache->name, recv, block, is.block_frame, count,
                      stack_back_position(count));
 
   if(!ary->nil_p()) {
@@ -1137,21 +1137,7 @@ section "Manipulate blocks"
 
 instruction push_block() [ -- block ]
   stack_push(call_frame->scope->block());
-end
-
-# [Description]
-#   Check if exactly _count_ arguments were passed to the current invocation.
-# [Notes]
-#   _This instruction is deprecated and no longer used._
-
-instruction passed_blockarg(count) [ -- boolean ]
-  if(!call_frame->arguments) {
-    Exception::internal_error(state, call_frame,
-                              "no arguments object");
-    RUN_EXCEPTION();
-  }
-
-  stack_push(RBOOL(count == (int)call_frame->arguments->total()));
+  is.block_frame = call_frame->scope->block_frame();
 end
 
 # [Description]
@@ -1162,7 +1148,17 @@ instruction create_block(literal) [ -- block ]
   Object* _lit = call_frame->cm->literals()->at(state, literal);
   CompiledMethod* cm = as<CompiledMethod>(_lit);
 
-  CHECK_AND_PUSH(cm);
+  if(getenv("AAAAA")) {
+    CHECK_AND_PUSH(cm);
+  } else {
+    // TODO: We do not need to be doing this everytime.
+    cm->scope(state, call_frame->constant_scope());
+
+    Object* be = BlockEnvironment::under_call_frame(state, gct, cm, call_frame);
+
+    CHECK_AND_PUSH(be);
+  }
+  is.block_frame = call_frame;
 end
 
 # [Description]
@@ -1335,7 +1331,7 @@ instruction yield_stack(count) [ +count -- value ] => yield
     ret = proc->yield(state, call_frame, args);
   } else if(CompiledMethod *cm = try_as<CompiledMethod>(t1)) {
     // TODO: We do not need to be doing this everytime.
-    cm->scope(state, call_frame->previous->constant_scope());
+    cm->scope(state, call_frame->scope->block_frame()->constant_scope());
     BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->scope->block_frame());
     ret = env->call(state, call_frame, args);
   } else if(t1->nil_p()) {
@@ -1385,8 +1381,8 @@ instruction yield_splat(count) [ array +count -- value ] => yield
     ret = proc->yield(state, call_frame, args);
   } else if(CompiledMethod *cm = try_as<CompiledMethod>(t1)) {
     // TODO: We do not need to be doing this everytime.
-    cm->scope(state, call_frame->previous->constant_scope());
-    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+    cm->scope(state, call_frame->scope->block_frame()->constant_scope());
+    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->scope->block_frame());
     ret = env->call(state, call_frame, args);
   } else if(t1->nil_p()) {
     state->raise_exception(Exception::make_lje(state, call_frame));
@@ -1633,17 +1629,6 @@ instruction check_interrupts() [ -- ]
   if(!state->check_async(call_frame)) RUN_EXCEPTION();
 
   state->checkpoint(gct, call_frame);
-end
-
-# [Description]
-#   Pauses virtual machine execution and yields control to the debugger on the
-#   debug channel. If no debugger is registered, an error is raised.
-# [Notes]
-#   _This instruction is deprecated and should not be used._
-
-instruction yield_debugger() [ -- ]
-  flush_ip();
-  Helpers::yield_debugger(state, gct, call_frame, cNil);
 end
 
 # [Description]
@@ -1987,8 +1972,8 @@ instruction meta_send_call(literal count) [ receiver +count -- value ] => send
     ret = proc->call(state, call_frame, out_args);
   } else if(CompiledMethod *cm = try_as<CompiledMethod>(t1)) {
     // TODO: We do not need to be doing this everytime.
-    cm->scope(state, call_frame->previous->constant_scope());
-    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+    cm->scope(state, call_frame->arguments->block_call_frame()->constant_scope());
+    BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->arguments->block_call_frame());
     ret = env->call(state, call_frame, out_args);
   } else {
     InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
@@ -2073,7 +2058,7 @@ instruction zsuper(literal) [ block -- value ]
 
   InlineCache* cache = reinterpret_cast<InlineCache*>(literal);
 
-  Arguments new_args(cache->name, recv, block, call_frame, arg_count, 0);
+  Arguments new_args(cache->name, recv, block, is.block_frame, arg_count, 0);
   new_args.use_tuple(tup, arg_count);
 
   Object* ret;
@@ -2104,6 +2089,7 @@ instruction push_block_arg() [ -- block ]
   }
 
   stack_push(call_frame->arguments->block());
+  is.block_frame = call_frame->arguments->block_call_frame();
 end
 
 # [Description]
@@ -2169,8 +2155,8 @@ instruction push_proc() [ -- value ]
       prc = proc;
     } else if(CompiledMethod* cm = try_as<CompiledMethod>(obj)) {
       // TODO: We do not need to be doing this everytime.
-      cm->scope(state, call_frame->previous->constant_scope());
-      BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->previous);
+      cm->scope(state, call_frame->arguments->block_call_frame()->constant_scope());
+      BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->arguments->block_call_frame());
       Proc* proc = Proc::create(state, G(proc));
       proc->block(state, env);
       prc = proc;

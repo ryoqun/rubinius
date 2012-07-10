@@ -1199,24 +1199,6 @@
 <ul class="insn_cross_ref">
 <li><a href="#push_proc">push_proc</a></li>
 </ul>
-<h3><a class="instruction" name="passed_blockarg">passed_blockarg(count)</a></h3>
-
-   Check if exactly _count_ arguments were passed to the current invocation.
-
-
-<table class="stack_effect">
-<thead>
-<tr><th>Before</th><th>After</th></tr>
-</thead>
-<tbody>
-<tr><td>...</td><td>boolean</td></tr>
-<tr><td></td><td>...</td></tr>
-</tbody>
-</table>
-
-#### Notes
-   _This instruction is deprecated and no longer used._
-
 <h3><a class="instruction" name="create_block">create_block(literal)</a></h3>
 
    Read a CompiledMethod specified by the operand +literal+ and create a
@@ -1509,24 +1491,6 @@
 <tr><td>...</td><td>...</td></tr>
 </tbody>
 </table>
-<h3><a class="instruction" name="yield_debugger">yield_debugger()</a></h3>
-
-   Pauses virtual machine execution and yields control to the debugger on the
-   debug channel. If no debugger is registered, an error is raised.
-
-
-<table class="stack_effect">
-<thead>
-<tr><th>Before</th><th>After</th></tr>
-</thead>
-<tbody>
-<tr><td>...</td><td>...</td></tr>
-</tbody>
-</table>
-
-#### Notes
-   _This instruction is deprecated and should not be used._
-
 <h3><a class="instruction" name="is_nil">is_nil()</a></h3>
 
    Pop the _value_ from the stack, and push `true` or `false` depending on

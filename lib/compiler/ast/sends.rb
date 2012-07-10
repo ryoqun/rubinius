@@ -338,6 +338,7 @@ module Rubinius
       end
 
       def assignment_bytecode(g)
+        raise
         g.push_block_arg
         convert(g)
         @body.bytecode(g)

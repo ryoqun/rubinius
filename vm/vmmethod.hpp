@@ -148,9 +148,11 @@ namespace rubinius {
 
     struct InterpreterState {
       int call_flags;
+      CallFrame *block_frame;
 
       InterpreterState()
         : call_flags(0)
+        , block_frame(0)
       {}
     };
 
