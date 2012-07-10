@@ -14,16 +14,18 @@ namespace rubinius {
     Symbol* name_;
     Object* recv_;
     Object* block_;
+    CallFrame* block_call_frame_;
 
     uint32_t total_;
     Object** arguments_;
     Tuple* argument_container_;
 
   public:
-    Arguments(Symbol* name, Object* recv, Object* block, uint32_t total, Object** buffer)
+    Arguments(Symbol* name, Object* recv, Object* block, CallFrame* block_call_frame, uint32_t total, Object** buffer)
       : name_(name)
       , recv_(recv)
       , block_(block)
+      , block_call_frame_(block_call_frame)
       , total_(total)
       , arguments_(buffer)
       , argument_container_(0)
@@ -82,6 +84,10 @@ namespace rubinius {
 
     Object* block() {
       return block_;
+    }
+
+    CallFrame* block_call_frame() {
+      return block_call_frame_;
     }
 
     void set_block(Object* val) {

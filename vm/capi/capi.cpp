@@ -200,7 +200,7 @@ namespace rubinius {
       LEAVE_CAPI(env->state());
 
       LookupData lookup(recv, recv->lookup_begin(env->state()), env->state()->globals().sym_private.get());
-      Arguments args_o(method, recv, block, arg_count, args);
+      Arguments args_o(method, recv, block, env->current_call_frame(), arg_count, args);
       Dispatch dis(method);
 
       Object* ret = dis.send(env->state(), env->current_call_frame(),
@@ -244,7 +244,7 @@ namespace rubinius {
       Symbol* method = (Symbol*)method_name;
 
       LookupData lookup(recv, recv->lookup_begin(env->state()), env->state()->globals().sym_private.get());
-      Arguments args_o(method, recv, cNil, arg_count, args);
+      Arguments args_o(method, recv, cNil, NULL, arg_count, args);
       Dispatch dis(method);
 
       Object* ret = dis.send(env->state(), env->current_call_frame(),

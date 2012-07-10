@@ -246,3 +246,7 @@ module Rubinius
     # Missing and deprecated: indexes, indices
   end
 end
+
+class Object
+  ENV = Rubinius::EnvironmentVariables.new
+end

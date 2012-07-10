@@ -1555,7 +1555,7 @@ namespace rubinius {
                                 CallFrame* calling_environment)
   {
     Dispatch msg(state->symbol("__script__"), G(object), cm);
-    Arguments args(state->symbol("__script__"), G(main), cNil, 0, 0);
+    Arguments args(state->symbol("__script__"), G(main), cNil, NULL, 0, 0);
 
     OnStack<1> os(state, cm);
 

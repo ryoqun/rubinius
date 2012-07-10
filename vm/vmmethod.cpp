@@ -568,7 +568,7 @@ namespace rubinius {
       // look in the wrong place.
       //
       // Thus, we have to cache the value in the StackVariables.
-      scope->initialize(args.recv(), args.block(), mod, vmm->number_of_locals);
+      scope->initialize(args.recv(), args.block(), args.block_call_frame(), mod, vmm->number_of_locals);
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
       frame->prepare(vmm->stack_size);
@@ -640,13 +640,13 @@ namespace rubinius {
     // look in the wrong place.
     //
     // Thus, we have to cache the value in the StackVariables.
-    scope->initialize(G(main), cNil, G(object), vmm->number_of_locals);
+    scope->initialize(G(main), cNil, NULL, G(object), vmm->number_of_locals);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
 
     frame->prepare(vmm->stack_size);
 
-    Arguments args(state->symbol("__script__"), G(main), cNil, 0, 0);
+    Arguments args(state->symbol("__script__"), G(main), cNil, NULL, 0, 0);
 
     frame->previous = previous;
     frame->flags =    0;

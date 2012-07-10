@@ -28,6 +28,7 @@ namespace rubinius {
     scope->fiber(state, state->vm()->current_fiber.get());
 
     scope->number_of_locals_ = vmm->number_of_locals;
+    scope->block_frame_ = block_frame_;
 
     if(full) {
       scope->isolated_ = false;

@@ -12,16 +12,18 @@ namespace rubinius {
     VariableScope* parent_;
     Object* self_;
     Object* block_;
+    CallFrame *block_frame_;
     Module* module_;
     Object* last_match_;
     Object* locals_[0];
 
   public:
-    void initialize(Object* self, Object* block, Module* module, int locals) {
+    void initialize(Object* self, Object* block, CallFrame *block_frame, Module* module, int locals) {
       on_heap_ = 0;
       parent_ = 0;
       self_ = self;
       block_ = block;
+      block_frame_ = block_frame;
       module_ = module;
       last_match_ = cNil;
 
@@ -48,6 +50,10 @@ namespace rubinius {
 
     Object* block() {
       return block_;
+    }
+
+    CallFrame* block_frame() {
+      return block_frame_;
     }
 
     Module* module() {

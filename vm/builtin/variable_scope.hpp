@@ -36,6 +36,7 @@ namespace rubinius {
   public:
     Object* self_;    // slot
 
+    CallFrame* block_frame_;
     int number_of_locals_;
     bool isolated_;
     Object** locals_;
@@ -97,6 +98,10 @@ namespace rubinius {
         return heap_locals_->at(pos);
       }
       return locals_[pos];
+    }
+
+    CallFrame* block_frame() {
+      return block_frame_;
     }
 
     int number_of_locals() {

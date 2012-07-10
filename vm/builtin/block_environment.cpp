@@ -285,7 +285,7 @@ namespace rubinius {
 
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
-    scope->initialize(invocation.self, env->top_scope_->block(),
+    scope->initialize(invocation.self, env->top_scope_->block(), env->top_scope_->block_frame(),
                       mod, vmm->number_of_locals);
     scope->set_parent(env->scope_);
 
