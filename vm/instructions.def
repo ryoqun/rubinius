@@ -1162,16 +1162,7 @@ instruction create_block(literal) [ -- block ]
   Object* _lit = call_frame->cm->literals()->at(state, literal);
   CompiledMethod* cm = as<CompiledMethod>(_lit);
 
-  if(getenv("AAAAA")) {
-    CHECK_AND_PUSH(cm);
-  } else {
-    // TODO: We do not need to be doing this everytime.
-    cm->scope(state, call_frame->constant_scope());
-
-    Object* be = BlockEnvironment::under_call_frame(state, gct, cm, call_frame);
-
-    CHECK_AND_PUSH(be);
-  }
+  CHECK_AND_PUSH(cm);
 end
 
 # [Description]
