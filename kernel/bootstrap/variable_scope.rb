@@ -12,11 +12,6 @@ module Rubinius
       raise PrimitiveFailure, "Unable to get current VariableScope"
     end
 
-    def self.synthesize(method, module_, parent, self_, block, locals)
-      Rubinius.primitive :variable_scope_synthesize
-      raise PrimitiveFailure, "Unable to create a new VariableScope object"
-    end
-
     def set_local(slot, obj)
       Rubinius.primitive :variable_scope_set_local
       raise PrimitiveFailure, "Unable to set VariableScope locals"
