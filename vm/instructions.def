@@ -1342,6 +1342,7 @@ instruction yield_stack(count) [ +count -- value ] => yield
     //cm->scope(state, call_frame->scope->block_frame()->constant_scope());
     //BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, call_frame->scope->block_frame());
     //ret = env->call(state, call_frame, args);
+    cm->scope(state, call_frame->scope->block_frame()->constant_scope());
     ret = BlockEnvironment::call_as_block(state, gct, call_frame, cm, call_frame->scope->block_frame(), args);
   } else if(t1->nil_p()) {
     state->raise_exception(Exception::make_lje(state, call_frame));
