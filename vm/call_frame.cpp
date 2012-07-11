@@ -175,7 +175,7 @@ namespace rubinius {
     CallFrame* cur = this;
     while(cur) {
       if(cur->scope && cur->scope->on_heap() == scope) return true;
-      cur = static_cast<CallFrame*>(cur->previous);
+      cur = cur->previous;
     }
 
     return false;
