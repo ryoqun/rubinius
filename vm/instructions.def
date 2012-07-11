@@ -322,7 +322,10 @@ instruction push_local_depth(depth index) [ -- value ]
     bool result = false;
     StackVariables* stack_scope = call_frame->scope->stack_parent();
     if(stack_scope) {
-      for(int j = 1; j < depth && stack_scope; j++) {
+      StackVariables* old_stack_scope = NULL;
+      int j = 1;
+      for(;j < depth && stack_scope; j++) {
+        old_stack_scope = stack_scope;
         stack_scope = stack_scope->stack_parent();
       }
       if(stack_scope) {
@@ -334,6 +337,17 @@ instruction push_local_depth(depth index) [ -- value ]
         //std::cout << "found by stack scope" << std::endl;
         stack_push(stack_scope->get_local(index));
         result = true;
+      } else {
+        if(old_stack_scope) {
+          VariableScope* scope = old_stack_scope->parent();
+          for(;j < depth && scope; j++) {
+            scope = scope->parent();
+          }
+          if(scope) {
+            stack_push(scope->get_local(index));
+            result = true;
+          }
+        }
       }
     }
     if(!result) {
@@ -389,7 +403,10 @@ instruction set_local_depth(depth index) [ value -- value ]
     bool result = false;
     StackVariables* stack_scope = call_frame->scope->stack_parent();
     if(stack_scope) {
-      for(int j = 1; j < depth && stack_scope; j++) {
+      StackVariables* old_stack_scope = NULL;
+      int j = 1;
+      for(;j < depth && stack_scope; j++) {
+        old_stack_scope = stack_scope;
         stack_scope = stack_scope->stack_parent();
       }
       if(stack_scope) {
@@ -403,6 +420,19 @@ instruction set_local_depth(depth index) [ value -- value ]
         stack_scope->set_local(index, val);
         stack_push(val);
         result = true;
+      } else {
+        if(old_stack_scope) {
+          VariableScope* scope = old_stack_scope->parent();
+          for(;j < depth && scope; j++) {
+            scope = scope->parent();
+          }
+          if(scope) {
+            Object* val = stack_pop();
+            scope->set_local(index, val);
+            stack_push(val);
+            result = true;
+          }
+        }
       }
     }
     if(!result) {
