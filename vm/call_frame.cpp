@@ -15,7 +15,7 @@
 
 namespace rubinius {
   Object* CallFrame::last_match(STATE) {
-    CallFrame* use = this->top_ruby_frame();;
+    CallFrame* use = this->top_ruby_frame();
 
     while(use && use->is_inline_block()) {
       CallFrame* yielder = use->previous;
@@ -26,6 +26,7 @@ namespace rubinius {
     }
 
     if(!use) return cNil;
+    scope->ensure_heap_stacks(state, this);
     return use->scope->last_match(state);
   }
 
@@ -50,6 +51,8 @@ namespace rubinius {
 
   VariableScope* CallFrame::method_scope(STATE) {
     VariableScope* current = promote_scope(state);
+    scope->ensure_heap_stacks(state, this);
+
     if(!multiple_scopes_p()) return current;
 
     for(;;) {

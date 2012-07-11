@@ -5,12 +5,14 @@
 
 namespace rubinius {
   class VariableScope;
+  class CallFrame;
 
   class StackVariables {
   public: // Treat these like private!
     VariableScope* on_heap_;
     VariableScope* parent_;
     StackVariables* stack_parent_;
+    CallFrame* stack_parent_call_frame_;
     Object* self_;
     Object* block_;
     CallFrame *block_frame_;
@@ -23,6 +25,7 @@ namespace rubinius {
       on_heap_ = 0;
       parent_ = 0;
       stack_parent_ = 0;
+      stack_parent_call_frame_ = 0;
       self_ = self;
       block_ = block;
       block_frame_ = block_frame;
@@ -50,9 +53,9 @@ namespace rubinius {
       parent_ = scope;
     }
 
-    void set_stack_parent(StackVariables* stack_parent) {
-      stack_parent_ = stack_parent;
-    }
+    void set_stack_parent(CallFrame* stack_parent);
+
+    void ensure_heap_stacks(STATE, CallFrame*);
 
     Object* self() {
       return self_;
