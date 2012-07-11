@@ -10,6 +10,7 @@ namespace rubinius {
   public: // Treat these like private!
     VariableScope* on_heap_;
     VariableScope* parent_;
+    StackVariables* stack_parent_;
     Object* self_;
     Object* block_;
     CallFrame *block_frame_;
@@ -21,6 +22,7 @@ namespace rubinius {
     void initialize(Object* self, Object* block, CallFrame *block_frame, Module* module, int locals) {
       on_heap_ = 0;
       parent_ = 0;
+      stack_parent_ = 0;
       self_ = self;
       block_ = block;
       block_frame_ = block_frame;
@@ -40,8 +42,16 @@ namespace rubinius {
       return parent_;
     }
 
+    StackVariables* stack_parent() {
+      return stack_parent_;
+    }
+
     void set_parent(VariableScope* scope) {
       parent_ = scope;
+    }
+
+    void set_stack_parent(StackVariables* stack_parent) {
+      stack_parent_ = stack_parent;
     }
 
     Object* self() {

@@ -288,6 +288,7 @@ namespace rubinius {
     scope->initialize(invocation.self, env->top_scope_->block(), env->top_scope_->block_frame(),
                       mod, vmm->number_of_locals);
     scope->set_parent(env->scope_);
+    scope->set_stack_parent(NULL);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
 
@@ -391,6 +392,7 @@ namespace rubinius {
     scope->initialize(invocation.self, top_scope->block(), top_scope->block_frame(),
                       mod, vmm->number_of_locals);
     scope->set_parent(variable_scope);
+    scope->set_stack_parent(block_frame->scope);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);
 
