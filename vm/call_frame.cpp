@@ -26,7 +26,7 @@ namespace rubinius {
     }
 
     if(!use) return cNil;
-    scope->ensure_heap_stacks(state, this);
+    use->scope->ensure_heap_stacks(state, this);
     return use->scope->last_match(state);
   }
 
@@ -42,6 +42,7 @@ namespace rubinius {
     }
 
     if(!use) return;
+    use->scope->ensure_heap_stacks(state, this);
     use->scope->set_last_match(state, obj);
   }
 
