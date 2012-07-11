@@ -5,7 +5,7 @@
 
 namespace rubinius {
   class VariableScope;
-  class CallFrame;
+  struct CallFrame;
 
   class StackVariables {
   public: // Treat these like private!
