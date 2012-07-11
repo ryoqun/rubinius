@@ -361,7 +361,7 @@ namespace rubinius {
   {
     state->set_call_frame(block_frame);
 
-    block_frame->promote_scope(state); // XXX; // renamed from scope
+    //block_frame->promote_scope(state); // XXX; // renamed from scope
     VariableScope* top_scope = block_frame->top_scope(state); // XXX
     CompiledMethod* code = cm; // XXX;
     Module *module = block_frame->module(); //XXX
@@ -391,7 +391,7 @@ namespace rubinius {
     if(!mod) mod = module;
     scope->initialize(invocation.self, top_scope->block(), top_scope->block_frame(),
                       mod, vmm->number_of_locals);
-    scope->set_parent(reinterpret_cast<VariableScope*>(0xdeadbeaf));
+    //scope->set_parent(reinterpret_cast<VariableScope*>(0xdeadbeaf));
     scope->set_stack_parent(block_frame);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(vmm->stack_size);

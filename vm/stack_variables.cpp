@@ -139,12 +139,12 @@ namespace rubinius {
 
     on_heap_->isolated_ = true;
 
-    if(CompiledMethod* cm = try_as<CompiledMethod>(on_heap_->block())) {
-      cm->scope(state, on_heap_->block_frame_->constant_scope());
-      GCTokenImpl gct;
-      BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, on_heap_->block_frame_);
-      on_heap_->block(state, env);
-    }
+    //if(CompiledMethod* cm = try_as<CompiledMethod>(on_heap_->block())) {
+    //  cm->scope(state, on_heap_->block_frame_->constant_scope());
+    //  GCTokenImpl gct;
+    //  BlockEnvironment* env = BlockEnvironment::under_call_frame(state, gct, cm, on_heap_->block_frame_);
+    //  on_heap_->block(state, env);
+    //}
 
     for(int i = 0; i < on_heap_->number_of_locals_; i++) {
       on_heap_->set_local(state, i, locals_[i]);
