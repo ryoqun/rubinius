@@ -1201,9 +1201,9 @@ instruction create_block(literal) [ -- block ]
   ////} else {
   ////  // TODO: We do not need to be doing this everytime.
   ////  cm->scope(state, call_frame->constant_scope());
-
+  //
   //  Object* be = BlockEnvironment::under_call_frame(state, gct, cm, call_frame);
-
+  //
   //  CHECK_AND_PUSH(be);
   //}
   is.block_frame = call_frame;
