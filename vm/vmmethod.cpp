@@ -578,6 +578,7 @@ namespace rubinius {
       frame->dispatch_data = 0;
       frame->cm =       cm;
       frame->scope =    scope;
+      frame->top_scope_ = 0;
 
       // If argument handling fails..
       if(ArgumentHandler::call(state, vmm, scope, args) == false) {
@@ -654,6 +655,7 @@ namespace rubinius {
     frame->dispatch_data = 0;
     frame->cm =       cm;
     frame->scope =    scope;
+    frame->top_scope_ = 0;
 
     // Do NOT check if we should JIT this. We NEVER want to jit a script.
 

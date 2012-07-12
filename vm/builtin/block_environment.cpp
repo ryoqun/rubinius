@@ -302,8 +302,8 @@ namespace rubinius {
     frame->cm =       env->code_;
     frame->scope =    scope;
     frame->top_scope_ = env->top_scope_;
-    frame->stack_top_scope_ = NULL;
-    frame->stack_top_call_frame_ = NULL;
+    frame->stack_top_scope_ = NULL;//reinterpret_cast<StackVariables*>(0xdeadcafe);
+    frame->stack_top_call_frame_ = NULL;//reinterpret_cast<CallFrame*>(0xcafedead);
     frame->flags =    invocation.flags | CallFrame::cCustomConstantScope
                                        | CallFrame::cMultipleScopes
                                        | CallFrame::cBlock;
@@ -411,7 +411,7 @@ namespace rubinius {
     frame->dispatch_data = NULL; // XXX
     frame->cm =       code;
     frame->scope =    scope;
-    frame->top_scope_ = reinterpret_cast<VariableScope*>(0xdeadbeaf);
+    frame->top_scope_ = block_frame->top_scope_;
     frame->stack_top_scope_ = top_stack_scope;
     frame->stack_top_call_frame_ = top_stack_call_frame;
     frame->flags =    invocation.flags | CallFrame::cCustomConstantScope
