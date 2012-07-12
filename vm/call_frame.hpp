@@ -191,20 +191,20 @@ namespace rubinius {
     }
 
     Object* top_block(STATE) {
-      if(StackVariables* s = top_stack_scope()) {
-        return s->block_;
+      if(StackVariables* sv = top_stack_scope()) {
+        return sv->block_;
       } else {
-        VariableScope* s = top_scope(state);
-        return s->block();
+        VariableScope* vs = top_scope(state);
+        return vs->block();
       }
     }
 
     CallFrame* top_block_frame(STATE) {
-      if(StackVariables* s = top_stack_scope()) {
-        return s->block_frame_;
+      if(StackVariables* sv = top_stack_scope()) {
+        return sv->block_frame_;
       } else {
-        VariableScope* s = top_scope(state);
-        return s->block_frame_;
+        VariableScope* vs = top_scope(state);
+        return vs->block_frame_;
       }
     }
 
