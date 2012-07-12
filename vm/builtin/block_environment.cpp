@@ -302,6 +302,8 @@ namespace rubinius {
     frame->cm =       env->code_;
     frame->scope =    scope;
     frame->top_scope_ = env->top_scope_;
+    frame->stack_top_scope_ = NULL;
+    frame->stack_top_call_frame_ = NULL;
     frame->flags =    invocation.flags | CallFrame::cCustomConstantScope
                                        | CallFrame::cMultipleScopes
                                        | CallFrame::cBlock;
@@ -362,7 +364,11 @@ namespace rubinius {
     state->set_call_frame(block_frame);
 
     //block_frame->promote_scope(state); // XXX; // renamed from scope
-    VariableScope* top_scope = block_frame->top_scope(state); // XXX
+
+    //VariableScope* top_scope = block_frame->top_scope(state); // XXX
+    StackVariables* top_stack_scope = block_frame->top_stack_scope(); // XXX
+    CallFrame* top_stack_call_frame = block_frame->top_stack_call_frame();
+
     CompiledMethod* code = cm; // XXX;
     Module *module = block_frame->module(); //XXX
     BlockInvocation invocation(block_frame->scope->self(), code->scope(), flags);
@@ -389,7 +395,7 @@ namespace rubinius {
 
     Module* mod = invocation.module;
     if(!mod) mod = module;
-    scope->initialize(invocation.self, top_scope->block(), top_scope->block_frame(),
+    scope->initialize(invocation.self, block_frame->top_block(state), block_frame->top_block_frame(state),
                       mod, vmm->number_of_locals);
     //scope->set_parent(reinterpret_cast<VariableScope*>(0xdeadbeaf));
     scope->set_stack_parent(block_frame);
@@ -405,7 +411,9 @@ namespace rubinius {
     frame->dispatch_data = NULL; // XXX
     frame->cm =       code;
     frame->scope =    scope;
-    frame->top_scope_ = top_scope;
+    frame->top_scope_ = reinterpret_cast<VariableScope*>(0xdeadbeaf);
+    frame->stack_top_scope_ = top_stack_scope;
+    frame->stack_top_call_frame_ = top_stack_call_frame;
     frame->flags =    invocation.flags | CallFrame::cCustomConstantScope
                                        | CallFrame::cMultipleScopes
                                        | CallFrame::cBlock;

@@ -50,6 +50,8 @@ namespace rubinius {
 
     void* optional_jit_data;
     VariableScope* top_scope_;
+    StackVariables* stack_top_scope_;
+    CallFrame* stack_top_call_frame_;
     StackVariables* scope;
 
     Arguments* arguments;
@@ -169,8 +171,41 @@ namespace rubinius {
     }
 
     VariableScope* top_scope(STATE) {
-      if(multiple_scopes_p()) return top_scope_;
+      if(multiple_scopes_p()) {
+        if(!top_scope_ || top_scope_ == reinterpret_cast<VariableScope*>(0xdeadbeaf)) {
+          top_scope_ = stack_top_call_frame_->promote_scope(state);
+        }
+        return top_scope_;
+      }
       return promote_scope(state);
+    }
+
+    StackVariables* top_stack_scope() {
+      if(multiple_scopes_p()) return stack_top_scope_;
+      return this->scope;
+    }
+
+    CallFrame* top_stack_call_frame() {
+      if(multiple_scopes_p()) return stack_top_call_frame_;
+      return this;
+    }
+
+    Object* top_block(STATE) {
+      if(StackVariables* s = top_stack_scope()) {
+        return s->block_;
+      } else {
+        VariableScope* s = top_scope(state);
+        return s->block();
+      }
+    }
+
+    CallFrame* top_block_frame(STATE) {
+      if(StackVariables* s = top_stack_scope()) {
+        return s->block_frame_;
+      } else {
+        VariableScope* s = top_scope(state);
+        return s->block_frame_;
+      }
     }
 
     bool is_inline_frame() {
