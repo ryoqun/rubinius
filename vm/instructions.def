@@ -47,7 +47,7 @@ end
 #   decoding of the argument.
 
 instruction push_int(number) [ -- number ]
-  stack_push(Fixnum::from(number));
+  stack_push(reinterpret_cast<Object*>(number));
 end
 
 # [Description]
