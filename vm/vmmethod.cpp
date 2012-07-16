@@ -145,7 +145,11 @@ namespace rubinius {
 
         switch(width) {
         case 2:
-          opcodes[index + 1] = as<Fixnum>(ops->at(state, index + 1))->to_native();
+          if(opcodes[index] != InstructionSequence::insn_push_int) {
+            opcodes[index + 1] = as<Fixnum>(ops->at(state, index + 1))->to_native();
+          } else {
+            opcodes[index + 1] = reinterpret_cast<opcode>(ops->at(state, index + 1));
+          }
           break;
         case 3:
           opcodes[index + 1] = as<Fixnum>(ops->at(state, index + 1))->to_native();

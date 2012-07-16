@@ -478,7 +478,7 @@ namespace rubinius {
     }
 
     void visit_push_int(opcode arg) {
-      stack_push(constant(Fixnum::from(arg)),
+      stack_push(constant(reinterpret_cast<Fixnum*>(arg)),
                  type::KnownType::fixnum(arg));
     }
 
