@@ -244,7 +244,7 @@ module Rubinius
       end
 
       def sexp_name
-        :attrasgn
+        :elmntasgn
       end
     end
 
@@ -285,7 +285,7 @@ module Rubinius
       end
     end
 
-    class PushActualArguments
+    class PushActualArguments < Node
       def initialize(pa)
         @arguments = pa.arguments
         @value = pa.value
@@ -296,7 +296,7 @@ module Rubinius
       end
 
       def splat?
-        @arguments.kind_of? SplatValue or @arguments.kind_of? ConcatArgs
+        @arguments.kind_of? SplatValue or @arguments.kind_of? ConcatArgs or @arguments.kind_of? PushArgs
       end
 
       def bytecode(g)
@@ -360,6 +360,7 @@ module Rubinius
     class CollectSplat < Node
       def initialize(line, *parts)
         @line = line
+        @parts = parts.dup
         @splat = parts.shift
         @last = parts.pop
         @array = parts

@@ -58,7 +58,7 @@ module Rubinius
       end
 
       def to_sexp
-        [:argscat, @array.to_sexp, @rest.to_sexp]
+        [:argscat] + [@array, @rest].compact.map { |x| x.to_sexp }
       end
     end
 
