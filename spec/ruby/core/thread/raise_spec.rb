@@ -133,6 +133,14 @@ describe "Thread#raise on a running thread" do
     end
   end
 
+  it "does not deadlock by terminated threads which does nothing" do
+    100000.times do
+      t = Thread.new do
+      end
+      t.kill
+      t.join.should == t
+    end
+  end
 end
 
 describe "Thread#raise on same thread" do
