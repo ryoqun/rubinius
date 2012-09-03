@@ -159,9 +159,13 @@ class Thread
   end
 
   def kill
-    @dying = true
-    @sleep = false
-    self.raise Die
+    #@lock.receive
+    #@dying = true
+    #@sleep = false
+    #@lock.send nil
+    if alive?
+      self.raise Die
+    end
     self
   end
 
@@ -176,6 +180,7 @@ class Thread
   end
 
   def status
+    @lock.receive
     if @alive
       if @sleep
         "sleep"
@@ -189,6 +194,8 @@ class Thread
     else
       false
     end
+  ensure
+    @lock.send nil
   end
 
   def join(timeout = undefined)
@@ -266,12 +273,14 @@ class Thread
         STDERR.puts "Exception: #{exc.message} (#{exc.class})"
       end
 
-      Kernel.raise exc if self == Thread.current
+      if self == Thread.current
+        Kernel.raise exc
+      else
+        raise_prim exc
+      end
     ensure
       @lock.send nil
     end
-
-    raise_prim exc
   end
   private :raise_prim
 
