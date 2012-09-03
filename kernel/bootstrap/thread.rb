@@ -159,13 +159,9 @@ class Thread
   end
 
   def kill
-    #@lock.receive
-    #@dying = true
-    #@sleep = false
-    #@lock.send nil
-    if alive?
-      self.raise Die
-    end
+    @dying = true
+    @sleep = false
+    self.raise Die
     self
   end
 
@@ -180,7 +176,6 @@ class Thread
   end
 
   def status
-    @lock.receive
     if @alive
       if @sleep
         "sleep"
@@ -194,8 +189,6 @@ class Thread
     else
       false
     end
-  ensure
-    @lock.send nil
   end
 
   def join(timeout = undefined)

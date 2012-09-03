@@ -41,25 +41,16 @@ class Thread
         @lock.send nil
         @result = @block.call(*@args)
       ensure
-        #puts "before_join_channel"
         begin
           @lock.receive
-          #puts "before_join_channel after lock receive!!"
           Rubinius.check_interrupts
-          #Proc.new{}.call
-          #p Rubinius.thread_state[0]
         ensure
-          #p Rubinius.thread_state
           unlock_locks
-          #puts "really before join channel"
-          #p @joins
           @joins.each { |join| join.send self }
-          #p @joins
-          #puts "after_join_channel"
         end
       end
     rescue Die
-      #@killed = true
+      @killed = true
       @exception = nil
     rescue Exception => e
       # I don't really get this, but this is MRI's behavior. If we're dying
