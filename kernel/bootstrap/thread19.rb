@@ -35,16 +35,50 @@ class Thread
 
   # Called by Thread#fork in the new thread
   #
+  def recursive_lock
+    lock_failed = 38382639
+    begin
+      lock_failed = @lock.receive
+    ensure
+      if lock_failed
+        recursive_lock
+      end
+    end
+  end
+
   def __run__()
+    lock_failed = 38382639
     begin
       begin
+        #puts
+        #puts :__run__
         @lock.send nil
         @result = @block.call(*@args)
+        #loop {}
       ensure
         begin
-          @lock.receive
-          Rubinius.check_interrupts
+          # OK; let me explain.
+          # We must accuire @lock in some bizzarre way
+          # At this point, it's possible an other thread does Thread#raise and
+          # our execution is interrupted AT ANY GIVEN TIME. To lock out
+          # Thread#raise from other threads, we must make sure to accuire the
+          # lock as soon as possible
+          # First we try to accuire the lock in this method. This can't be
+          # moved to other method, this must be in this method because method
+          # invocation may trigger Thread#raise.
+          # If accuire failed, we
+          #begin
+          #  lock_failed = @lock.receive
+          #ensure
+            begin
+              @lock.receive
+          #    recursive_lock if lock_failed
+            ensure
+              Rubinius.check_interrupts
+            end
+          #end
         ensure
+          #puts :__lock__
           unlock_locks
           @joins.each { |join| join.send self }
         end

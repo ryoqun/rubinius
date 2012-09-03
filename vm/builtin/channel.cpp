@@ -168,10 +168,10 @@ namespace rubinius {
     // up right as we're trying to go to sleep.
     state->lock(gct);
 
-    if(!state->check_async(call_frame)) {
-      state->unlock();
-      return NULL;
-    }
+    //if(!state->check_async(call_frame)) {
+    //  state->unlock();
+    //  return NULL;
+    //}
 
     state->vm()->wait_on_channel(self);
 
