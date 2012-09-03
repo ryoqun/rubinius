@@ -73,7 +73,6 @@ namespace rubinius {
     , park_(new Park)
 
     , shared(shared)
-    , waiting_channel_(this, nil<Channel>())
     , interrupted_exception_(this, nil<Exception>())
     , interrupt_with_signal_(false)
     , waiting_header_(0)
@@ -367,13 +366,7 @@ namespace rubinius {
       ih->wakeup();
       return true;
     } else {
-      Channel* chan = waiting_channel_.get();
-
-      if(!chan->nil_p()) {
-        UNSYNC;
-        chan->send(state, gct, cNil);
-        return true;
-      } else if(custom_wakeup_) {
+      if(custom_wakeup_) {
         UNSYNC;
         (*custom_wakeup_)(custom_wakeup_data_);
         return true;
@@ -386,16 +379,9 @@ namespace rubinius {
   void VM::clear_waiter() {
     SYNC_TL;
     interrupt_with_signal_ = false;
-    waiting_channel_.set(nil<Channel>());
     waiting_header_ = 0;
     custom_wakeup_ = 0;
     custom_wakeup_data_ = 0;
-  }
-
-  void VM::wait_on_channel(Channel* chan) {
-    SYNC_TL;
-    thread->sleep(this, cTrue);
-    waiting_channel_.set(chan);
   }
 
   void VM::wait_on_inflated_lock(InflatedHeader* ih) {
@@ -410,7 +396,7 @@ namespace rubinius {
   }
 
   bool VM::waiting_p() {
-    return park_->parked_p() || interrupt_with_signal_ || !waiting_channel_->nil_p();
+    return park_->parked_p() || interrupt_with_signal_;
   }
 
   void VM::set_sleeping() {

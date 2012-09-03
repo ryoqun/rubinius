@@ -108,7 +108,6 @@ namespace rubinius {
   public:
     /* Data members */
     SharedState& shared;
-    TypedRoot<Channel*> waiting_channel_;
     TypedRoot<Exception*> interrupted_exception_;
 
     bool interrupt_with_signal_;
