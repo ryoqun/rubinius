@@ -216,7 +216,7 @@ class Thread
             while true
               res = jc.receive
               # receive returns false if it was a spurious wakeup
-              puts :sprious_wakeup if res == false
+              #puts "wakeup #{res.inspect}"# if res != false
               break if res != false
             end
           else

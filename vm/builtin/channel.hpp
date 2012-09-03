@@ -52,6 +52,9 @@ namespace rubinius {
     // Rubinius.primitive :channel_receive
     Object* receive(STATE, GCToken gct, CallFrame* calling_environment);
 
+    // Rubin_ius.pri_mitive :chann_el_uninterrupted_receive
+    // Object* uninterrupted_receive(STATE, GCToken gct, CallFrame* calling_environment);
+
     // Rubinius.primitive :channel_try_receive
     Object* try_receive(STATE, GCToken gct);
 

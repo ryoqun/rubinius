@@ -200,7 +200,7 @@ namespace rubinius {
     self->unpin();
     self->waiters_--;
 
-    if(!state->check_async(call_frame)) return NULL;
+    //if(!state->check_async(call_frame)) return NULL;
 
     if(self->semaphore_count_ > 0) {
       self->semaphore_count_--;
