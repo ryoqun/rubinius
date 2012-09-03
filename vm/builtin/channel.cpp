@@ -107,6 +107,14 @@ namespace rubinius {
     return self->value_->shift(state);
   }
 
+  Object* Channel::uninterrupted_receive(STATE, GCToken gct, CallFrame* call_frame) {
+    return do_receive_timeout(state, gct, cNil, call_frame, false);
+  }
+
+  Object* Channel::receive_timeout(STATE, GCToken gct, Object* duration, CallFrame* call_frame) {
+    return do_receive_timeout(state, gct, duration, call_frame);
+  }
+
   Object* Channel::receive(STATE, GCToken gct, CallFrame* call_frame) {
     //Channel* self = this;
     //OnStack<2> os(state, self);
@@ -118,7 +126,7 @@ namespace rubinius {
   }
 
 #define NANOSECONDS 1000000000
-  Object* Channel::receive_timeout(STATE, GCToken gct, Object* duration, CallFrame* call_frame) {
+  Object* Channel::do_receive_timeout(STATE, GCToken gct, Object* duration, CallFrame* call_frame, bool interrupt) {
     // Passing control away means that the GC might run. So we need
     // to stash this into a root, and read it back out again after
     // control is returned.
@@ -175,10 +183,10 @@ namespace rubinius {
     // up right as we're trying to go to sleep.
     state->lock(gct);
 
-    //if(!state->check_async(call_frame)) {
-    //  state->unlock();
-    //  return NULL;
-    //}
+    if(interrupt && !state->check_async(call_frame)) {
+      state->unlock();
+      return NULL;
+    }
 
     state->vm()->wait_on_channel(self);
 
@@ -207,7 +215,7 @@ namespace rubinius {
     self->unpin();
     self->waiters_--;
 
-    //if(!state->check_async(call_frame)) return NULL;
+    if(interrupt && !state->check_async(call_frame)) return NULL;
 
     if(self->semaphore_count_ > 0) {
       self->semaphore_count_--;

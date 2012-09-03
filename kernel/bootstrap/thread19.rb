@@ -71,7 +71,7 @@ class Thread
           #  lock_failed = @lock.receive
           #ensure
             begin
-              @lock.receive
+              @lock.uninterrupted_receive
           #    recursive_lock if lock_failed
             ensure
               Rubinius.check_interrupts

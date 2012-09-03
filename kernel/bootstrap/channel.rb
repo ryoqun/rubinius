@@ -73,5 +73,10 @@ module Rubinius
       Rubinius.primitive :channel_try_receive
       raise PrimitiveFailure, "Channel#try_receive primitive failed"
     end
+
+    def uninterrupted_receive
+      Rubinius.primitive :channel_uninterrupted_receive
+      raise PrimitiveFailure, "Channel#uninterrupted_receive failed"
+    end
   end
 end
