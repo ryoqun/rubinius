@@ -304,7 +304,7 @@ namespace rubinius {
 
     vm->register_raise(state, exc);
 
-    vm->wakeup(state, gct);
+    //vm->wakeup(state, gct);
     self->init_lock_.unlock();
     return exc;
   }

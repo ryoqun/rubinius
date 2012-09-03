@@ -79,8 +79,8 @@ class Thread
           #end
         ensure
           #puts :__lock__
-          unlock_locks
           @joins.each { |join| join.send self }
+          unlock_locks
         end
       end
     rescue Die

@@ -70,6 +70,7 @@ namespace rubinius {
     OnStack<2> os(state, val, self);
 
     GCLockGuard lg(state, gct, mutex_);
+    //printf("send:%p:%p:%p\n", state, self, val);
 
     if(val->nil_p()) {
       self->semaphore_count_++;
@@ -107,6 +108,12 @@ namespace rubinius {
   }
 
   Object* Channel::receive(STATE, GCToken gct, CallFrame* call_frame) {
+    //Channel* self = this;
+    //OnStack<2> os(state, self);
+
+    //Object* object =  receive_timeout(state, gct, cNil, call_frame);
+    //printf("recv:%p:%p:%p\n", state, self, object);
+    //return object;
     return receive_timeout(state, gct, cNil, call_frame);
   }
 
