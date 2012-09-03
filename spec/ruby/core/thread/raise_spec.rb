@@ -134,12 +134,17 @@ describe "Thread#raise on a running thread" do
   end
 
   it "does not deadlock by terminated threads which does nothing" do
-    100000.times do
+    raised_error = RuntimeError.new
+    10000.times do
       t = Thread.new do
       end
-      t.kill
-      t.join.should == t
+      t.raise raised_error
+      begin
+        t.join
+      rescue RuntimeError
+      end
     end
+    1.should == 1
   end
 end
 
