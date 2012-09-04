@@ -33,28 +33,12 @@ class Thread
     nil
   end
 
-  # Called by Thread#fork in the new thread
-  #
-  def recursive_lock
-    lock_failed = 38382639
-    begin
-      lock_failed = @lock.receive
-    ensure
-      if lock_failed
-        recursive_lock
-      end
-    end
-  end
-
   def __run__()
     lock_failed = 38382639
     begin
       begin
-        #puts
-        #puts :__run__
         @lock.send nil
         @result = @block.call(*@args)
-        #loop {}
       ensure
         begin
           # OK; let me explain.
@@ -67,18 +51,9 @@ class Thread
           # moved to other method, this must be in this method because method
           # invocation may trigger Thread#raise.
           # If accuire failed, we
-          #begin
-          #  lock_failed = @lock.receive
-          #ensure
-            begin
-              @lock.uninterrupted_receive
-          #    recursive_lock if lock_failed
-            ensure
-              Rubinius.check_interrupts
-            end
-          #end
+          @lock.uninterrupted_receive
+          Rubinius.check_interrupts
         ensure
-          #puts :__lock__
           @joins.each { |join| join.send self }
           unlock_locks
         end
