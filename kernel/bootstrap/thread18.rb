@@ -56,9 +56,31 @@ class Thread
         @lock.send nil
         @result = @block.call(*@args)
       ensure
-        @lock.receive
-        unlock_locks
-        @joins.each { |join| join.send self }
+        begin
+          # We must accuire @lock in a careful way.
+          #
+          # At this point, it's possible that an other thread does Thread#raise
+          # and then our execution is interrupted AT ANY GIVEN TIME. We
+          # absolutely must make sure to accuire @lock as soon as possible to
+          # lock out interrupts from other threads.
+          #
+          # @lock.uninterrupted_receive (Channel#uninterrupted_receive) just
+          # does that.
+          #
+          # Notice that this can't moved to other methods and there should be
+          # no preceeding code before it in the enclosing ensure clause.
+          # These are to prevent any interrupted lock failures.
+          @lock.uninterrupted_receive
+
+          # Woo hoo, we accuired @lock. No other thread can interrupt this
+          # thread anymore.
+          # If there is any untriggered interrupt, check and process it. In
+          # either case, we jump to the following ensure clause.
+          Rubinius.check_interrupts
+        ensure
+          unlock_locks
+          @joins.each { |join| join.send self }
+        end
       end
     rescue Die
       @exception = nil
