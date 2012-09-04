@@ -42,20 +42,23 @@ class Thread
         @result = @block.call(*@args)
       ensure
         begin
-          # OK; let me explain.
-          # We must accuire @lock in some bizzarre way
-          # At this point, it's possible an other thread does Thread#raise and
-          # our execution is interrupted AT ANY GIVEN TIME. To lock out
-          # Thread#raise from other threads, we must make sure to accuire the
-          # lock as soon as possible
-          # First we try to accuire the lock in this method. This can't be
-          # moved to other method, this must be in this method because method
-          # invocation may trigger Thread#raise.
-          # If accuire failed, we
+          # We must accuire @lock in careful way.
+          #
+          # At this point, it's possible that an other thread does Thread#raise
+          # and then our execution is interrupted AT ANY GIVEN TIME. To lock
+          # out interrupts from other threads, we must make sure to accuire
+          # @lock as soon as possible
+          #
+          # Channel#uninterrupted_receive just does that. Notice that this
+          # can't moved to other methods nor there should be no preceeding code
+          # before it in the enclosing ensure clause. This is to prevent any
+          # interrupted lock failure.
           @lock.uninterrupted_receive
 
-          # Woo hoo, we accuired @lock. No other thread can interrupt this anymore.
-          # If there is any interrupt, check and process it.
+          # Woo hoo, we accuired @lock. No other thread can interrupt this
+          # thread anymore.
+          # If there is any interrupt, check and process it. In either case,
+          # we jump to the following ensure clause.
           Rubinius.check_interrupts
         ensure
           @joins.each { |join| join.send self }
