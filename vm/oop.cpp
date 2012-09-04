@@ -774,7 +774,7 @@ step2:
         }
 
         // Someone is interrupting us trying to lock.
-        if(false && state->vm()->check_local_interrupts) {
+        if(state->vm()->check_local_interrupts) {
           state->vm()->check_local_interrupts = false;
 
           if(!state->vm()->interrupted_exception()->nil_p()) {
