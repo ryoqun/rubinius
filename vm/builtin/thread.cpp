@@ -194,7 +194,6 @@ namespace rubinius {
     utilities::thread::Thread::set_os_name(tn.str().c_str());
 
     state->set_call_frame(0);
-    vm->shared.gc_dependent(state);
 
     if(cDebugThreading) {
       std::cerr << "[THREAD " << vm->thread_id()
@@ -206,6 +205,7 @@ namespace rubinius {
     GCTokenImpl gct;
     vm->thread->hard_lock(state, gct);
     vm->thread->init_lock_.unlock();
+    vm->shared.gc_dependent(state);
 
     vm->shared.tool_broker()->thread_start(state);
     Object* ret = vm->thread->runner_(state);

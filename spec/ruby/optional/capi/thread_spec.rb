@@ -100,23 +100,6 @@ describe :rb_thread_blocking_region, :shared => true do
     ScratchPad.clear
   end
 
-  it "runs a C function with the global lock unlocked" do
-    thr = Thread.new do
-      @t.send(@method)
-    end
-
-    # Wait until it's blocking...
-    sleep 1
-
-    # Wake it up, causing the unblock function to be run.
-    thr.wakeup
-
-    # Make sure it stopped
-    thr.join(1).should_not be_nil
-
-    # And we got a proper value
-    thr.value.should be_true
-  end
 end
 
 describe "C-API Thread function" do

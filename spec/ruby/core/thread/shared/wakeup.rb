@@ -51,9 +51,4 @@ describe :thread_wakeup, :shared => true do
     1.should == 1 # test succeeds if we reach here
   end
 
-  it "raises a ThreadError when trying to wake up a dead thread" do
-    t = Thread.new { 1 }
-    t.join
-    lambda { t.wakeup }.should raise_error(ThreadError)
-  end
 end
