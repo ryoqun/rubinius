@@ -42,7 +42,7 @@ class Thread
         @result = @block.call(*@args)
       ensure
         begin
-          # We must accuire @lock in careful way.
+          # We must accuire @lock in a careful way.
           #
           # At this point, it's possible that an other thread does Thread#raise
           # and then our execution is interrupted AT ANY GIVEN TIME. We
