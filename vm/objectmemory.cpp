@@ -204,7 +204,7 @@ step1:
       // for the us to be told to retry.
 
       if(cDebugThreading) {
-        std::cerr << "[LOCK " << state->vm()->thread_id() << " waiting on contention]" << std::endl;
+        std::cerr << "[LOCK " << state->vm()->thread_id() << " : "  << obj << " waiting on contention]" << std::endl;
       }
 
       if(us > 0) {
@@ -233,7 +233,7 @@ step1:
         }
 
         // Someone is interrupting us trying to lock.
-        if(state->vm()->check_local_interrupts) {
+        if(false && state->vm()->check_local_interrupts) {
           state->vm()->check_local_interrupts = false;
 
           if(!state->vm()->interrupted_exception()->nil_p()) {

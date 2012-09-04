@@ -18,6 +18,8 @@
 
 namespace rubinius {
 
+  bool cDebugThreading = false;
+
   bool HeaderWord::atomic_set(HeaderWord& old, HeaderWord& nw) {
     return atomic::compare_and_swap(&flags64,
                                      old.flags64,
@@ -238,7 +240,7 @@ step1:
 
     if(self->header.atomic_set(orig, new_val)) {
       if(cDebugThreading) {
-        std::cerr << "[LOCK " << state->vm()->thread_id() << " locked with CAS]\n";
+        std::cerr << "[LOCK " << state->vm()->thread_id() << " : " << self << " locked with CAS]\n";
       }
 
       // wonderful! Locked! weeeee!
@@ -529,7 +531,7 @@ step2:
             if(new_val.f.LockContended == 1) {
               std::cerr << "[LOCK " << state->vm()->thread_id() << " invalid state. CAS unlocking with contention, no inflation]\n";
             } else {
-              std::cerr << "[LOCK " << state->vm()->thread_id() << " unlocked with CAS]\n";
+              std::cerr << "[LOCK " << state->vm()->thread_id() << " : " << this << " unlocked with CAS]\n";
             }
           }
         } else {
@@ -772,7 +774,7 @@ step2:
         }
 
         // Someone is interrupting us trying to lock.
-        if(state->vm()->check_local_interrupts) {
+        if(false && state->vm()->check_local_interrupts) {
           state->vm()->check_local_interrupts = false;
 
           if(!state->vm()->interrupted_exception()->nil_p()) {

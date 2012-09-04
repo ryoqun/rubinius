@@ -203,6 +203,11 @@ namespace rubinius {
 
     vm->set_root_stack(reinterpret_cast<uintptr_t>(&calculate_stack), THREAD_STACK_SIZE);
 
+    GCTokenImpl gct;
+    if(vm->thread->lock(state, gct) != eLocked) {
+      printf("bad lock\n");
+    }
+
     vm->thread->init_lock_.unlock();
 
     vm->shared.tool_broker()->thread_start(state);
@@ -216,8 +221,6 @@ namespace rubinius {
     }
 
     vm->thread->init_lock_.lock();
-
-    GCTokenImpl gct;
 
     std::list<ObjectHeader*>& los = vm->locked_objects();
     for(std::list<ObjectHeader*>::iterator i = los.begin();
@@ -258,6 +261,11 @@ namespace rubinius {
     if(error) {
       Exception::thread_error(state, strerror(error));
     }
+
+    // wait until new thread locks the thread object.
+    init_lock_.lock();
+    init_lock_.unlock();
+
     return cNil;
   }
 
@@ -304,7 +312,7 @@ namespace rubinius {
 
     vm->register_raise(state, exc);
 
-    vm->wakeup(state, gct);
+    //vm->wakeup(state, gct);
     self->init_lock_.unlock();
     return exc;
   }

@@ -160,7 +160,7 @@ Object* const cUndef = reinterpret_cast<Object*>(0x22L);
   const static int cAuxLockRecCountMask = 0xff;
   const static int cAuxLockRecCountMax  = 0xff - 1;
 
-  const static bool cDebugThreading = false;
+  extern bool cDebugThreading;
 
   struct ObjectFlags {
 #ifdef RBX_LITTLE_ENDIAN

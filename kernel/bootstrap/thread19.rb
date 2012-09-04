@@ -38,7 +38,7 @@ class Thread
   def __run__()
     begin
       begin
-        @lock.send nil
+        Rubinius.unlock(self)
         @result = @block.call(*@args)
       ensure
         begin
@@ -55,7 +55,7 @@ class Thread
           # Notice that this can't moved to other methods and there should be
           # no preceeding code before it in the enclosing ensure clause.
           # These are to prevent any interrupted lock failures.
-          @lock.uninterrupted_receive
+          Rubinius.lock(self)
 
           # Woo hoo, we accuired @lock. No other thread can interrupt this
           # thread anymore.
@@ -63,7 +63,6 @@ class Thread
           # either case, we jump to the following ensure clause.
           Rubinius.check_interrupts
         ensure
-          unlock_locks
           @joins.each { |join| join.send self }
         end
       end
@@ -76,7 +75,7 @@ class Thread
       @exception = e # unless @dying
     ensure
       @alive = false
-      @lock.send nil
+      unlock_locks
     end
 
     if @exception
@@ -95,8 +94,6 @@ class Thread
     @exception = nil
     @critical = false
     @dying = false
-    @lock = Rubinius::Channel.new
-    @lock.send nil if prime_lock
     @joins = []
     @killed = false
   end
