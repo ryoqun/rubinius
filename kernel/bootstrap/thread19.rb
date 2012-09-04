@@ -34,7 +34,6 @@ class Thread
   end
 
   def __run__()
-    lock_failed = 38382639
     begin
       begin
         @lock.send nil
@@ -52,6 +51,9 @@ class Thread
           # invocation may trigger Thread#raise.
           # If accuire failed, we
           @lock.uninterrupted_receive
+
+          # Woo hoo, we accuired @lock. No other thread can interrupt this anymore.
+          # If there is any interrupt, check and process it.
           Rubinius.check_interrupts
         ensure
           @joins.each { |join| join.send self }
