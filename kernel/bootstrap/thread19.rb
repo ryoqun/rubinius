@@ -33,6 +33,8 @@ class Thread
     nil
   end
 
+  # Called by Thread#fork in the new thread
+  #
   def __run__()
     begin
       begin
