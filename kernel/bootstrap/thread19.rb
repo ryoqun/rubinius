@@ -61,8 +61,8 @@ class Thread
           # we jump to the following ensure clause.
           Rubinius.check_interrupts
         ensure
-          @joins.each { |join| join.send self }
           unlock_locks
+          @joins.each { |join| join.send self }
         end
       end
     rescue Die
