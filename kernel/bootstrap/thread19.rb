@@ -49,7 +49,8 @@ class Thread
           # absolutely must make sure to accuire @lock as soon as possible to
           # lock out interrupts from other threads.
           #
-          # Channel#uninterrupted_receive just does that.
+          # @lock.uninterrupted_receive (Channel#uninterrupted_receive) just
+          # does that.
           #
           # Notice that this can't moved to other methods and there should be
           # no preceeding code before it in the enclosing ensure clause.
