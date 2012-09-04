@@ -17,13 +17,6 @@ namespace rubinius {
     vm_->thread_state()->raise_exception(exc);
   }
 
-  bool State::check_async(CallFrame* call_frame) {
-    if(vm_->check_local_interrupts) {
-      return process_async(call_frame);
-    }
-    return true;
-  }
-
   bool State::process_async(CallFrame* call_frame) {
     vm_->check_local_interrupts = false;
 

@@ -79,7 +79,12 @@ namespace rubinius {
       return vm_->detect_stack_condition(end);
     }
 
-    bool check_async(CallFrame* call_frame);
+    bool check_async(CallFrame* call_frame) {
+      if(vm_->check_local_interrupts) {
+        return process_async(call_frame);
+      }
+      return true;
+    }
 
     void raise_stack_error(CallFrame* call_frame);
 
