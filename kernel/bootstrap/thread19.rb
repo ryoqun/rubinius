@@ -45,20 +45,21 @@ class Thread
           # We must accuire @lock in careful way.
           #
           # At this point, it's possible that an other thread does Thread#raise
-          # and then our execution is interrupted AT ANY GIVEN TIME. To lock
-          # out interrupts from other threads, we absolutely must make sure to
-          # accuire @lock as soon as possible
+          # and then our execution is interrupted AT ANY GIVEN TIME. We
+          # absolutely must make sure to accuire @lock as soon as possible to
+          # lock out interrupts from other threads.
           #
-          # Channel#uninterrupted_receive just does that. Notice that this
-          # can't moved to other methods nor there should be no preceeding code
-          # before it in the enclosing ensure clause. This is to prevent any
-          # interrupted lock failure.
+          # Channel#uninterrupted_receive just does that.
+          #
+          # Notice that this can't moved to other methods and there should be
+          # no preceeding code before it in the enclosing ensure clause.
+          # These are to prevent any interrupted lock failures.
           @lock.uninterrupted_receive
 
           # Woo hoo, we accuired @lock. No other thread can interrupt this
           # thread anymore.
-          # If there is any interrupt, check and process it. In either case,
-          # we jump to the following ensure clause.
+          # If there is any untriggered interrupt, check and process it. In
+          # either case, we jump to the following ensure clause.
           Rubinius.check_interrupts
         ensure
           unlock_locks
