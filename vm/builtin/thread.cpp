@@ -204,10 +204,7 @@ namespace rubinius {
     vm->set_root_stack(reinterpret_cast<uintptr_t>(&calculate_stack), THREAD_STACK_SIZE);
 
     GCTokenImpl gct;
-    if(vm->thread->lock(state, gct) != eLocked) {
-      printf("bad lock\n");
-    }
-
+    vm->thread->hard_lock(state, gct);
     vm->thread->init_lock_.unlock();
 
     vm->shared.tool_broker()->thread_start(state);
