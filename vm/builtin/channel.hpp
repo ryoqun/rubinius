@@ -32,6 +32,8 @@ namespace rubinius {
     int waiters_;
     int semaphore_count_;
 
+    Object* do_receive_timeout(STATE, GCToken gct, Object* duration, CallFrame* calling_environment, bool interrupt=true);
+
   public:
     /* accessors */
 
@@ -57,6 +59,9 @@ namespace rubinius {
 
     // Rubinius.primitive :channel_receive_timeout
     Object* receive_timeout(STATE, GCToken gct, Object* duration, CallFrame* calling_environment);
+
+    // Rubinius.primitive :channel_uninterrupted_receive
+    Object* uninterrupted_receive(STATE, GCToken gct, CallFrame* calling_environment);
 
     bool has_readers_p();
 

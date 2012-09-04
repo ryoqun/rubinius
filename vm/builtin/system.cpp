@@ -767,6 +767,14 @@ namespace rubinius {
     return Fixnum::from(time(0) - start);
   }
 
+  Object* System::vm_check_interrupts(STATE, CallFrame* calling_environment) {
+    if(state->check_async(calling_environment)) {
+      return cNil;
+    } else {
+      return NULL;
+    }
+  }
+
   static inline double tv_to_dbl(struct timeval* tv) {
     return (double)tv->tv_sec + ((double)tv->tv_usec / 1000000.0);
   }
