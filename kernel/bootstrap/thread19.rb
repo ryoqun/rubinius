@@ -46,8 +46,8 @@ class Thread
           #
           # At this point, it's possible that an other thread does Thread#raise
           # and then our execution is interrupted AT ANY GIVEN TIME. To lock
-          # out interrupts from other threads, we must make sure to accuire
-          # @lock as soon as possible
+          # out interrupts from other threads, we absolutely must make sure to
+          # accuire @lock as soon as possible
           #
           # Channel#uninterrupted_receive just does that. Notice that this
           # can't moved to other methods nor there should be no preceeding code
