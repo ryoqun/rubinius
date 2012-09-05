@@ -385,8 +385,8 @@ namespace rubinius {
   }
 
   void VM::wait_on_inflated_lock(InflatedHeader* ih) {
-    SYNC_TL;
-    waiting_header_ = ih;
+    //SYNC_TL;
+    //waiting_header_ = ih;
   }
 
   void VM::wait_on_custom_function(void (*func)(void*), void* data) {
