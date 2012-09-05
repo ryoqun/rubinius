@@ -230,6 +230,7 @@ namespace rubinius {
     vm->thread->hard_lock(state, gct);
 
     vm->thread->init_lock_.unlock();
+    vm->shared.gc_dependent(state);
 
     // Become GC-dependent after unlocking init_lock_ to avoid deadlocks.
     // gc_dependent may lock when it detects GC is happening. Also the parent
@@ -288,6 +289,11 @@ namespace rubinius {
     if(error) {
       Exception::thread_error(state, strerror(error));
     }
+
+    // Wait until the new thread locks the thread object and unlock init_lock_.
+    init_lock_.lock();
+    init_lock_.unlock();
+
     return cNil;
   }
 
