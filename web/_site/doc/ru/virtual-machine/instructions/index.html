@@ -267,7 +267,7 @@
 <p>Unlike other literals such as strings and numbers, creating a Regexp
    literal (i.e. via the /regex/ syntax) is a two step process to create the
    literal slot for the Regexp, create a literal for the string between the
-   &lsquo;/&rsquo; delimiters and create a new Regexp object passing it the string.  Only
+   ‘/’ delimiters and create a new Regexp object passing it the string.  Only
    then can the literal value be set, using the set_literal opcode.</p>
 
 <h3><a class="instruction" name="push_literal">push_literal(literal)</a></h3>
@@ -765,7 +765,7 @@
 
 <p>Remove the next unused unwind registration from the current invocation.
    This instruction is paired with <code>setup_unwind</code> to remove registrations
-   when control exits a section of code that registered a handler but didn&rsquo;t
+   when control exits a section of code that registered a handler but didn’t
    use it. For example, exiting a begin that had a rescue expression.</p>
 
 <table class="stack_effect">
@@ -930,10 +930,10 @@ tuple data.</li>
 </td></tr>
 </tbody>
 </table>
-<h3><a class="instruction" name="set_ivar">set_ivar(index)</a></h3>
+<h3><a class="instruction" name="set_ivar">set_ivar(literal)</a></h3>
 
 <p>Pops a value off the stack, and uses it to set the value of the instance
-   variable identifies by the literal specified by operand <em>index</em>.  The
+   variable identifies by the literal specified by operand <em>literal</em>.  The
    value popped off the stack is then pushed back on again.</p>
 
 <table class="stack_effect">
@@ -979,10 +979,10 @@ tuple data.</li>
 <pre><code> engine = RUBY_ENGINE # RUBY_ENGINE is a constant defined by Rubinius
 </code></pre>
 
-<h3><a class="instruction" name="set_const">set_const(index)</a></h3>
+<h3><a class="instruction" name="set_const">set_const(literal)</a></h3>
 
 <p>Pops an object off the stack, and uses value to set a constant named
-   by the literal <em>index</em>. The value is pushed back onto the stack.</p>
+   by the <em>literal</em>. The value is pushed back onto the stack.</p>
 
 <table class="stack_effect">
 <thead>
@@ -993,9 +993,9 @@ tuple data.</li>
 <tr><td>...</td><td>...</td></tr>
 </tbody>
 </table>
-<h3><a class="instruction" name="set_const_at">set_const_at(index)</a></h3>
+<h3><a class="instruction" name="set_const_at">set_const_at(literal)</a></h3>
 
-<p>Pop a value from the literals table specified by the operand <em>index</em> and
+<p>Pop a value from the literals table specified by the operand <em>literal</em> and
    use it as the value of a constant named inside a Module object popped from
    the stack.  The <em>value</em> is pushed back on the stack.</p>
 
@@ -1014,10 +1014,10 @@ tuple data.</li>
 </td><td /></tr>
 </tbody>
 </table>
-<h3><a class="instruction" name="find_const">find_const(index)</a></h3>
+<h3><a class="instruction" name="find_const">find_const(literal)</a></h3>
 
 <p>Pops <em>module</em> off the stack, and searches within its namespace for the
-   constant named by the literal specified by the operand <em>index</em>. If found,
+   constant named by the literal specified by the operand <em>literal</em>. If found,
    it is pushed onto the stack; otherwise, nothing is pushed onto the stack,
    and a <code>NameError</code> exception is raised.</p>
 
@@ -1362,7 +1362,7 @@ tuple data.</li>
    the arg is an array.</p>
 
 <p>If the Proc invoked from was in lambda mode, and one argument is passed:
-     * and it&rsquo;s an Array, push it.
+     * and it’s an Array, push it.
      * and it responds to <code>#to_ary</code>, try and convert it and push it.
      * otherwise wrap it in a one element Array and push it.</p>
 
@@ -1648,7 +1648,7 @@ tuple data.</li>
    runtime to determine which code path is executed.</p>
 
 <p>For example, a method such as <code>Fixnum#times</code> can be optimised at compile
-   time, but we can&rsquo;t know until runtime whether or not the <code>Fixnum#times</code>
+   time, but we can’t know until runtime whether or not the <code>Fixnum#times</code>
    method has been overridden. The serial number check is used to determine
    each time the code is executed, whether or not the standard <code>Fixnum#times</code>
    has been overridden. It leverages the serial number field on a
@@ -1657,7 +1657,7 @@ tuple data.</li>
 
 <h3><a class="instruction" name="check_serial_private">check_serial_private(literal, serial)</a></h3>
 
-<p>Checks if the specified method&rsquo;s serial number matches an expected value.
+<p>Checks if the specified method’s serial number matches an expected value.
    Considers <code>private</code> methods too.</p>
 
 <table class="stack_effect">
@@ -1945,7 +1945,7 @@ tuple data.</li>
 </table>
 
 <h4 id="notes-24">Notes</h4>
-<p>Exactly like equal, except calls <code>#===</code> if it can&rsquo;t handle it directly.</p>
+<p>Exactly like equal, except calls <code>#===</code> if it can’t handle it directly.</p>
 
 <h3><a class="instruction" name="meta_send_call">meta_send_call(literal, count)</a></h3>
 
@@ -2196,7 +2196,7 @@ tuple data.</li>
 </table>
 <h3><a class="instruction" name="push_rubinius">push_rubinius()</a></h3>
 
-<p>Pushes the top-level global <code>Rubinius</code> constant onto the stack.  Generally
+<p>Pushes the top-level global <code>Rubinius</code> constant onto the stack. Generally
    this is done to call a utility method.</p>
 
 <table class="stack_effect">
@@ -2236,7 +2236,7 @@ tuple data.</li>
 </table>
 <h3><a class="instruction" name="meta_to_s">meta_to_s(literal)</a></h3>
 
-<p>Pop a value off the stack and if it&rsquo;s not a <code>String</code>, call a method
+<p>Pop a value off the stack and if it’s not a <code>String</code>, call a method
    indicated by <em>literal</em> on it.  Push the resulting object back on the
    stack.</p>
 
@@ -2255,6 +2255,21 @@ tuple data.</li>
    to indicate for flexibility.</p>
 
 <h3><a class="instruction" name="push_type">push_type()</a></h3>
+
+<p>Pushes the distinguished module <code>Rubinius::Type</code> onto the stack.</p>
+
+<table class="stack_effect">
+<thead>
+<tr><th>Before</th><th>After</th></tr>
+</thead>
+<tbody>
+<tr><td>...</td><td>constant</td></tr>
+<tr><td /><td>...</td></tr>
+</tbody>
+</table>
+<h3><a class="instruction" name="push_mirror">push_mirror()</a></h3>
+
+<p>Pushes the distinguished class <code>Rubinius::Mirror</code> onto the stack.</p>
 
 <table class="stack_effect">
 <thead>
