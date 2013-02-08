@@ -53,6 +53,14 @@ class Proc
     return block
   end
 
+  def self.new_from_method(meth)
+    if meth.kind_of? ::Method
+      return __from_method__(meth)
+    else
+      raise ArgumentError, "tried to create a Proc object without a Method"
+    end
+  end
+
   attr_accessor :block
   attr_accessor :bound_method
 
@@ -64,11 +72,14 @@ class Proc
 
   def ==(other)
     return false unless other.kind_of? self.class
-    @block == other.block and @bound_method == other.bound_method
+    return @bound_method == other.bound_method if other.bound_method
+    @block == other.block
   end
 
   def arity
-    if @bound_method
+    if @bound_method.is_a?(::Method)
+      return @bound_method.arity
+    elsif @bound_method
       arity = @bound_method.arity
       return arity < 0 ? -1 : arity
     end
@@ -138,29 +149,27 @@ class Proc
     copy
   end
 
-  class Method < Proc
-    attr_accessor :bound_method
+  def inspect
+    return super unless @bound_method
 
-    def call(*args, &block)
-      @bound_method.call(*args, &block)
-    end
-    alias_method :[], :call
-
-    def self.new(meth)
-      if meth.kind_of? ::Method
-        return __from_method__(meth)
+    code = @bound_method.executable
+    if code.respond_to? :file
+      if code.lines
+        line = code.first_line
       else
-        raise ArgumentError, "tried to create a Proc::Method object without a Method"
+        line = "-1"
       end
+      file = code.file
+    else
+      line = "-1"
+      file = "(unknown)"
     end
 
-    def ==(other)
-      return false unless other.kind_of? self.class
-      @bound_method == other.bound_method
-    end
+    "#<#{self.class}:0x#{self.object_id.to_s(16)} @ #{file}:#{line}>"
+  end
 
-    def arity
-      @bound_method.arity
-    end
+  alias_method :to_s, :inspect
+
+  class Method < Proc
   end
 end

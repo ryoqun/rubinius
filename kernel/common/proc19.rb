@@ -76,43 +76,15 @@ class Proc
 
   alias_method :inspect, :to_s
 
-  class Method < Proc
-    def self.__from_method__(meth)
-      obj = __allocate__
-      obj.bound_method = meth
-      obj.lambda_style!
+  def __yield__(*args, &block)
+    @bound_method.call(*args, &block)
+  end
 
-      return obj
-    end
+  def self.__from_method__(meth)
+    obj = __allocate__
+    obj.bound_method = meth
+    obj.lambda_style!
 
-    def source_location
-      code = @bound_method.executable
-      if code.respond_to? :file
-        file = code.file
-        if code.lines
-          line = code.first_line
-        else
-          line = -1
-        end
-      else
-        file = "(unknown)"
-        line = -1
-      end
-
-      [file.to_s, line]
-    end
-
-    def inspect
-      file, line = source_location
-
-      l = " (lambda)" if lambda?
-      "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{file}:#{line}#{l}>"
-    end
-
-    alias_method :to_s, :inspect
-
-    def __yield__(*args, &block)
-      @bound_method.call(*args, &block)
-    end
+    return obj
   end
 end

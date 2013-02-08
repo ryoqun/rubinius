@@ -90,7 +90,7 @@ class BasicObject
     raise ::LocalJumpError, "Missing block" unless block_given?
     env = prc.block
 
-    if prc.kind_of? ::Proc::Method
+    if prc.bound_method.is_a?(::Method)
       return prc.bound_method.call(*args)
     end
 

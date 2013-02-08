@@ -21,40 +21,19 @@ class Proc
 
   alias_method :inspect, :to_s
 
-  class Method < Proc
-    def self.__from_method__(meth)
-      obj = __allocate__
-      obj.bound_method = meth
-
-      return obj
+  def __yield__(*args, &block)
+    # do a block style unwrap..
+    if args.size == 1 and args.first.kind_of? Array and args.first.size > 1
+      args = args.first
     end
 
-    def inspect
-      code = @bound_method.executable
-      if code.respond_to? :file
-        file = code.file
-        if code.lines
-          line = code.first_line
-        else
-          line = -1
-        end
-      else
-        file = "(unknown)"
-        line = -1
-      end
+    @bound_method.call(*args, &block)
+  end
 
-      "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{file}:#{line}>"
-    end
+  def self.__from_method__(meth)
+    obj = __allocate__
+    obj.bound_method = meth
 
-    alias_method :to_s, :inspect
-
-    def __yield__(*args, &block)
-      # do a block style unwrap..
-      if args.size == 1 and args.first.kind_of? Array and args.first.size > 1
-        args = args.first
-      end
-
-      @bound_method.call(*args, &block)
-    end
+    return obj
   end
 end

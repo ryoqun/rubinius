@@ -89,7 +89,7 @@ module Kernel
   def instance_exec(*args, &prc)
     raise LocalJumpError, "Missing block" unless block_given?
 
-    if prc.kind_of? Proc::Method
+    if prc.bound_method.is_a?(::Method)
       return prc.bound_method.call(*args)
     end
 
