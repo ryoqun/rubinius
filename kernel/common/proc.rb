@@ -53,16 +53,9 @@ class Proc
     return block
   end
 
-  def self.new_from_method(meth)
-    if meth.kind_of? ::Method
-      return __from_method__(meth)
-    else
-      raise ArgumentError, "tried to create a Proc object without a Method"
-    end
-  end
-
   attr_accessor :block
   attr_accessor :bound_method
+  attr_accessor :ruby_method
 
   def binding
     bind = @block.to_binding
@@ -73,12 +66,13 @@ class Proc
   def ==(other)
     return false unless other.kind_of? self.class
     return @bound_method == other.bound_method if other.bound_method
+    return @ruby_method == other.ruby_method if other.ruby_method
     @block == other.block
   end
 
   def arity
-    if @bound_method.is_a?(::Method)
-      return @bound_method.arity
+    if @ruby_method
+      return @ruby_method.arity
     elsif @bound_method
       arity = @bound_method.arity
       return arity < 0 ? -1 : arity
@@ -90,6 +84,8 @@ class Proc
   def parameters
     if @bound_method
       return @bound_method.parameters
+    elsif @ruby_method
+      return @ruby_method.parameters
     end
 
     code = @block.compiled_code
@@ -147,5 +143,13 @@ class Proc
       copy.initialize_copy self
     end
     copy
+  end
+
+  def self.new_from_method(meth)
+    if meth.kind_of? ::Method
+      return __from_method__(meth)
+    else
+      raise ArgumentError, "tried to create a Proc object without a Method"
+    end
   end
 end

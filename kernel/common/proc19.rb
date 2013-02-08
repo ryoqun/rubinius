@@ -64,8 +64,8 @@ class Proc
   end
 
   def to_s
-    if @bound_method.is_a?(Method)
-      code = @bound_method.executable
+    if @ruby_method.is_a?(Method)
+      code = @ruby_method.executable
       if code.respond_to? :file
         if code.lines
           line = code.first_line
@@ -87,15 +87,16 @@ class Proc
 
   alias_method :inspect, :to_s
 
-  def __yield__(*args, &block)
-    @bound_method.call(*args, &block)
-  end
-
   def self.__from_method__(meth)
     obj = __allocate__
-    obj.bound_method = meth
+    obj.ruby_method = meth
     obj.lambda_style!
 
     return obj
   end
+
+  def __yield__(*args, &block)
+    @ruby_method.call(*args, &block)
+  end
+
 end

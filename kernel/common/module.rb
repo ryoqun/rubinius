@@ -271,7 +271,7 @@ class Module
 
     case meth
     when Proc
-      if meth.bound_method.is_a?(Method)
+      if meth.ruby_method
         code = Rubinius::DelegatedMethod.new(name, :call, meth, false)
       else
         be = meth.block.dup

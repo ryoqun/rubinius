@@ -2,8 +2,8 @@
 
 class Proc
   def to_s
-    if @bound_method.is_a?(Method)
-      code = @bound_method.executable
+    if @ruby_method
+      code = @ruby_method.executable
       if code.respond_to? :file
         if code.lines
           line = code.first_line
@@ -24,19 +24,19 @@ class Proc
 
   alias_method :inspect, :to_s
 
+  def self.__from_method__(meth)
+    obj = __allocate__
+    obj.ruby_method = meth
+
+    return obj
+  end
+
   def __yield__(*args, &block)
     # do a block style unwrap..
     if args.size == 1 and args.first.kind_of? Array and args.first.size > 1
       args = args.first
     end
 
-    @bound_method.call(*args, &block)
-  end
-
-  def self.__from_method__(meth)
-    obj = __allocate__
-    obj.bound_method = meth
-
-    return obj
+    @ruby_method.call(*args, &block)
   end
 end

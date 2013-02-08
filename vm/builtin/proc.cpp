@@ -124,44 +124,36 @@ namespace rubinius {
     }
 
     if(self->bound_method_->nil_p()) {
-      if(self->block_->nil_p()) {
-        Exception* exc =
-          Exception::make_type_error(state, BlockEnvironment::type, self->block_, "No code bound to proc");
-        exc->locations(state, Location::from_call_stack(state, call_frame));
-        state->raise_exception(exc);
-        return NULL;
-      } else {
+      if(!self->block_->nil_p()) {
         return self->block_->call(state, call_frame, args, flags);
       }
-    } else if(NativeMethod* nm = try_as<NativeMethod>(self->bound_method_)) {
-      return nm->execute(state, call_frame, nm, G(object), args);
-    } else if(NativeFunction* nf = try_as<NativeFunction>(self->bound_method_)) {
-      return nf->call(state, args, call_frame);
     } else {
-      Dispatch dis(state->symbol("__yield__"));
-      return dis.send(state, call_frame, args);
+      if(NativeMethod* nm = try_as<NativeMethod>(self->bound_method_)) {
+        return nm->execute(state, call_frame, nm, G(object), args);
+      } else if(NativeFunction* nf = try_as<NativeFunction>(self->bound_method_)) {
+        return nf->call(state, args, call_frame);
+      }
     }
+
+    Dispatch dis(state->symbol("__yield__"));
+    return dis.send(state, call_frame, args);
   }
 
   Object* Proc::yield(STATE, CallFrame* call_frame, Arguments& args) {
     if(bound_method_->nil_p()) {
-      if(block_->nil_p()) {
-        Exception* exc =
-          Exception::make_type_error(state, BlockEnvironment::type, block_, "No code bound to proc");
-        exc->locations(state, Location::from_call_stack(state, call_frame));
-        state->raise_exception(exc);
-        return NULL;
-      } else {
+      if(!block_->nil_p()) {
         // NOTE! To match MRI semantics, this explicitely ignores lambda_.
         return block_->call(state, call_frame, args, 0);
       }
-    } else if(NativeMethod* nm = try_as<NativeMethod>(bound_method_)) {
-      return nm->execute(state, call_frame, nm, G(object), args);
-    } else if(NativeFunction* nf = try_as<NativeFunction>(bound_method_)) {
-      return nf->call(state, args, call_frame);
     } else {
-      return call(state, call_frame, args);
+      if(NativeMethod* nm = try_as<NativeMethod>(bound_method_)) {
+        return nm->execute(state, call_frame, nm, G(object), args);
+      } else if(NativeFunction* nf = try_as<NativeFunction>(bound_method_)) {
+        return nf->call(state, args, call_frame);
+      }
     }
+
+    return call(state, call_frame, args);
   }
 
   Object* Proc::call_prim(STATE, CallFrame* call_frame, Executable* exec, Module* mod,

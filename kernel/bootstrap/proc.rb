@@ -1,8 +1,5 @@
 # -*- encoding: us-ascii -*-
 
-class Method
-end
-
 class Proc
   def self.allocate
     raise TypeError, "allocator undefined for Proc"
@@ -19,8 +16,11 @@ class Proc
   end
 
   def call(*args, &block)
-    return @bound_method.call(*args, &block) if @bound_method.is_a?(Method)
-    call_prim(*args, &block)
+    if @ruby_method
+      @ruby_method.call(*args, &block)
+    else
+      call_prim(*args, &block)
+    end
   end
 
   def call_on_object(*args)
