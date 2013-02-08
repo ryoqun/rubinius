@@ -64,13 +64,24 @@ class Proc
   end
 
   def to_s
-    file, line = source_location
+    if @bound_method.is_a?(Method)
+      code = @bound_method.executable
+      if code.respond_to? :file
+        if code.lines
+          line = code.first_line
+        else
+          line = "-1"
+        end
+        file = code.file
+      else
+        line = "-1"
+        file = "(unknown)"
+      end
 
-    l = " (lambda)" if lambda?
-    if file and line
-      "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{file}:#{line}#{l}>"
+      "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{file}:#{line}>"
     else
-      "#<#{self.class}:0x#{self.object_id.to_s(16)}#{l}>"
+      l = " (lambda)" if lambda?
+      "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{@block.file}:#{@block.line}#{l}>"
     end
   end
 

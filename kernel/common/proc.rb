@@ -38,7 +38,7 @@ class Proc
 
     block = __from_block__(env)
 
-    if block.class != self and block.class != Method
+    if block.class != self
       block = block.dup
       Rubinius::Unsafe.set_class(block, self)
     end
@@ -147,29 +147,5 @@ class Proc
       copy.initialize_copy self
     end
     copy
-  end
-
-  def inspect
-    return super unless @bound_method
-
-    code = @bound_method.executable
-    if code.respond_to? :file
-      if code.lines
-        line = code.first_line
-      else
-        line = "-1"
-      end
-      file = code.file
-    else
-      line = "-1"
-      file = "(unknown)"
-    end
-
-    "#<#{self.class}:0x#{self.object_id.to_s(16)} @ #{file}:#{line}>"
-  end
-
-  alias_method :to_s, :inspect
-
-  class Method < Proc
   end
 end

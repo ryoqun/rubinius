@@ -2,20 +2,23 @@
 
 class Proc
   def to_s
-    if @bound_method
-      if @bound_method.respond_to?(:source_location)
-        file, line = @bound_method.source_location
+    if @bound_method.is_a?(Method)
+      code = @bound_method.executable
+      if code.respond_to? :file
+        if code.lines
+          line = code.first_line
+        else
+          line = "-1"
+        end
+        file = code.file
       else
-        file, line = nil
+        line = "-1"
+        file = "(unknown)"
       end
-    else
-      file, line = @block.source_location
-    end
 
-    if file and line
       "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{file}:#{line}>"
     else
-      "#<#{self.class}:0x#{self.object_id.to_s(16)}>"
+      "#<#{self.class}:0x#{self.object_id.to_s(16)}@#{@block.file}:#{@block.line}>"
     end
   end
 
