@@ -145,8 +145,8 @@ class Proc
     copy
   end
 
-  def self.new_from_method(meth)
-    if meth.kind_of? ::Method
+  def self.from_method(meth)
+    if meth.kind_of? Method
       return __from_method__(meth)
     else
       raise ArgumentError, "tried to create a Proc object without a Method"
