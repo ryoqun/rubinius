@@ -71,6 +71,23 @@ class Proc
       return obj
     end
 
+    def source_location
+      code = @bound_method.executable
+      if code.respond_to? :file
+        if code.lines
+          line = code.first_line
+        else
+          line = -1
+        end
+        file = code.file
+      else
+        line = -1
+        file = "(unknown)"
+      end
+
+      [file.to_s, line]
+    end
+
     def __yield__(*args, &block)
       @bound_method.call(*args, &block)
     end
