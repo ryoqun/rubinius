@@ -55,6 +55,7 @@ class Proc
 
   # Expose @block because MRI does. Do not expose @bound_method
   attr_accessor :block
+  attr_accessor :bound_method
 
   def binding
     bind = @block.to_binding
@@ -64,7 +65,7 @@ class Proc
 
   def ==(other)
     return false unless other.kind_of? self.class
-    @block == other.block
+    @block == other.block and @bound_method == other.bound_method
   end
 
   def arity
