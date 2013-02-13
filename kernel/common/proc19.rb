@@ -62,8 +62,8 @@ class Proc
           line = -1
         end
       else
-        line = -1
         file = "(unknown)"
+        line = -1
       end
       [file.to_s, line]
     elsif @bound_method
