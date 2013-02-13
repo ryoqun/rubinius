@@ -101,5 +101,4 @@ class Proc
   def __yield__(*args, &block)
     @ruby_method.call(*args, &block)
   end
-
 end
