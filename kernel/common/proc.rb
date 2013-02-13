@@ -65,9 +65,14 @@ class Proc
 
   def ==(other)
     return false unless other.kind_of? self.class
-    return @bound_method == other.bound_method if other.bound_method
-    return @ruby_method == other.ruby_method if other.ruby_method
-    @block == other.block
+
+    if @bound_method
+      @bound_method == other.bound_method
+    elsif @ruby_method
+      @ruby_method == other.ruby_method
+    else
+      @block == other.block
+    end
   end
 
   def arity
