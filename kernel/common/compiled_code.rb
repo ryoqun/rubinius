@@ -71,7 +71,6 @@ module Rubinius
         @total_args    == other.total_args    and
         @splat         == other.splat         and
         @literals      == other.literals      and
-        @lines         == other.lines         and
         @file          == other.file          and
         @local_names   == other.local_names
     end

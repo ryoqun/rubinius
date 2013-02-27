@@ -96,6 +96,34 @@ module Rubinius
       [file.to_s, line]
     end
 
+      def ==(other)
+        # Given the following code:
+        # class Foo
+        #   p = Proc.new { :cool }
+        #   define_method :a, p
+        #   define_method :a, p
+        # end
+        # foo = Foo.new
+        # foo.method(:a)
+        # foo.method(:b)
+        #
+        # The Method instances for :a and :b have different
+        # BlockEnvironments as define_method dups the BE
+        # when given a Proc.
+        #
+        # The BEs are identical otherwise, except for the
+        # name of the CompiledCode.
+        return false unless other.kind_of? BlockEnvironment
+
+        other_code = other.compiled_code
+        code = compiled_code
+
+        scope     == other.scope      &&
+        top_scope == other.top_scope  &&
+        self.module  == other.module     &&
+        code                == other_code
+      end
+
     class AsMethod < Executable
       attr_reader :block_env
 
