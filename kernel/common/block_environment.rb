@@ -158,7 +158,6 @@ module Rubinius
         code.total_args     == other_code.total_args      &&
         code.splat          == other_code.splat           &&
         code.literals       == other_code.literals        &&
-        code.lines          == other_code.lines           &&
         code.file           == other_code.file            &&
         code.local_names    == other_code.local_names
       end
