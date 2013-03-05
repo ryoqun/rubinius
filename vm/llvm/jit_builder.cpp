@@ -47,7 +47,7 @@ namespace jit {
     std::cout << cu.isCompileUnit() << std::endl;
     DIFile di_file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
     DIType di_type = debug_builder().createTemporaryType();
-    DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0);
+    DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0, 0, false, info_.function());
     debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
     printf("set current\n");
