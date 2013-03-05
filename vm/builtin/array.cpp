@@ -88,7 +88,7 @@ namespace rubinius {
   }
 
   Array* Array::from_tuple(STATE, Tuple* tup) {
-    native_int length = tup->num_fields();
+    size_t length = tup->num_fields();
     Array* ary = Array::create(state, length);
     ary->tuple_->copy_from(state, tup,
         Fixnum::from(0), Fixnum::from(length),
@@ -227,7 +227,7 @@ namespace rubinius {
     }
 
     tuple_->put(state, idx, val);
-    if(total_->to_native() <= oidx) {
+    if((size_t)total_->to_native() <= oidx) {
       total(state, Fixnum::from(oidx+1));
     }
     return val;
