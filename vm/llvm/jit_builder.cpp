@@ -11,6 +11,10 @@
 
 #include "instruments/tooling.hpp"
 #include <llvm/Analysis/CaptureTracking.h>
+#include <llvm/Support/Dwarf.h>
+#include "llvm/Analysis/DIBuilder.h"
+#include "llvm/Analysis/DebugInfo.h"
+
 
 namespace rubinius {
 namespace jit {
@@ -18,12 +22,13 @@ namespace jit {
   Builder::Builder(Context* ctx, JITMethodInfo& i)
     : ctx_(ctx)
     , machine_code_(i.machine_code)
-    , builder_(ctx->llvm_context())
+    , builder_(ctx->llvm_context(), llvm::ConstantFolder(), IRBuilderInserterWithDebug(this))
     , use_full_scope_(false)
     , import_args_(0)
     , body_(0)
     , info_(i)
     , runtime_data_(0)
+    , debug_builder_(*ctx->module())
   {
     llvm::Module* mod = ctx->module();
     cf_type = mod->getTypeByName("struct.rubinius::CallFrame");
@@ -34,6 +39,24 @@ namespace jit {
     check_global_interrupts_pos = b().CreateIntToPtr(
           llvm::ConstantInt::get(ctx_->IntPtrTy, (intptr_t)ctx_->llvm_state()->shared().check_global_interrupts_address()),
           llvm::PointerType::getUnqual(ctx_->Int8Ty), "cast_to_intptr");
+    debug_builder_.createCompileUnit(llvm::dwarf::DW_LANG_Python, "sample.rb", "/tmp", "runbininus", true, "-XXiinnt", 12343);
+  }
+
+  void Builder::record_source_location(CompiledCode *code) {
+    DICompileUnit cu(debug_builder().getCU());
+    DIFile di_file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
+    DIType di_type = debug_builder().createTemporaryType();
+    DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0, 0, false, info_.function());
+    debug_builder().finalize();
+    b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
+    //printf("set current\n");
+  }
+
+  void Builder::record_source_line(opcode ip) {
+    //printf("%ld => %d\n", ip, info_.method()->line(ip));
+    int line = info_.method()->line(ip);
+    DISubprogram subprogram(b().getCurrentDebugLocation().getScope(ctx_->llvm_context()));
+    b().SetCurrentDebugLocation(llvm::DebugLoc::get(line, 0, subprogram));
   }
 
   Value* Builder::get_field(Value* val, int which) {
@@ -493,14 +516,17 @@ namespace jit {
   class Walker {
     JITVisit& v_;
     BlockMap& map_;
+    Builder& builder_;
 
   public:
-    Walker(JITVisit& v, BlockMap& map)
+    Walker(JITVisit& v, BlockMap& map, Builder& builder)
       : v_(v)
       , map_(map)
+      , builder_(builder)
     {}
 
     void call(OpcodeIterator& iter) {
+      builder_.record_source_line(iter.ip());
       v_.dispatch(iter.ip());
 
       if(v_.b().GetInsertBlock()->getTerminator() == NULL) {
@@ -513,7 +539,7 @@ namespace jit {
   };
 
   bool Builder::generate_body() {
-    JITVisit visitor(ctx_, info_, block_map_, b().GetInsertBlock());
+    JITVisit visitor(this, info_, block_map_, b().GetInsertBlock());
 
     if(info_.inline_policy) {
       visitor.set_policy(info_.inline_policy);
@@ -535,7 +561,7 @@ namespace jit {
     // Pass 2, compile!
     // Drive by following the control flow.
     jit::ControlFlowWalker walker(info_.machine_code);
-    Walker cb(visitor, block_map_);
+    Walker cb(visitor, block_map_, *this);
 
     try {
       walker.run<Walker>(cb);

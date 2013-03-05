@@ -64,7 +64,7 @@ namespace jit {
       if(indy) ctx_->llvm_state()->gc_independent();
       if(ctx_->llvm_state()->jit_dump_code() & cSimple) {
         llvm::outs() << "[[[ LLVM Simple IR ]]]\n";
-        llvm::outs() << *function_ << "\n";
+        llvm::outs() << *ctx_->module() << "\n";
       }
 
       std::vector<BasicBlock*> to_remove;
@@ -185,6 +185,7 @@ namespace jit {
 
     jit::BlockBuilder work(ctx_, info);
     work.setup();
+    work.record_source_location(code);
 
     compile_builder(info, work);
     ctx_->set_root(NULL);
@@ -236,6 +237,7 @@ namespace jit {
 
     jit::MethodBuilder work(ctx_, info);
     work.setup();
+    work.record_source_location(code);
 
     compile_builder(info, work);
     ctx_->set_root(NULL);

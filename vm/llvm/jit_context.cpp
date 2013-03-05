@@ -5,6 +5,7 @@
 #include "llvm/jit_runtime.hpp"
 #include "llvm/jit_memory_manager.hpp"
 #include "llvm/passes.hpp"
+#include "llvm/jit_builder.hpp"
 
 #include "machine_code.hpp"
 
@@ -14,6 +15,15 @@
 #include <llvm/Target/TargetData.h>
 #endif
 #include <llvm/Transforms/Scalar.h>
+#include <llvm/ExecutionEngine/JITEventListener.h>
+
+extern "C" char bfd_init ();
+
+void aaa() {
+   bfd_init();
+}
+
+static llvm::JITEventListener *oprofile_listener = NULL;
 
 using namespace llvm;
 
@@ -22,6 +32,16 @@ namespace autogen_types {
 }
 
 namespace rubinius {
+
+  void IRBuilderInserterWithDebug::InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
+                    llvm::BasicBlock *BB, llvm::BasicBlock::iterator InsertPt) const {
+    if(builder_) {
+      //printf("%d aaaa\n", builder_->b().getCurrentDebugLocation().getLine());
+      I->setDebugLoc(builder_->b().getCurrentDebugLocation());
+    }
+    if (BB) BB->getInstList().insert(InsertPt, I);
+    I->setName(Name);
+  }
 
   Context::Context(LLVMState* ls)
     : ls_(ls)
@@ -76,7 +96,11 @@ namespace rubinius {
     factory.setTargetOptions(opts);
 #endif
 
+    if(!oprofile_listener) {
+      oprofile_listener = llvm::JITEventListener::createOProfileJITEventListener();
+    }
     engine_ = factory.create();
+    engine_->RegisterJITEventListener(oprofile_listener);
 
     builder_ = new llvm::PassManagerBuilder();
     builder_->OptLevel = 2;
@@ -166,7 +190,7 @@ namespace rubinius {
     return module_->getTypeByName(full_name);
   }
 
-  void Context::init_variables(llvm::IRBuilder<>& b) {
+  void Context::init_variables(IRBuilder& b) {
     counter_ = b.CreateAlloca(Int32Ty, 0, "counter_alloca");
     out_args_ = b.CreateAlloca(type("Arguments"), 0, "out_args");
   }
