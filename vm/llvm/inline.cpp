@@ -8,6 +8,9 @@
 
 #include "llvm/stack_args.hpp"
 
+#include "llvm/Analysis/DIBuilder.h"
+#include "llvm/Analysis/DebugInfo.h"
+
 #include "builtin/alias.hpp"
 #include "builtin/methodtable.hpp"
 #include "builtin/nativefunction.hpp"
@@ -572,6 +575,16 @@ remember:
 
     jit::InlineMethodBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
+    //NamedMDNode *NMD = ctx_->module()->getOrInsertNamedMetadata("llvm.dbg.cu");
+    //DICompileUnit cu(NMD->getOperand(0));
+    DICompileUnit cu(work.debug_builder().getCU());
+    std::cout << cu.isCompileUnit() << std::endl;
+    DIFile di_file = work.debug_builder().createFile("hehehehe.rb.rb", "/tmp/haahhah");
+    DIType di_type = work.debug_builder().createTemporaryType();
+    DISubprogram subprogram = work.debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0);
+    work.debug_builder().finalize();
+    work.b().SetCurrentDebugLocation(llvm::DebugLoc::get(130, 382, subprogram));
+    printf("set current\n");
 
     Value* blk = 0;
 
@@ -627,6 +640,8 @@ remember:
 
     jit::InlineBlockBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
+    work.b().SetCurrentDebugLocation(llvm::DebugLoc::get(0, 0, 0));
+    printf("set current\n");
 
     JITStackArgs args(count_);
     if(from_unboxed_array_) args.set_from_unboxed_array();

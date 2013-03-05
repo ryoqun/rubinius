@@ -11,6 +11,7 @@
 
 #include "instruments/tooling.hpp"
 #include <llvm/Analysis/CaptureTracking.h>
+#include <llvm/Support/Dwarf.h>
 
 namespace rubinius {
 namespace jit {
@@ -24,6 +25,7 @@ namespace jit {
     , body_(0)
     , info_(i)
     , runtime_data_(0)
+    , debug_builder_(*ctx->module())
   {
     llvm::Module* mod = ctx->module();
     cf_type = mod->getTypeByName("struct.rubinius::CallFrame");
@@ -34,6 +36,7 @@ namespace jit {
     check_global_interrupts_pos = b().CreateIntToPtr(
           llvm::ConstantInt::get(ctx_->IntPtrTy, (intptr_t)ctx_->llvm_state()->shared().check_global_interrupts_address()),
           llvm::PointerType::getUnqual(ctx_->Int8Ty), "cast_to_intptr");
+    debug_builder_.createCompileUnit(llvm::dwarf::DW_LANG_Python, "sample.rb", "/tmp", "runbininus", true, "-XXiinnt", 12343);
   }
 
   Value* Builder::get_field(Value* val, int which) {

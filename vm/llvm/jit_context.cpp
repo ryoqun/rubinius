@@ -24,17 +24,6 @@ void aaa() {
 
 static llvm::JITEventListener *oprofile_listener = NULL;
 
-//extern "C" {
-//extern int op_unload_native_code(void * hdl, uint64_t vma);
-//}
-
-extern "C" {
-extern int op_unload_native_code(void * hdl, uint64_t vma) {
-  printf("unload\n");
-  return 0;
-}
-}
-
 using namespace llvm;
 
 namespace autogen_types {
@@ -100,7 +89,6 @@ namespace rubinius {
       oprofile_listener = llvm::JITEventListener::createOProfileJITEventListener();
     }
     engine_ = factory.create();
-    printf("  listener: %p\n", oprofile_listener);
     engine_->RegisterJITEventListener(oprofile_listener);
 
     builder_ = new llvm::PassManagerBuilder();
@@ -158,11 +146,6 @@ namespace rubinius {
         0, "profiling_flag");
 
     metadata_id_ = ctx_.getMDKindID("rbx-classid");
-
-    //oprofile_handle_ = op_open_agent();
-    //if(!global_op_agent) {
-    //  global_op_agent = op_open_agent();
-    //}
   }
 
   Context::~Context() {
@@ -171,7 +154,6 @@ namespace rubinius {
     delete engine_;
     // Memory is cleaned up by the engine
     memory_ = NULL;
-    //op_close_agent(oprofile_handle_);
   }
 
   void* Context::native_function() {
@@ -183,10 +165,6 @@ namespace rubinius {
     // Nuke the Function from the module
     function_->replaceAllUsesWith(UndefValue::get(function_->getType()));
     function_->removeFromParent();
-
-    //int ret = op_write_native_code(global_op_agent, "jijijijijij", ((uint64_t)addr)-8, ((char *)addr) - 8, 100000);
-    //printf("%d, %p\n", ret, addr);
-
     return addr;
   }
 

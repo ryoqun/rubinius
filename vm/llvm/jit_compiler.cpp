@@ -64,7 +64,7 @@ namespace jit {
       if(indy) ctx_->llvm_state()->gc_independent();
       if(ctx_->llvm_state()->jit_dump_code() & cSimple) {
         llvm::outs() << "[[[ LLVM Simple IR ]]]\n";
-        llvm::outs() << *function_ << "\n";
+        llvm::outs() << *ctx_->module() << "\n";
       }
 
       std::vector<BasicBlock*> to_remove;

@@ -12,6 +12,7 @@
 #else
 #include <llvm/Support/IRBuilder.h>
 #endif
+#include <llvm/Analysis/DIBuilder.h>
 
 namespace rubinius {
   class InlinePolicy;
@@ -69,10 +70,13 @@ namespace jit {
   protected:
     llvm::Value* counter2_;
     jit::RuntimeData* runtime_data_;
+    llvm::DIBuilder debug_builder_;
 
   public:
 
     llvm::IRBuilder<>& b() { return builder_; }
+
+    llvm::DIBuilder& debug_builder() { return debug_builder_; }
 
     Builder(Context* ctx, JITMethodInfo& info);
 
