@@ -12,6 +12,9 @@
 #include "instruments/tooling.hpp"
 #include <llvm/Analysis/CaptureTracking.h>
 #include <llvm/Support/Dwarf.h>
+#include "llvm/Analysis/DIBuilder.h"
+#include "llvm/Analysis/DebugInfo.h"
+
 
 namespace rubinius {
 namespace jit {
@@ -37,6 +40,17 @@ namespace jit {
           llvm::ConstantInt::get(ctx_->IntPtrTy, (intptr_t)ctx_->llvm_state()->shared().check_global_interrupts_address()),
           llvm::PointerType::getUnqual(ctx_->Int8Ty), "cast_to_intptr");
     debug_builder_.createCompileUnit(llvm::dwarf::DW_LANG_Python, "sample.rb", "/tmp", "runbininus", true, "-XXiinnt", 12343);
+  }
+
+  void Builder::record_source_location(CompiledCode *code) {
+    DICompileUnit cu(debug_builder().getCU());
+    std::cout << cu.isCompileUnit() << std::endl;
+    DIFile di_file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
+    DIType di_type = debug_builder().createTemporaryType();
+    DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0);
+    debug_builder().finalize();
+    b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
+    printf("set current\n");
   }
 
   Value* Builder::get_field(Value* val, int which) {

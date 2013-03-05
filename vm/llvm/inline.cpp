@@ -575,16 +575,7 @@ remember:
 
     jit::InlineMethodBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
-    //NamedMDNode *NMD = ctx_->module()->getOrInsertNamedMetadata("llvm.dbg.cu");
-    //DICompileUnit cu(NMD->getOperand(0));
-    DICompileUnit cu(work.debug_builder().getCU());
-    std::cout << cu.isCompileUnit() << std::endl;
-    DIFile di_file = work.debug_builder().createFile(ops_.llvm_state()->symbol_debug_str(code->file()), "");
-    DIType di_type = work.debug_builder().createTemporaryType();
-    DISubprogram subprogram = work.debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0);
-    work.debug_builder().finalize();
-    work.b().SetCurrentDebugLocation(llvm::DebugLoc::get(130, 0, subprogram));
-    printf("set current\n");
+    work.record_source_location(code);
 
     Value* blk = 0;
 
@@ -640,8 +631,6 @@ remember:
 
     jit::InlineBlockBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
-    work.b().SetCurrentDebugLocation(llvm::DebugLoc::get(0, 0, 0));
-    printf("set current\n");
 
     JITStackArgs args(count_);
     if(from_unboxed_array_) args.set_from_unboxed_array();

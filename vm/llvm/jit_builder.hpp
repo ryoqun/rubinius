@@ -80,6 +80,8 @@ namespace jit {
 
     Builder(Context* ctx, JITMethodInfo& info);
 
+    void record_source_location(CompiledCode *);
+
     void pass_one(llvm::BasicBlock* body);
 
     void nil_stack(int size, llvm::Value* nil);
