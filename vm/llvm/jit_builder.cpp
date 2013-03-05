@@ -44,7 +44,6 @@ namespace jit {
 
   void Builder::record_source_location(CompiledCode *code) {
     DICompileUnit cu(debug_builder().getCU());
-    std::cout << cu.isCompileUnit() << std::endl;
     DIFile di_file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
     DIType di_type = debug_builder().createTemporaryType();
     DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0, 0, false, info_.function());
