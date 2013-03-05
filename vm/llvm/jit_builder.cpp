@@ -50,11 +50,11 @@ namespace jit {
     DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0, 0, false, info_.function());
     debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
-    printf("set current\n");
+    //printf("set current\n");
   }
 
   void Builder::record_source_line(opcode ip) {
-    printf("%ld => %d\n", ip, info_.method()->line(ip));
+    //printf("%ld => %d\n", ip, info_.method()->line(ip));
     int line = info_.method()->line(ip);
     DISubprogram subprogram(b().getCurrentDebugLocation().getScope(ctx_->llvm_context()));
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(line, 0, subprogram));
