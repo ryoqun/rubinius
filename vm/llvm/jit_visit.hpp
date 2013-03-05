@@ -37,7 +37,7 @@ namespace rubinius {
       func_ = function(name);
     }
 
-    Value* call(Value** start, int size, const char* inst_name, IRBuilder<>& b) {
+    Value* call(Value** start, int size, const char* inst_name, IRBuilder& b) {
       return b.CreateCall(func_, ArrayRef<Value*>(start, size), inst_name);
     }
   };
@@ -105,10 +105,10 @@ namespace rubinius {
 
     class Unsupported {};
 
-    JITVisit(Context* ctx, JITMethodInfo& info, BlockMap& bm,
+    JITVisit(jit::Builder* builder, JITMethodInfo& info, BlockMap& bm,
              llvm::BasicBlock* start)
-      : JITOperations(ctx, info, start)
-      , f(ctx)
+      : JITOperations(builder, info, start)
+      , f(builder->ctx_)
       , block_map_(bm)
       , allow_private_(false)
       , call_flags_(0)

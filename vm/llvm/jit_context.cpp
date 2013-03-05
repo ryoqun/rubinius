@@ -5,6 +5,7 @@
 #include "llvm/jit_runtime.hpp"
 #include "llvm/jit_memory_manager.hpp"
 #include "llvm/passes.hpp"
+#include "llvm/jit_builder.hpp"
 
 #include "machine_code.hpp"
 
@@ -31,6 +32,15 @@ namespace autogen_types {
 }
 
 namespace rubinius {
+
+  void IRBuilderInserterWithDebug::InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
+                    llvm::BasicBlock *BB, llvm::BasicBlock::iterator InsertPt) const {
+    if(builder_) {
+      printf("%d aaaa\n", builder_->b().getCurrentDebugLocation().getLine());
+    }
+    if (BB) BB->getInstList().insert(InsertPt, I);
+    I->setName(Name);
+  }
 
   Context::Context(LLVMState* ls)
     : ls_(ls)
@@ -179,7 +189,7 @@ namespace rubinius {
     return module_->getTypeByName(full_name);
   }
 
-  void Context::init_variables(llvm::IRBuilder<>& b) {
+  void Context::init_variables(IRBuilder& b) {
     counter_ = b.CreateAlloca(Int32Ty, 0, "counter_alloca");
     out_args_ = b.CreateAlloca(type("Arguments"), 0, "out_args");
   }

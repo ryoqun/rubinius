@@ -13,7 +13,24 @@ namespace rubinius {
   namespace jit {
     class RuntimeData;
     class RuntimeDataHolder;
+    class Builder;
   }
+
+
+class IRBuilderInserterWithDebug {
+public:
+  IRBuilderInserterWithDebug() : builder_(0) {}
+
+  IRBuilderInserterWithDebug(jit::Builder *builder)
+    : builder_(builder)
+  {}
+  jit::Builder *builder_;
+
+protected:
+  void InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
+                    llvm::BasicBlock *BB, llvm::BasicBlock::iterator InsertPt) const;
+};
+typedef llvm::IRBuilder<true, llvm::ConstantFolder, IRBuilderInserterWithDebug> IRBuilder;
 
   // Represents compiling into a single llvm::Function. Because of
   // inlining, this Context spans multiple MethodInfo's.
@@ -176,7 +193,7 @@ namespace rubinius {
       counter_ = counter;
     }
 
-    void init_variables(llvm::IRBuilder<>& b);
+    void init_variables(IRBuilder& b);
 
     void add_runtime_data(jit::RuntimeData* rd);
 
@@ -242,12 +259,12 @@ namespace rubinius {
     }
 
     llvm::CallInst* call(const char* name, llvm::Value** start, int size,
-                      const char* inst_name, llvm::IRBuilder<>& builder) {
+                      const char* inst_name, IRBuilder& builder) {
       return builder.CreateCall(function(name), llvm::ArrayRef<llvm::Value*>(start, size), inst_name);
     }
 
     llvm::CallInst* call(const char* name, std::vector<llvm::Value*> args,
-                      const char* inst_name, llvm::IRBuilder<>& builder) {
+                      const char* inst_name, IRBuilder& builder) {
       return builder.CreateCall(function(name), args, inst_name);
     }
 
