@@ -97,31 +97,12 @@ module Rubinius
     end
 
       def ==(other)
-        # Given the following code:
-        # class Foo
-        #   p = Proc.new { :cool }
-        #   define_method :a, p
-        #   define_method :a, p
-        # end
-        # foo = Foo.new
-        # foo.method(:a)
-        # foo.method(:b)
-        #
-        # The Method instances for :a and :b have different
-        # BlockEnvironments as define_method dups the BE
-        # when given a Proc.
-        #
-        # The BEs are identical otherwise, except for the
-        # name of the CompiledCode.
         return false unless other.kind_of? BlockEnvironment
 
-        other_code = other.compiled_code
-        code = compiled_code
-
-        scope     == other.scope      &&
-        top_scope == other.top_scope  &&
-        self.module  == other.module     &&
-        code                == other_code
+        @top_scope       == other.top_scope and
+          @scope         == other.scope and
+          @module        == other.module and
+          @compiled_code.equivalent_body?(other.compiled_code)
       end
 
     class AsMethod < Executable
@@ -142,24 +123,9 @@ module Rubinius
         # BlockEnvironments as define_method dups the BE
         # when given a Proc.
         #
-        # The BEs are identical otherwise, except for the
-        # name of the CompiledCode.
+        # The methods are equal if the BEs are equal.
 
-        other_code = other.block_env.compiled_code
-        code = block_env.compiled_code
-
-        block_env.scope     == other.block_env.scope      &&
-        block_env.top_scope == other.block_env.top_scope  &&
-        block_env.module    == other.block_env.module     &&
-        code.iseq           == other_code.iseq            &&
-        code.stack_size     == other_code.stack_size      &&
-        code.local_count    == other_code.local_count     &&
-        code.required_args  == other_code.required_args   &&
-        code.total_args     == other_code.total_args      &&
-        code.splat          == other_code.splat           &&
-        code.literals       == other_code.literals        &&
-        code.file           == other_code.file            &&
-        code.local_names    == other_code.local_names
+        @block_env == other.block_env
       end
     end
   end
