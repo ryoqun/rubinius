@@ -21,9 +21,6 @@ namespace rubinius {
   class JITMethodInfo;
 
 namespace jit {
-
-
-
   class RuntimeData;
 
   class Builder {

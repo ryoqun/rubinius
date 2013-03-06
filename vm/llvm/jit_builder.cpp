@@ -12,9 +12,8 @@
 #include "instruments/tooling.hpp"
 #include <llvm/Analysis/CaptureTracking.h>
 #include <llvm/Support/Dwarf.h>
-#include "llvm/Analysis/DIBuilder.h"
-#include "llvm/Analysis/DebugInfo.h"
-
+#include <llvm/Analysis/DIBuilder.h>
+#include <llvm/Analysis/DebugInfo.h>
 
 namespace rubinius {
 namespace jit {
