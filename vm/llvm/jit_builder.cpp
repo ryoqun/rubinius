@@ -44,8 +44,21 @@ namespace jit {
   void Builder::record_source_location(CompiledCode *code) {
     DICompileUnit cu(debug_builder().getCU());
     DIFile di_file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
-    DIType di_type = debug_builder().createTemporaryType();
-    DISubprogram subprogram = debug_builder().createFunction(cu, "abcdef", "abjdie", di_file, 123, di_type, false, false, 0, 0, false, info_.function());
+    DIType null_ptr = debug_builder().createNullPtrType("nulll");
+    Value* parameter_types[] = {
+      &*null_ptr,
+    };
+    DIType di_type = debug_builder().createSubroutineType(di_file, debug_builder().getOrCreateArray(parameter_types));
+    DISubprogram subprogram = debug_builder().createFunction(di_file, "aaaa", "abjdie", di_file, code->start_line(), di_type, false, false, 0, 0, false, info_.function());
+    std::cout << "cu: " << cu.Verify() << std::endl;
+    std::cout << "file: " << di_file.Verify() << std::endl;
+    std::cout << "type: " << di_type.Verify() << std::endl;
+    std::cout << "program: " << subprogram.getContext() << std::endl;
+    std::cout << "program context verify : " << subprogram.getContext().Verify() << std::endl;
+    std::cout << "program type verify : " << subprogram.getType() << std::endl;
+    std::cout << "type: " << di_type.Verify() << std::endl;
+    std::cout << "PROGRAM: " << subprogram.Verify() << std::endl;
+    printf("program: %p\n", &*subprogram);
     debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
   }
