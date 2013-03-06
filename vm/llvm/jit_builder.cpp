@@ -38,18 +38,16 @@ namespace jit {
     check_global_interrupts_pos = b().CreateIntToPtr(
           llvm::ConstantInt::get(ctx_->IntPtrTy, (intptr_t)ctx_->llvm_state()->shared().check_global_interrupts_address()),
           llvm::PointerType::getUnqual(ctx_->Int8Ty), "cast_to_intptr");
-    debug_builder_.createCompileUnit(llvm::dwarf::DW_LANG_Python, "sample.rb", "/tmp", "runbininus", true, "-XXiinnt", 12343);
   }
 
   void Builder::record_source_location(CompiledCode *code) {
-    DICompileUnit cu(debug_builder().getCU());
-    DIFile di_file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
-    DIType null_ptr = debug_builder().createNullPtrType("nulll");
+    DIFile file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
+    DIType dummy_type = debug_builder().createTemporaryType();
     Value* parameter_types[] = {
-      &*null_ptr,
+      &*dummy_type,
     };
-    DIType di_type = debug_builder().createSubroutineType(di_file, debug_builder().getOrCreateArray(parameter_types));
-    DISubprogram subprogram = debug_builder().createFunction(di_file, "aaaa", "abjdie", di_file, code->start_line(), di_type, false, false, 0, 0, false, info_.function());
+    DIType dummy_subroutine_type = debug_builder().createSubroutineType(file, debug_builder().getOrCreateArray(parameter_types));
+    DISubprogram subprogram = debug_builder().createFunction(file, "", "", file, code->start_line(), dummy_subroutine_type, false, false, 0, 0, false, info_.function());
     debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
   }
