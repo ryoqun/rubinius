@@ -50,15 +50,6 @@ namespace jit {
     };
     DIType di_type = debug_builder().createSubroutineType(di_file, debug_builder().getOrCreateArray(parameter_types));
     DISubprogram subprogram = debug_builder().createFunction(di_file, "aaaa", "abjdie", di_file, code->start_line(), di_type, false, false, 0, 0, false, info_.function());
-    std::cout << "cu: " << cu.Verify() << std::endl;
-    std::cout << "file: " << di_file.Verify() << std::endl;
-    std::cout << "type: " << di_type.Verify() << std::endl;
-    std::cout << "program: " << subprogram.getContext() << std::endl;
-    std::cout << "program context verify : " << subprogram.getContext().Verify() << std::endl;
-    std::cout << "program type verify : " << subprogram.getType() << std::endl;
-    std::cout << "type: " << di_type.Verify() << std::endl;
-    std::cout << "PROGRAM: " << subprogram.Verify() << std::endl;
-    printf("program: %p\n", &*subprogram);
     debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
   }
