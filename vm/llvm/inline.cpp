@@ -631,6 +631,7 @@ remember:
 
     jit::InlineBlockBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
+    work.record_source_location(ib->method());
 
     JITStackArgs args(count_);
     if(from_unboxed_array_) args.set_from_unboxed_array();

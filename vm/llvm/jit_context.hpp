@@ -17,18 +17,19 @@ namespace rubinius {
   }
 
 
-class IRBuilderInserterWithDebug {
-public:
-  IRBuilderInserterWithDebug(jit::Builder *builder)
-    : builder_(builder)
-  {}
-  jit::Builder *builder_;
+  class IRBuilderInserterWithDebug {
+  public:
+    IRBuilderInserterWithDebug(jit::Builder *builder) : builder_(builder) {}
 
-protected:
-  void InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
-                    llvm::BasicBlock *BB, llvm::BasicBlock::iterator InsertPt) const;
-};
-typedef llvm::IRBuilder<true, llvm::ConstantFolder, IRBuilderInserterWithDebug> IRBuilder;
+  protected:
+    void InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
+                      llvm::BasicBlock *BB, llvm::BasicBlock::iterator InsertPt) const;
+
+  private:
+    jit::Builder *builder_;
+  };
+
+  typedef llvm::IRBuilder<true, llvm::ConstantFolder, IRBuilderInserterWithDebug> IRBuilder;
 
   // Represents compiling into a single llvm::Function. Because of
   // inlining, this Context spans multiple MethodInfo's.
