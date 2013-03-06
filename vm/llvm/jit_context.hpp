@@ -19,8 +19,6 @@ namespace rubinius {
 
 class IRBuilderInserterWithDebug {
 public:
-  IRBuilderInserterWithDebug() : builder_(0) {}
-
   IRBuilderInserterWithDebug(jit::Builder *builder)
     : builder_(builder)
   {}
