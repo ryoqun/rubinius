@@ -29,10 +29,7 @@ namespace rubinius {
 
   void IRBuilderInserterWithDebug::InsertHelper(llvm::Instruction *I, const llvm::Twine &Name,
                     llvm::BasicBlock *BB, llvm::BasicBlock::iterator InsertPt) const {
-    if(builder_) {
-      //printf("%d aaaa\n", builder_->b().getCurrentDebugLocation().getLine());
-      I->setDebugLoc(builder_->b().getCurrentDebugLocation());
-    }
+    I->setDebugLoc(builder_->b().getCurrentDebugLocation());
     if (BB) BB->getInstList().insert(InsertPt, I);
     I->setName(Name);
   }
