@@ -17,12 +17,6 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/ExecutionEngine/JITEventListener.h>
 
-extern "C" char bfd_init ();
-
-void aaa() {
-   bfd_init();
-}
-
 static llvm::JITEventListener *oprofile_listener = NULL;
 
 using namespace llvm;
