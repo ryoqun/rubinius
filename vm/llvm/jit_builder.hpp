@@ -81,8 +81,8 @@ namespace jit {
 
     Builder(Context* ctx, JITMethodInfo& info);
 
-    void record_source_location(CompiledCode *);
-    void record_source_line(opcode ip);
+    void set_definition_location();
+    void set_current_location(opcode ip);
 
     void pass_one(llvm::BasicBlock* body);
 

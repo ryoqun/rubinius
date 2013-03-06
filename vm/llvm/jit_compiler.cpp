@@ -185,7 +185,6 @@ namespace jit {
 
     jit::BlockBuilder work(ctx_, info);
     work.setup();
-    work.record_source_location(code);
 
     compile_builder(info, work);
     ctx_->set_root(NULL);
@@ -237,7 +236,6 @@ namespace jit {
 
     jit::MethodBuilder work(ctx_, info);
     work.setup();
-    work.record_source_location(code);
 
     compile_builder(info, work);
     ctx_->set_root(NULL);

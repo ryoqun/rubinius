@@ -8,9 +8,6 @@
 
 #include "llvm/stack_args.hpp"
 
-#include "llvm/Analysis/DIBuilder.h"
-#include "llvm/Analysis/DebugInfo.h"
-
 #include "builtin/alias.hpp"
 #include "builtin/methodtable.hpp"
 #include "builtin/nativefunction.hpp"
@@ -575,7 +572,6 @@ remember:
 
     jit::InlineMethodBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
-    work.record_source_location(code);
 
     Value* blk = 0;
 
@@ -631,7 +627,6 @@ remember:
 
     jit::InlineBlockBuilder work(ops_.context(), info, rd);
     work.valid_flag = ops_.valid_flag();
-    work.record_source_location(ib->method());
 
     JITStackArgs args(count_);
     if(from_unboxed_array_) args.set_from_unboxed_array();

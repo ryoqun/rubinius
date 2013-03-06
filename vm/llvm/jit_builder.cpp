@@ -37,20 +37,29 @@ namespace jit {
     check_global_interrupts_pos = b().CreateIntToPtr(
           llvm::ConstantInt::get(ctx_->IntPtrTy, (intptr_t)ctx_->llvm_state()->shared().check_global_interrupts_address()),
           llvm::PointerType::getUnqual(ctx_->Int8Ty), "cast_to_intptr");
+    set_definition_location();
   }
 
-  void Builder::record_source_location(CompiledCode *code) {
-    DIFile file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
+  void Builder::set_definition_location() {
+    DIFile file = debug_builder().createFile(
+        ctx_->llvm_state()->symbol_debug_str(info_.method()->file()), "");
+
     DIType dummy_return_type = debug_builder().createTemporaryType();
     Value* dummy_signature[] = {
       &*dummy_return_type,
     };
-    DIType dummy_subroutine_type = debug_builder().createSubroutineType(file, debug_builder().getOrCreateArray(dummy_signature));
-    DISubprogram subprogram = debug_builder().createFunction(file, "", "", file, code->start_line(), dummy_subroutine_type, false, false, 0, 0, false, info_.function());
-    b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
+    DIType dummy_subroutine_type = debug_builder().createSubroutineType(file,
+        debug_builder().getOrCreateArray(dummy_signature));
+
+    DISubprogram subprogram = debug_builder().createFunction(file, "", "",
+        file, info_.method()->start_line(), dummy_subroutine_type, false, false, 0, 0,
+        false, info_.function());
+
+    b().SetCurrentDebugLocation(llvm::DebugLoc::get(info_.method()->start_line(), 0,
+                                subprogram));
   }
 
-  void Builder::record_source_line(opcode ip) {
+  void Builder::set_current_location(opcode ip) {
     int line = info_.method()->line(ip);
     DISubprogram subprogram(b().getCurrentDebugLocation().getScope(ctx_->llvm_context()));
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(line, 0, subprogram));
@@ -523,7 +532,7 @@ namespace jit {
     {}
 
     void call(OpcodeIterator& iter) {
-      builder_.record_source_line(iter.ip());
+      builder_.set_current_location(iter.ip());
       v_.dispatch(iter.ip());
 
       if(v_.b().GetInsertBlock()->getTerminator() == NULL) {
