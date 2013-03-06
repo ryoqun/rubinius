@@ -49,7 +49,7 @@ Daedalus.blueprint do |i|
     gcc.cflags << "-D#{flag}"
   end
 
-  gcc.ldflags << "-lstdc++" << "-lm" << "-lbfd"
+  gcc.ldflags << "-lstdc++" << "-lm"
 
   Rubinius::BUILD_CONFIG[:lib_dirs].each do |path|
     gcc.ldflags << "-L#{path}" if File.exists? path
@@ -212,7 +212,6 @@ Daedalus.blueprint do |i|
 
     ldflags = `#{conf} --ldflags`.strip.split(/\s+/)
     objects = `#{conf} --libfiles`.strip.split(/\s+/)
-    objects << "/usr/lib/libbfd.a"
 
     if Rubinius::BUILD_CONFIG[:windows]
       ldflags = ldflags.sub(%r[-L/([a-zA-Z])/], '-L\1:/')
