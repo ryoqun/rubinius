@@ -15,9 +15,6 @@
 #include <llvm/Target/TargetData.h>
 #endif
 #include <llvm/Transforms/Scalar.h>
-#include <llvm/ExecutionEngine/JITEventListener.h>
-
-static llvm::JITEventListener *oprofile_listener = NULL;
 
 using namespace llvm;
 
@@ -87,11 +84,10 @@ namespace rubinius {
     factory.setTargetOptions(opts);
 #endif
 
-    if(!oprofile_listener) {
-      oprofile_listener = llvm::JITEventListener::createOProfileJITEventListener();
-    }
     engine_ = factory.create();
-    engine_->RegisterJITEventListener(oprofile_listener);
+    if(ls_->jit_event_listener()) {
+      engine_->RegisterJITEventListener(ls_->jit_event_listener());
+    }
 
     builder_ = new llvm::PassManagerBuilder();
     builder_->OptLevel = 2;

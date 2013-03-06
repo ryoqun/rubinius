@@ -55,6 +55,7 @@ namespace rubinius {
 
   class LLVMState : public AuxiliaryThread, public ManagedThread {
     jit::RubiniusJITMemoryManager* memory_;
+    llvm::JITEventListener* jit_event_listener_;
 
     Configuration& config_;
 
@@ -126,6 +127,7 @@ namespace rubinius {
     }
 
     jit::RubiniusJITMemoryManager* memory() { return memory_; }
+    llvm::JITEventListener* jit_event_listener() { return jit_event_listener_; }
 
     int jitted_methods() {
       return jitted_methods_;

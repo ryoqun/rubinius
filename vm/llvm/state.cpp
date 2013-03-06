@@ -42,6 +42,7 @@
 #include <llvm/Support/TargetSelect.h>
 
 #include <llvm/Target/TargetOptions.h>
+#include <llvm/ExecutionEngine/JITEventListener.h>
 
 #include "windows_compat.h"
 
@@ -465,6 +466,7 @@ halt:
     llvm::InitializeNativeTarget();
 
     memory_ = new jit::RubiniusJITMemoryManager();
+    jit_event_listener_ = llvm::JITEventListener::createOProfileJITEventListener();
 
     fixnum_class_id_   = G(fixnum_class)->class_id();
     integer_class_id_  = G(integer)->class_id();
@@ -492,6 +494,7 @@ halt:
     shared_.om->del_aux_barrier(&write_barrier_);
     delete background_thread_;
     delete memory_;
+    delete jit_event_listener_;
   }
 
   bool LLVMState::debug_p() {
