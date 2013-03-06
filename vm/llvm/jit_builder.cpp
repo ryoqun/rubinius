@@ -42,11 +42,11 @@ namespace jit {
 
   void Builder::record_source_location(CompiledCode *code) {
     DIFile file = debug_builder().createFile(ctx_->llvm_state()->symbol_debug_str(code->file()), "");
-    DIType dummy_type = debug_builder().createTemporaryType();
-    Value* parameter_types[] = {
-      &*dummy_type,
+    DIType dummy_return_type = debug_builder().createTemporaryType();
+    Value* dummy_signature[] = {
+      &*dummy_return_type,
     };
-    DIType dummy_subroutine_type = debug_builder().createSubroutineType(file, debug_builder().getOrCreateArray(parameter_types));
+    DIType dummy_subroutine_type = debug_builder().createSubroutineType(file, debug_builder().getOrCreateArray(dummy_signature));
     DISubprogram subprogram = debug_builder().createFunction(file, "", "", file, code->start_line(), dummy_subroutine_type, false, false, 0, 0, false, info_.function());
     debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));

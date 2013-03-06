@@ -72,11 +72,7 @@ namespace rubinius {
   }
 
   int CompiledCode::start_line(STATE) {
-    if(lines_->nil_p()) return -1;
-    if(lines_->num_fields() < 2) return -1;
-    // This is fixed as one because entry 0 is always ip = 0 and
-    // 1 is the first line
-    return as<Fixnum>(lines_->at(state, 1))->to_native();
+    return start_line();
   }
 
   int CompiledCode::start_line() {
@@ -85,6 +81,10 @@ namespace rubinius {
     // This is fixed as one because entry 0 is always ip = 0 and
     // 1 is the first line
     return as<Fixnum>(lines_->at(1))->to_native();
+  }
+
+  int CompiledCode::line(STATE, int ip) {
+    return line(ip);
   }
 
   int CompiledCode::line(int ip) {
@@ -101,10 +101,6 @@ namespace rubinius {
     }
 
     return as<Fixnum>(lines_->at(fin+1))->to_native();
-  }
-
-  int CompiledCode::line(STATE, int ip) {
-    return line(ip);
   }
 
   MachineCode* CompiledCode::internalize(STATE, GCToken gct,
