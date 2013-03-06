@@ -11,7 +11,6 @@
 
 #include "instruments/tooling.hpp"
 #include <llvm/Analysis/CaptureTracking.h>
-#include <llvm/Support/Dwarf.h>
 #include <llvm/Analysis/DIBuilder.h>
 #include <llvm/Analysis/DebugInfo.h>
 
@@ -48,7 +47,6 @@ namespace jit {
     };
     DIType dummy_subroutine_type = debug_builder().createSubroutineType(file, debug_builder().getOrCreateArray(dummy_signature));
     DISubprogram subprogram = debug_builder().createFunction(file, "", "", file, code->start_line(), dummy_subroutine_type, false, false, 0, 0, false, info_.function());
-    debug_builder().finalize();
     b().SetCurrentDebugLocation(llvm::DebugLoc::get(code->start_line(), 0, subprogram));
   }
 
