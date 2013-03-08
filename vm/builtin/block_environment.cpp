@@ -308,6 +308,7 @@ namespace rubinius {
     frame->self_ = invocation.self;
     frame->module_ = mod;
     frame->block_ = env->top_scope_->block();
+    frame->last_match_ = cNil;
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {

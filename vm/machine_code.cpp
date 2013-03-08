@@ -602,6 +602,7 @@ namespace rubinius {
       frame->self_ = args.recv();
       frame->module_ = mod;
       frame->block_ = args.block(); 
+      frame->last_match_ = cNil;
 
       GCTokenImpl gct;
 
@@ -690,6 +691,7 @@ namespace rubinius {
     frame->self_ = G(main);
     frame->module_ = G(object); 
     frame->block_ = cNil; 
+    frame->last_match_ = cNil;
 
     // Do NOT check if we should JIT this. We NEVER want to jit a script.
 

@@ -49,6 +49,7 @@ namespace rubinius {
     Object* self_;
     Module* module_;
     Object* block_;
+    Object* last_match_;
 
     int flags;
     int ip_;
