@@ -108,7 +108,7 @@ namespace jit {
         get_field(block_inv, offset::BlockInvocation::self),
         "invocation.self");
 
-    b().CreateStore(self, get_field(vars, offset::StackVariables::self));
+    b().CreateStore(self, get_field(call_frame, offset::CallFrame::self));
 
     Value* inv_mod = b().CreateLoad(
         get_field(block_inv, offset::BlockInvocation::module),

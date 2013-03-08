@@ -288,7 +288,7 @@ namespace rubinius {
 
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
-    scope->initialize(invocation.self, env->top_scope_->block(),
+    scope->initialize(env->top_scope_->block(),
                       mod, mcode->number_of_locals);
     scope->set_parent(env->scope_);
 
@@ -307,6 +307,7 @@ namespace rubinius {
     frame->flags = invocation.flags | CallFrame::cCustomConstantScope
                                     | CallFrame::cMultipleScopes
                                     | CallFrame::cBlock;
+    frame->self_ = invocation.self;
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {

@@ -139,7 +139,7 @@ namespace jit {
     Value* heap_pos = get_field(vars, offset::StackVariables::on_heap);
     b().CreateStore(heap_null, heap_pos);
 
-    b().CreateStore(self, get_field(vars, offset::StackVariables::self));
+    b().CreateStore(self, get_field(call_frame, offset::CallFrame::self));
     b().CreateStore(mod, get_field(vars, offset::StackVariables::module));
 
     b().CreateStore(blk, get_field(vars, offset::StackVariables::block));

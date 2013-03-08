@@ -574,7 +574,7 @@ namespace rubinius {
       // look in the wrong place.
       //
       // Thus, we have to cache the value in the StackVariables.
-      scope->initialize(args.recv(), args.block(), mod, mcode->number_of_locals);
+      scope->initialize(args.block(), mod, mcode->number_of_locals);
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
 
@@ -599,6 +599,7 @@ namespace rubinius {
       frame->top_scope_ = 0;
       frame->scope = scope;
       frame->arguments = &args;
+      frame->self_ = args.recv();
 
       GCTokenImpl gct;
 
@@ -667,7 +668,7 @@ namespace rubinius {
     // look in the wrong place.
     //
     // Thus, we have to cache the value in the StackVariables.
-    scope->initialize(G(main), cNil, G(object), mcode->number_of_locals);
+    scope->initialize(cNil, G(object), mcode->number_of_locals);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
 
@@ -684,6 +685,7 @@ namespace rubinius {
     frame->top_scope_ = 0;
     frame->scope = scope;
     frame->arguments = &args;
+    frame->self_ = G(main);
 
     // Do NOT check if we should JIT this. We NEVER want to jit a script.
 

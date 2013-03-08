@@ -46,6 +46,8 @@ namespace rubinius {
     void* dispatch_data;
     CompiledCode* compiled_code;
 
+    Object* self_;
+
     int flags;
     int ip_;
 
@@ -162,7 +164,7 @@ namespace rubinius {
     }
 
     Object* self() {
-      return scope->self();
+      return self_;
     }
 
     bool multiple_scopes_p() {

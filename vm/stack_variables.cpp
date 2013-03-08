@@ -20,7 +20,7 @@ namespace rubinius {
       scope->parent(state, nil<VariableScope>());
     }
 
-    scope->self(state, self_);
+    scope->self(state, call_frame->self_);
     scope->block(state, block_);
     scope->module(state, module_);
     scope->method(state, call_frame->compiled_code);

@@ -309,6 +309,7 @@ StructTy_struct_rubinius__CallFrame_fields.push_back(PointerTy_20);
 PointerType* PointerTy_24 = PointerType::get(StructTy_struct_rubinius__CompiledCode, 0);
 
 StructTy_struct_rubinius__CallFrame_fields.push_back(PointerTy_24);
+StructTy_struct_rubinius__CallFrame_fields.push_back(PointerTy_9);
 StructTy_struct_rubinius__CallFrame_fields.push_back(IntegerType::get(mod->getContext(), 32));
 StructTy_struct_rubinius__CallFrame_fields.push_back(IntegerType::get(mod->getContext(), 32));
 StructTy_struct_rubinius__CallFrame_fields.push_back(PointerTy_20);
@@ -344,7 +345,6 @@ StructTy_struct_rubinius__StackVariables = StructType::create(mod->getContext(),
 std::vector<Type*>StructTy_struct_rubinius__StackVariables_fields;
 StructTy_struct_rubinius__StackVariables_fields.push_back(PointerTy_29);
 StructTy_struct_rubinius__StackVariables_fields.push_back(PointerTy_29);
-StructTy_struct_rubinius__StackVariables_fields.push_back(PointerTy_9);
 StructTy_struct_rubinius__StackVariables_fields.push_back(PointerTy_9);
 StructTy_struct_rubinius__StackVariables_fields.push_back(PointerTy_13);
 StructTy_struct_rubinius__StackVariables_fields.push_back(PointerTy_9);
