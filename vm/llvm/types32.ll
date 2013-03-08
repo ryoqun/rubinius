@@ -92,7 +92,6 @@ declare void @output5(%"struct.rubinius::InlineCacheHit"*)
 %"struct.rubinius::StackVariables" = type {
   %"struct.rubinius::VariableScope"*, ; on_heap
   %"struct.rubinius::VariableScope"*, ; parent
-         %"struct.rubinius::Object"*, ; block
          %"struct.rubinius::Object"*, ; last_match
    [0 x %"struct.rubinius::Object"*]  ; locals
 }
@@ -171,6 +170,7 @@ declare void @output14(%"struct.rubinius::BlockInvocation"*)
   %"struct.rubinius::CompiledCode"*,   ; compiled_code
           %"struct.rubinius::Object"*, ; self
           %"struct.rubinius::Module"*, ; module
+          %"struct.rubinius::Object"*, ; block
                                   i32, ; flags
                                   i32, ; ip
                                   i8*, ; jit_data
