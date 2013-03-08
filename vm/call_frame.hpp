@@ -47,6 +47,7 @@ namespace rubinius {
     CompiledCode* compiled_code;
 
     Object* self_;
+    Module* module_;
 
     int flags;
     int ip_;
@@ -212,7 +213,7 @@ namespace rubinius {
     void set_last_match(STATE, Object* obj);
 
     Module* module() {
-      return scope->module();
+      return module_;
     }
 
     void set_ip(int new_ip) {

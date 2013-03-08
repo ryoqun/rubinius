@@ -133,7 +133,6 @@ namespace rubinius {
       StackVariables* scope)
   {
     scope->block_ = mark_object(scope->block());
-    scope->module_ = (Module*)mark_object(scope->module());
 
     int locals = call_frame->compiled_code->machine_code()->number_of_locals;
     for(int i = 0; i < locals; i++) {
@@ -243,6 +242,7 @@ namespace rubinius {
 #endif
 
       call_frame->self_ = mark_object(call_frame->self_);
+      call_frame->module_ = (Module*)mark_object(call_frame->module_);
       saw_variable_scope(call_frame, displace(call_frame->scope, offset));
 
       call_frame = call_frame->previous;

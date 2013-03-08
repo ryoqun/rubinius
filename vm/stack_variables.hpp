@@ -11,16 +11,14 @@ namespace rubinius {
     VariableScope* on_heap_;
     VariableScope* parent_;
     Object* block_;
-    Module* module_;
     Object* last_match_;
     Object* locals_[0];
 
   public:
-    void initialize(Object* block, Module* module, int locals) {
+    void initialize(Object* block, int locals) {
       on_heap_ = 0;
       parent_ = 0;
       block_ = block;
-      module_ = module;
       last_match_ = cNil;
 
       for(int i = 0; i < locals; i++) {
@@ -42,10 +40,6 @@ namespace rubinius {
 
     Object* block() {
       return block_;
-    }
-
-    Module* module() {
-      return module_;
     }
 
     bool made_alias_p() {

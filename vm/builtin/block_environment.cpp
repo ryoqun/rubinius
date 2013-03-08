@@ -287,8 +287,7 @@ namespace rubinius {
 
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
-    scope->initialize(env->top_scope_->block(),
-                      mod, mcode->number_of_locals);
+    scope->initialize(env->top_scope_->block(), mcode->number_of_locals);
     scope->set_parent(env->scope_);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
@@ -307,6 +306,7 @@ namespace rubinius {
                                     | CallFrame::cMultipleScopes
                                     | CallFrame::cBlock;
     frame->self_ = invocation.self;
+    frame->module_ = mod;
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {
@@ -317,7 +317,7 @@ namespace rubinius {
 
 #ifdef RBX_PROFILER
     if(unlikely(state->vm()->tooling())) {
-      Module* mod = scope->module();
+      Module* mod = frame->module();
       if(SingletonClass* sc = try_as<SingletonClass>(mod)) {
         if(Module* ma = try_as<Module>(sc->attached_instance())) {
           mod = ma;
