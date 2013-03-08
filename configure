@@ -66,11 +66,11 @@ class Configure
     @llvm_prebuilt_name     = nil
     @llvm_system_name       = get_system_name
 
-    @llvm_version           = "3.0"
-    @llvm_api_version       = 300
-    @llvm_source            = "llvm-3.0.tgz"
-    @llvm_source_dir        = "llvm-3.0.src"
-    @llvm_source_url        = "http://llvm.org/releases/3.0/llvm-3.0.tar.gz"
+    @llvm_version           = "3.2"
+    @llvm_api_version       = 302
+    @llvm_source            = "llvm-3.2.tgz"
+    @llvm_source_dir        = "llvm-3.2.src"
+    @llvm_source_url        = "http://llvm.org/releases/3.2/llvm-3.2.src.tar.gz"
     @llvm_asset_path        = "http://asset.rubini.us/prebuilt"
     @llvm_source_build      = false
     @llvm_generic_prebuilt  = nil
@@ -254,6 +254,10 @@ class Configure
       @perl = name
     end
 
+    o.on "--dev", "Build for development (optimization is disabled)" do
+      @build_mode = :dev
+    end
+
     o.doc "\n Release Settings"
 
     o.on "--release", "NAME", "Set version to X.Y.Z.NAME" do |name|
@@ -301,6 +305,10 @@ class Configure
 
     o.on "--enable-llvm", "Enable llvm (default)" do
       @use_llvm = true
+    end
+
+    o.on "--llvm-force-build", "Force build LLVM" do
+      @llvm_force_build = true
     end
 
     o.on "--skip-system", "Don't consider a system LLVM installation" do
@@ -741,7 +749,7 @@ Unsupported language version requested: #{ver}. Options are #{@supported_version
     end
 
     return if !@llvm_skip_system && setup_config
-    return if !@llvm_skip_prebuilt && setup_prebuilt
+    return if !@llvm_skip_prebuilt && !@llvm_force_build && setup_prebuilt
     return if setup_source
 
     @log.write "WARNING: Unable to configure for LLVM, disabling support."
@@ -1334,6 +1342,10 @@ int main() { return tgetnum(""); }
     if has_header("valgrind/valgrind.h")
       @defines << "HAVE_VALGRIND_H"
     end
+
+    if has_header("opagent.h")
+      @defines << "HAVE_OPAGENT_H"
+    end
   end
 
   def process
@@ -1501,6 +1513,7 @@ module Rubinius
     :build_ruby     => "#{build_ruby}",
     :build_rake     => "#{@rake}",
     :build_perl     => "#{@perl}",
+    :build_mode     => :#{@build_mode},
     :llvm           => :#{@llvm},
     :llvm_configure => "#{@llvm_configure}",
     :llvm_version   => "#{@llvm_version}",
@@ -1746,7 +1759,7 @@ end
 
     print_debug if @verbose
 
-    if @llvm_source_build
+    if @llvm_source_build and !@llvm_force_build
       files = prebuilt_files.map { |f| File.basename f, ".tar.bz2" }.join("\n  ")
 
       @log.write <<-EOM

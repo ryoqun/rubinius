@@ -24,7 +24,7 @@ $YACC     = env "YACC", "bison"
 $CFLAGS   = env "CFLAGS", Rubinius::BUILD_CONFIG[:user_cflags] || ""
 $CXXFLAGS = env "CXXFLAGS", Rubinius::BUILD_CONFIG[:user_cxxflags] || ""
 
-$DEBUGFLAGS = "-O0" if ENV["DEV"]
+$DEBUGFLAGS = "-O0" if ENV["DEV"] or Rubinius::BUILD_CONFIG[:build_mode] == :dev
 
 $ELIBSDIR = env "ELIBSDIR", File.expand_path("../../vendor", __FILE__)
 $LIBS     = env "LIBS"
@@ -133,7 +133,7 @@ def add_rbx_capi
   add_cxxflag Rubinius::BUILD_CONFIG[:system_cxxflags]
   add_cflag "-g"
   add_cxxflag "-fno-rtti"
-  if ENV['DEV']
+  if ENV['DEV'] or Rubinius::BUILD_CONFIG[:build_mode] == :dev
     add_cflag "-O0"
   else
     add_cflag "-O2"

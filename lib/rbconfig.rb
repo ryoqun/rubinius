@@ -121,7 +121,7 @@ module RbConfig
   # there
   CONFIG["CFLAGS"]             = "-g -fPIC"
   CONFIG["LDFLAGS"]            = ""
-  if ENV['DEV']
+  if ENV['DEV'] or Rubinius::BUILD_CONFIG[:build_mode] == :dev
     CONFIG["CFLAGS"] << " -O0 "
   else
     CONFIG["CFLAGS"] << " -O2"

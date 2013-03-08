@@ -63,7 +63,7 @@ when ["build:build"]
     puts "Building bootstrap Melbourne for Rubinius"
     add_cflag "-g"
     add_cxxflag "-g"
-    if ENV['DEV']
+    if ENV['DEV'] or Rubinius::BUILD_CONFIG[:build_mode] == :dev
       add_cflag "-O0"
       add_cxxflag "-O0"
     else
