@@ -10,14 +10,12 @@ namespace rubinius {
   public: // Treat these like private!
     VariableScope* on_heap_;
     VariableScope* parent_;
-    Object* last_match_;
     Object* locals_[0];
 
   public:
     void initialize(int locals) {
       on_heap_ = 0;
       parent_ = 0;
-      last_match_ = cNil;
 
       for(int i = 0; i < locals; i++) {
         locals_[i] = cNil;
@@ -47,10 +45,6 @@ namespace rubinius {
     void set_local(int which, Object* val) {
       locals_[which] = val;
     }
-
-    void set_last_match(STATE, Object* obj);
-
-    Object* last_match(STATE);
 
     VariableScope* create_heap_alias(STATE, CallFrame* call_frame, bool full=true);
     void flush_to_heap(STATE);

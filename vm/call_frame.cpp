@@ -26,7 +26,25 @@ namespace rubinius {
     }
 
     if(!use) return cNil;
-    return use->scope->last_match(state);
+    // For closures, get back to the top of the chain and get that
+    // last_match.
+    if(use->scope->parent_) {
+      VariableScope* scope = use->scope->parent_;
+      while(CBOOL(scope->parent())) {
+        scope = scope->parent();
+      }
+
+      return scope->last_match();
+    }
+
+    // Otherwise, if this has a heap alias, get the last_match from there.
+    if(use->scope->on_heap_) {
+      return use->scope->on_heap_->last_match();
+
+    // Lastly, use the local one. This is where a last_match begins life.
+    } else {
+      return last_match_;
+    }
   }
 
   void CallFrame::set_last_match(STATE, Object* obj) {
@@ -41,7 +59,28 @@ namespace rubinius {
     }
 
     if(!use) return;
-    use->scope->set_last_match(state, obj);
+    // For closures, get back to the top of the chain and set the
+    // last_match there. This means that the last_match is shared
+    // amongst all closures in a method, but thats how it's implemented
+    // in ruby.
+    if(use->scope->parent_) {
+      VariableScope* scope = use->scope->parent_;
+      while(CBOOL(scope->parent())) {
+        scope = scope->parent();
+      }
+
+      return scope->last_match(state, obj);
+    }
+
+    // Use a heap alias if there is one.
+    if(use->scope->on_heap_) {
+      use->scope->on_heap_->last_match(state, obj);
+
+    // Otherwise, use the local one. This is where a last_match usually
+    // first appears.
+    } else {
+      last_match_ = obj;
+    }
   }
 
   VariableScope* CallFrame::promote_scope_full(STATE) {

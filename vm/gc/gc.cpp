@@ -140,10 +140,6 @@ namespace rubinius {
       }
     }
 
-    if(scope->last_match_ && scope->last_match_->reference_p()) {
-      scope->last_match_ = mark_object(scope->last_match_);
-    }
-
     VariableScope* parent = scope->parent();
     if(parent) {
       scope->parent_ = (VariableScope*)mark_object(parent);
@@ -242,6 +238,11 @@ namespace rubinius {
       call_frame->self_ = mark_object(call_frame->self_);
       call_frame->module_ = (Module*)mark_object(call_frame->module_);
       call_frame->block_ = mark_object(call_frame->block_);
+
+      if(call_frame->last_match_ && call_frame->last_match_->reference_p()) {
+        call_frame->last_match_ = mark_object(call_frame->last_match_);
+      }
+
       saw_variable_scope(call_frame, displace(call_frame->scope, offset));
 
       call_frame = call_frame->previous;
