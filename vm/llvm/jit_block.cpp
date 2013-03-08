@@ -140,7 +140,7 @@ namespace jit {
         "env.scope");
 
     b().CreateStore(be_scope, get_field(vars, offset::StackVariables::parent));
-    b().CreateStore(constant(cNil, obj_type), get_field(vars, offset::StackVariables::last_match));
+    b().CreateStore(constant(cNil, obj_type), get_field(call_frame, offset::CallFrame::last_match));
 
     nil_locals();
   }
