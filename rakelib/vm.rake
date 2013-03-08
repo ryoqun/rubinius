@@ -148,33 +148,14 @@ namespace :build do
       unless File.file?("vendor/llvm/Release/bin/llvm-config")
         have_opagent = Rubinius::BUILD_CONFIG[:defines].include?("HAVE_OPAGENT_H")
 
-        if have_opagent
-          # We need to pass OPROFILE header pass explictly....
-          # some magic goes
-          headers = `echo '#include <opagent.h>' | #{Rubinius::BUILD_CONFIG[:cc]} #{Rubinius::BUILD_CONFIG[:user_cflags]} -M -xc -`
-          oprofile_prefix = File.dirname(File.dirname(headers.split.map(&:strip).grep(/opagent\.h/).first))
-        end
-
         Dir.chdir "vendor/llvm" do
           host = Rubinius::BUILD_CONFIG[:host]
           llvm_config_flags = "--build=#{host} --host=#{host} " +
                               "--enable-optimized --disable-assertions " +
-                              "#{"--with-oprofile=#{oprofile_prefix}" if have_opagent} " +
+                              "#{"--with-oprofile" if have_opagent} " +
                               " --enable-targets=host,cpp"
-
-          dev_cflags = "-O0 " if ENV["DEV"] or Rubinius::BUILD_CONFIG[:build_mode] == :dev
-
-          if Rubinius::BUILD_CONFIG[:user_cflags]
-            cflags = "CFLAGS='#{dev_cflags}#{Rubinius::BUILD_CONFIG[:user_cflags]}' "
-          end
-          if Rubinius::BUILD_CONFIG[:user_ldflags]
-            ldflags = "LDFLAGS='#{Rubinius::BUILD_CONFIG[:user_ldflags]}' "
-          end
-
-          #sh %[sh -c "#{expand("./configure")} #{llvm_config_flags}"]
-          #sh make
-          sh %[sh -c "env #{cflags}#{ldflags}#{expand("./configure")} #{llvm_config_flags}"]
-          sh %[sh -c "env #{cflags}#{ldflags}make #{cflags}#{ldflags}"]
+          sh %[sh -c "#{expand("./configure")} #{llvm_config_flags}"]
+          sh make
         end
       end
     end
