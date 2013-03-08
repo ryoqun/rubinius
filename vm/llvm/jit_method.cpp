@@ -514,7 +514,7 @@ namespace jit {
 
     Value* blk = b().CreateLoad(get_field(args, offset::Arguments::block),
         "args.block");
-    b().CreateStore(blk, get_field(vars, offset::StackVariables::block));
+    b().CreateStore(blk, get_field(call_frame, offset::CallFrame::block));
 
     b().CreateStore(Constant::getNullValue(ctx_->ptr_type("VariableScope")),
         get_field(vars, offset::StackVariables::parent));
