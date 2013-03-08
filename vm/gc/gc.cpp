@@ -132,7 +132,6 @@ namespace rubinius {
   void GarbageCollector::saw_variable_scope(CallFrame* call_frame,
       StackVariables* scope)
   {
-    scope->self_ = mark_object(scope->self());
     scope->block_ = mark_object(scope->block());
     scope->module_ = (Module*)mark_object(scope->module());
 
@@ -243,6 +242,7 @@ namespace rubinius {
       }
 #endif
 
+      call_frame->self_ = mark_object(call_frame->self_);
       saw_variable_scope(call_frame, displace(call_frame->scope, offset));
 
       call_frame = call_frame->previous;

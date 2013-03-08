@@ -1240,13 +1240,13 @@ namespace rubinius {
       b().CreateStore(val, pos);
     }
 
-    Instruction* get_self(Value* vars = 0) {
-      if(!vars) vars = vars_;
+    Instruction* get_self(Value* call_frame = 0) {
+      if(!call_frame) call_frame = call_frame_;
 
-      assert(vars);
+      assert(call_frame);
 
       return b().CreateLoad(
-          b().CreateConstGEP2_32(vars, 0, offset::StackVariables::self),
+          b().CreateConstGEP2_32(call_frame, 0, offset::CallFrame::self),
           "self");
     }
 
@@ -2686,7 +2686,7 @@ use_send:
 
         inl.set_creator(creator);
 
-        inl.inline_block(ib, get_self(creator->variables()));
+        inl.inline_block(ib, get_self(creator->call_frame()));
 
         stack_remove(count);
         if(inl.check_for_exception()) {
@@ -2948,10 +2948,10 @@ use_send:
 
       Value* idx[] = {
         cint(0),
-        cint(offset::StackVariables::self)
+        cint(offset::CallFrame::self)
       };
 
-      Value* pos = b().CreateGEP(vars_, idx, "self_pos");
+      Value* pos = b().CreateGEP(call_frame_, idx, "self_pos");
 
       Value* self = b().CreateLoad(pos, "self");
 

@@ -508,7 +508,7 @@ namespace jit {
 
     Value* self = b().CreateLoad(get_field(args, offset::Arguments::recv),
         "args.recv");
-    b().CreateStore(self, get_field(vars, offset::StackVariables::self));
+    b().CreateStore(self, get_field(call_frame, offset::CallFrame::self));
     Value* mod = module;
     b().CreateStore(mod, get_field(vars, offset::StackVariables::module));
 
