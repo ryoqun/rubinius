@@ -826,7 +826,7 @@ namespace rubinius {
   }
 
   Object* Regexp::set_block_last_match(STATE, CallFrame* call_frame) {
-    Object* blk = call_frame->scope->block();
+    Object* blk = call_frame->block_;
     MatchData* match = try_as<MatchData>(call_frame->last_match(state));
     if(!match) return cNil;
 

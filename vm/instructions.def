@@ -1185,7 +1185,7 @@ section "Manipulate blocks"
 #   push_proc
 
 instruction push_block() [ -- block ]
-  stack_push(call_frame->scope->block());
+  stack_push(call_frame->block_);
 end
 
 # [Description]
@@ -1379,7 +1379,7 @@ end
 
 instruction yield_stack(count) [ +count -- value ] => yield
   flush_ip();
-  Object* t1 = call_frame->scope->block();
+  Object* t1 = call_frame->block_;
   Object* ret;
   Arguments args(G(sym_call), t1, count, stack_back_position(count));
 
@@ -1419,7 +1419,7 @@ end
 instruction yield_splat(count) [ array +count -- value ] => yield
   flush_ip();
   Object* ary = stack_pop();
-  Object* t1 = call_frame->scope->block();
+  Object* t1 = call_frame->block_;
 
   Arguments args(G(sym_call), t1, count, stack_back_position(count));
 
@@ -2182,7 +2182,7 @@ end
 #   Used to implement `block_given?` without having to directly expose
 #   the block object itself. This simplifies JIT inlining.
 instruction push_has_block() [ -- value ]
-  stack_push(RBOOL(CBOOL(call_frame->scope->block())));
+  stack_push(RBOOL(CBOOL(call_frame->block_)));
 end
 
 # [Description]

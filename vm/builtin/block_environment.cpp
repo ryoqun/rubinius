@@ -288,7 +288,7 @@ namespace rubinius {
 
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
-    scope->initialize(env->top_scope_->block(), mcode->number_of_locals);
+    scope->initialize(mcode->number_of_locals);
     scope->set_parent(env->scope_);
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
@@ -308,6 +308,7 @@ namespace rubinius {
                                     | CallFrame::cBlock;
     frame->self_ = invocation.self;
     frame->module_ = mod;
+    frame->block_ = env->top_scope_->block();
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {
@@ -472,7 +473,7 @@ namespace rubinius {
     target->compiled_code->machine_code()->set_no_inline();
 
     if(target->scope) {
-      return target->scope->block();
+      return target->block_;
     }
 
     return cNil;

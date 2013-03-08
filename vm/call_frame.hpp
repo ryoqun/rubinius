@@ -42,6 +42,7 @@ namespace rubinius {
 
     CallFrame* previous;
     ConstantScope* constant_scope_;
+    Object* block_;
 
     void* dispatch_data;
     CompiledCode* compiled_code;
