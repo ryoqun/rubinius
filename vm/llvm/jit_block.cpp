@@ -129,7 +129,7 @@ namespace jit {
 
     Value* blk = b().CreateLoad(get_field(top_scope, offset::VariableScope::block),
         "args.block");
-    b().CreateStore(blk, get_field(vars, offset::StackVariables::block));
+    b().CreateStore(blk, get_field(call_frame, offset::CallFrame::block));
 
 
     // We don't use top_scope here because of nested blocks. Parent MUST be
