@@ -132,8 +132,6 @@ namespace rubinius {
   void GarbageCollector::saw_variable_scope(CallFrame* call_frame,
       StackVariables* scope)
   {
-    scope->block_ = mark_object(scope->block());
-
     int locals = call_frame->compiled_code->machine_code()->number_of_locals;
     for(int i = 0; i < locals; i++) {
       Object* local = scope->get_local(i);
@@ -243,6 +241,7 @@ namespace rubinius {
 
       call_frame->self_ = mark_object(call_frame->self_);
       call_frame->module_ = (Module*)mark_object(call_frame->module_);
+      call_frame->block_ = mark_object(call_frame->block_);
       saw_variable_scope(call_frame, displace(call_frame->scope, offset));
 
       call_frame = call_frame->previous;

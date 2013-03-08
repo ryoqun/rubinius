@@ -1475,7 +1475,7 @@ extern "C" {
   }
 
   Object* rbx_make_proc(STATE, CallFrame* call_frame) {
-    Object* obj = call_frame->scope->block();
+    Object* obj = call_frame->block_;
     if(CBOOL(obj)) {
       Proc* prc = Proc::from_env(state, G(proc), obj);
       if(!prc) {

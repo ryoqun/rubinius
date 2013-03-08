@@ -10,15 +10,13 @@ namespace rubinius {
   public: // Treat these like private!
     VariableScope* on_heap_;
     VariableScope* parent_;
-    Object* block_;
     Object* last_match_;
     Object* locals_[0];
 
   public:
-    void initialize(Object* block, int locals) {
+    void initialize(int locals) {
       on_heap_ = 0;
       parent_ = 0;
-      block_ = block;
       last_match_ = cNil;
 
       for(int i = 0; i < locals; i++) {
@@ -36,10 +34,6 @@ namespace rubinius {
 
     void set_parent(VariableScope* scope) {
       parent_ = scope;
-    }
-
-    Object* block() {
-      return block_;
     }
 
     bool made_alias_p() {
