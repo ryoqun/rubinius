@@ -1252,7 +1252,7 @@ namespace rubinius {
 
     Value* get_block() {
       return b().CreateLoad(
-          b().CreateConstGEP2_32(vars_, 0, offset::StackVariables::block, "block_pos"));
+          b().CreateConstGEP2_32(call_frame_, 0, offset::CallFrame::block, "block_pos"));
     }
 
     void visit_push_self() {
@@ -1584,8 +1584,8 @@ namespace rubinius {
 
           b().CreateStore(
               blk,
-              b().CreateConstGEP2_32(nfo->variables(), 0,
-                offset::StackVariables::block),
+              b().CreateConstGEP2_32(nfo->call_frame(), 0,
+                offset::CallFrame::block),
               false);
         }
       }
@@ -2716,10 +2716,10 @@ use_send:
         return;
       }
 
-      Value* vars = vars_;
+      Value* call_frame = call_frame_;
 
       if(JITMethodInfo* home = info().home_info()) {
-        vars = home->variables();
+        call_frame = home->call_frame();
       }
 
       Signature sig(ctx_, ObjType);
@@ -2731,7 +2731,7 @@ use_send:
       sig << ObjArrayTy;
 
       Value* block_obj = b().CreateLoad(
-          b().CreateConstGEP2_32(vars, 0, offset::StackVariables::block),
+          b().CreateConstGEP2_32(call_frame, 0, offset::CallFrame::block),
           "block");
 
       Value* call_args[] = {
@@ -2762,7 +2762,7 @@ use_send:
       sig << ObjArrayTy;
 
       Value* block_obj = b().CreateLoad(
-          b().CreateConstGEP2_32(vars_, 0, offset::StackVariables::block),
+          b().CreateConstGEP2_32(call_frame_, 0, offset::CallFrame::block),
           "block");
 
       Value* call_args[] = {
