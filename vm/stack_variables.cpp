@@ -22,7 +22,7 @@ namespace rubinius {
 
     scope->self(state, call_frame->self_);
     scope->block(state, block_);
-    scope->module(state, module_);
+    scope->module(state, call_frame->module_);
     scope->method(state, call_frame->compiled_code);
     scope->heap_locals(state, Tuple::create(state, mcode->number_of_locals));
     scope->last_match(state, last_match_);

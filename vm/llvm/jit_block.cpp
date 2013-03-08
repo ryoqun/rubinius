@@ -125,7 +125,7 @@ namespace jit {
 
     module_ = mod;
 
-    b().CreateStore(mod, get_field(vars, offset::StackVariables::module));
+    b().CreateStore(mod, get_field(call_frame, offset::CallFrame::module));
 
     Value* blk = b().CreateLoad(get_field(top_scope, offset::VariableScope::block),
         "args.block");

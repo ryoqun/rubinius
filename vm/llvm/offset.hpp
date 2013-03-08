@@ -41,13 +41,14 @@ namespace CallFrame {
   const static int dispatch_data = 2;
   const static int compiled_code = 3;
   const static int self = 4;
-  const static int flags = 5;
-  const static int ip = 6;
-  const static int jit_data = 7;
-  const static int top_scope = 8;
-  const static int scope = 9;
-  const static int arguments = 10;
-  const static int stk = 11;
+  const static int module = 5;
+  const static int flags = 6;
+  const static int ip = 7;
+  const static int jit_data = 8;
+  const static int top_scope = 9;
+  const static int scope = 10;
+  const static int arguments = 11;
+  const static int stk = 12;
 }
 namespace Class {
   const static int header = 0;
@@ -151,9 +152,8 @@ namespace StackVariables {
   const static int on_heap = 0;
   const static int parent = 1;
   const static int block = 2;
-  const static int module = 3;
-  const static int last_match = 4;
-  const static int locals = 5;
+  const static int last_match = 3;
+  const static int locals = 4;
 }
 namespace State {
   const static int vm = 0;
