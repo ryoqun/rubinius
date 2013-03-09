@@ -22,7 +22,7 @@ namespace rubinius {
   };
 
 #define ALLOCA_STACKVARIABLES(local_size) \
-  reinterpret_cast<StackVariables*>(alloca(sizeof(StackVariables) + (sizeof(Object*) * local_size)))
+  reinterpret_cast<StackVariables*>(alloca(sizeof(StackVariables) + (sizeof(Object*) * (local_size))))
 }
 
 #endif
