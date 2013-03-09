@@ -281,7 +281,7 @@ namespace rubinius {
   // For when the method expects no arguments at all (no splat, nothing)
   class NoArguments {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       return args.total() == 0;
     }
   };
@@ -289,9 +289,9 @@ namespace rubinius {
   // For when the method expects 1 and only 1 argument
   class OneArgument {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       if(args.total() != 1) return false;
-      scope->set_local(0, args.get_argument(0));
+      call_frame->set_local(0, args.get_argument(0));
       return true;
     }
   };
@@ -299,10 +299,10 @@ namespace rubinius {
   // For when the method expects 2 and only 2 arguments
   class TwoArguments {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       if(args.total() != 2) return false;
-      scope->set_local(0, args.get_argument(0));
-      scope->set_local(1, args.get_argument(1));
+      call_frame->set_local(0, args.get_argument(0));
+      call_frame->set_local(1, args.get_argument(1));
       return true;
     }
   };
@@ -310,11 +310,11 @@ namespace rubinius {
   // For when the method expects 3 and only 3 arguments
   class ThreeArguments {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       if(args.total() != 3) return false;
-      scope->set_local(0, args.get_argument(0));
-      scope->set_local(1, args.get_argument(1));
-      scope->set_local(2, args.get_argument(2));
+      call_frame->set_local(0, args.get_argument(0));
+      call_frame->set_local(1, args.get_argument(1));
+      call_frame->set_local(2, args.get_argument(2));
       return true;
     }
   };
@@ -322,11 +322,11 @@ namespace rubinius {
   // For when the method expects a fixed number of arguments (no splat)
   class FixedArguments {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       if((native_int)args.total() != mcode->total_args) return false;
 
       for(native_int i = 0; i < mcode->total_args; i++) {
-        scope->set_local(i, args.get_argument(i));
+        call_frame->set_local(i, args.get_argument(i));
       }
 
       return true;
@@ -336,7 +336,7 @@ namespace rubinius {
   // For when a method takes all arguments as a splat
   class SplatOnlyArgument {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       const size_t total = args.total();
       Array* ary = Array::create(state, total);
 
@@ -344,7 +344,7 @@ namespace rubinius {
         ary->set(state, i, args.get_argument(i));
       }
 
-      scope->set_local(mcode->splat_position, ary);
+      call_frame->set_local(mcode->splat_position, ary);
       return true;
     }
   };
@@ -352,14 +352,14 @@ namespace rubinius {
   // The fallback, can handle all cases
   class GenericArguments {
   public:
-    static bool call(STATE, MachineCode* mcode, StackVariables* scope, Arguments& args) {
+    static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
       const bool has_splat = (mcode->splat_position >= 0);
       native_int total_args = args.total();
 
       // expecting 0, got 0.
       if(mcode->total_args == 0 && total_args == 0) {
         if(has_splat) {
-          scope->set_local(mcode->splat_position, Array::create(state, 0));
+          call_frame->set_local(mcode->splat_position, Array::create(state, 0));
         }
 
         return true;
@@ -408,7 +408,7 @@ namespace rubinius {
 
       // Phase 1, mandatory args
       for(native_int i = 0; i < M; i++) {
-        scope->set_local(i, args.get_argument(i));
+        call_frame->set_local(i, args.get_argument(i));
       }
 
       // Phase 2, post args
@@ -416,7 +416,7 @@ namespace rubinius {
           i < T;
           i++, l++)
       {
-        scope->set_local(l, args.get_argument(i));
+        call_frame->set_local(l, args.get_argument(i));
       }
 
       // Phase 3, optionals
@@ -424,7 +424,7 @@ namespace rubinius {
           i < limit;
           i++)
       {
-        scope->set_local(i, args.get_argument(i));
+        call_frame->set_local(i, args.get_argument(i));
       }
 
       // Phase 4, splat
@@ -453,7 +453,7 @@ namespace rubinius {
           ary = Array::create(state, 0);
         }
 
-        scope->set_local(mcode->splat_position, ary);
+        call_frame->set_local(mcode->splat_position, ary);
       }
 
       return true;
@@ -577,9 +577,10 @@ namespace rubinius {
       scope->initialize(mcode->number_of_locals);
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+      frame->scope = scope;
 
       // If argument handling fails..
-      if(ArgumentHandler::call(state, mcode, scope, args) == false) {
+      if(ArgumentHandler::call(state, mcode, frame, args) == false) {
         Exception* exc =
           Exception::make_argument_error(state, mcode->total_args, args.total(), args.name());
         exc->locations(state, Location::from_call_stack(state, previous));
@@ -597,7 +598,6 @@ namespace rubinius {
       frame->flags = 0;
       frame->optional_jit_data = 0;
       frame->top_scope_ = 0;
-      frame->scope = scope;
       frame->arguments = &args;
       frame->self_ = args.recv();
       frame->module_ = mod;

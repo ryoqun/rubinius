@@ -86,7 +86,7 @@ namespace rubinius {
   class GenericArguments {
   public:
     static bool call(STATE, CallFrame* call_frame,
-                     MachineCode* mcode, StackVariables* scope,
+                     MachineCode* mcode,
                      Arguments& args, int flags)
     {
       const bool has_splat = (mcode->splat_position >= 0);
@@ -95,7 +95,7 @@ namespace rubinius {
       // expecting 0, got 0.
       if(mcode->total_args == 0 && total_args == 0) {
         if(has_splat) {
-          scope->set_local(mcode->splat_position, Array::create(state, 0));
+          call_frame->set_local(mcode->splat_position, Array::create(state, 0));
         }
 
         return true;
@@ -199,13 +199,13 @@ namespace rubinius {
           i < l;
           i++)
       {
-        scope->set_local(i, args.get_argument(i));
+        call_frame->set_local(i, args.get_argument(i));
       }
 
       // Phase 2, post args
       for(native_int i = 0; i < MIN(Z, P); i++)
       {
-        scope->set_local(PLO + i, args.get_argument(PAO + i));
+        call_frame->set_local(PLO + i, args.get_argument(PAO + i));
       }
 
       // Phase 3, optionals
@@ -214,7 +214,7 @@ namespace rubinius {
           i < limit;
           i++)
       {
-        scope->set_local(i, args.get_argument(i));
+        call_frame->set_local(i, args.get_argument(i));
       }
 
 
@@ -243,7 +243,7 @@ namespace rubinius {
           ary = Array::create(state, 0);
         }
 
-        scope->set_local(mcode->splat_position, ary);
+        call_frame->set_local(mcode->splat_position, ary);
       }
 
       return true;
@@ -313,7 +313,7 @@ namespace rubinius {
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {
-      if(!GenericArguments::call(state, frame, mcode, scope, args, invocation.flags)) {
+      if(!GenericArguments::call(state, frame, mcode, args, invocation.flags)) {
         return NULL;
       }
     }
