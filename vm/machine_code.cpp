@@ -567,10 +567,10 @@ namespace rubinius {
       CompiledCode* code = as<CompiledCode>(exec);
       MachineCode* mcode = code->machine_code();
 
-      InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+      InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
       StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
       scope->initialize(mcode->number_of_locals);
-      frame->prepare(mcode->stack_size);
+      frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
       // Originally, I tried using msg.module directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
@@ -666,7 +666,7 @@ namespace rubinius {
   Object* MachineCode::execute_as_script(STATE, CompiledCode* code, CallFrame* previous) {
     MachineCode* mcode = code->machine_code();
 
-    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
     StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
 
     // Originally, I tried using msg.module directly, but what happens is if
@@ -676,7 +676,7 @@ namespace rubinius {
     //
     // Thus, we have to cache the value in the StackVariables.
     scope->initialize(mcode->number_of_locals);
-    frame->prepare(mcode->stack_size);
+    frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
     Arguments args(state->symbol("__script__"), G(main), cNil, 0, 0);
 
