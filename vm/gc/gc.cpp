@@ -129,18 +129,6 @@ namespace rubinius {
     }
   }
 
-  void GarbageCollector::saw_variable_scope(CallFrame* call_frame,
-      StackVariables* scope)
-  {
-    int locals = call_frame->compiled_code->machine_code()->number_of_locals;
-    for(int i = 0; i < locals; i++) {
-      Object* local = scope->locals_[i];
-      if(local->reference_p()) {
-        scope->locals_[i] = mark_object(local);
-      }
-    }
-  }
-
   template <typename T>
     T displace(T ptr, AddressDisplacement* dis) {
       if(!dis) return ptr;
@@ -242,8 +230,6 @@ namespace rubinius {
       if(heap) {
         call_frame->on_heap_ = (VariableScope*)mark_object(heap);
       }
-
-      saw_variable_scope(call_frame, displace(call_frame->scope, offset));
 
       call_frame = call_frame->previous;
     }

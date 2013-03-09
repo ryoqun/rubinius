@@ -152,7 +152,6 @@ namespace rubinius {
     void scan_object(Object* obj);
     void delete_object(Object* obj);
     void walk_call_frame(CallFrame* top_call_frame, AddressDisplacement* offset=0);
-    void saw_variable_scope(CallFrame* call_frame, StackVariables* scope);
 
     /**
      * Marks the specified Object +obj+ as live.
