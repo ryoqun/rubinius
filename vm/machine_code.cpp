@@ -570,6 +570,7 @@ namespace rubinius {
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
       StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
       scope->initialize(mcode->number_of_locals);
+      frame->prepare(mcode->stack_size);
 
       // Originally, I tried using msg.module directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
@@ -589,8 +590,6 @@ namespace rubinius {
 
         return NULL;
       }
-
-      frame->prepare(mcode->stack_size);
 
       frame->previous = previous;
       frame->constant_scope_ = 0;
@@ -677,7 +676,6 @@ namespace rubinius {
     //
     // Thus, we have to cache the value in the StackVariables.
     scope->initialize(mcode->number_of_locals);
-
     frame->prepare(mcode->stack_size);
 
     Arguments args(state->symbol("__script__"), G(main), cNil, 0, 0);
