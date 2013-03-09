@@ -229,7 +229,7 @@ namespace rubinius {
   bool CallFrame::scope_still_valid(VariableScope* scope) {
     CallFrame* cur = this;
     while(cur) {
-      if(cur->scope && cur->on_heap() == scope) return true;
+      if(cur->on_heap() == scope) return true;
       cur = cur->previous;
     }
 
@@ -286,7 +286,7 @@ namespace rubinius {
     on_heap_->isolated_ = true;
 
     for(int i = 0; i < on_heap_->number_of_locals_; i++) {
-      on_heap_->set_local(state, i, scope->locals_[i]);
+      on_heap_->set_local(state, i, get_local(i));
     }
   }
 
@@ -319,7 +319,7 @@ namespace rubinius {
       new_scope->isolated_ = true;
     }
 
-    new_scope->locals_ = scope->locals_;
+    new_scope->locals_ = stk + compiled_code->machine_code()->stack_size;
     new_scope->dynamic_locals(state, nil<LookupTable>());
 
     new_scope->set_block_as_method(block_as_method_p());
