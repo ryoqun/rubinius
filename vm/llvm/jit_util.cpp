@@ -936,14 +936,14 @@ extern "C" {
   bool rbx_return_to_here(STATE, CallFrame* call_frame) {
     VMThreadState* th = state->vm()->thread_state();
     if(th->raise_reason() != cReturn) return false;
-    if(th->destination_scope() == call_frame->scope->on_heap()) return true;
+    if(th->destination_scope() == call_frame->on_heap()) return true;
     return false;
   }
 
   bool rbx_break_to_here(STATE, CallFrame* call_frame) {
     VMThreadState* th = state->vm()->thread_state();
     if(th->raise_reason() != cBreak) return false;
-    if(th->destination_scope() == call_frame->scope->on_heap()) return true;
+    if(th->destination_scope() == call_frame->on_heap()) return true;
     return false;
   }
 
@@ -1322,8 +1322,8 @@ extern "C" {
                                           sp, is, state->vm()->unwinds());
   }
 
-  Object* rbx_flush_scope(STATE, StackVariables* vars) {
-    vars->flush_to_heap(state);
+  Object* rbx_flush_scope(STATE, CallFrame* call_frame) {
+    call_frame->flush_to_heap(state);
     return cNil;
   }
 

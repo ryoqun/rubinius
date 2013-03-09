@@ -9,7 +9,7 @@ namespace rubinius {
   VariableScope* StackVariables::create_heap_alias(STATE, CallFrame* call_frame,
                                                    bool full)
   {
-    if(on_heap_) return on_heap_;
+    if(call_frame->on_heap_) return call_frame->on_heap_;
 
     MachineCode* mcode = call_frame->compiled_code->machine_code();
     VariableScope* scope = state->new_object_dirty<VariableScope>(G(variable_scope));
@@ -41,18 +41,8 @@ namespace rubinius {
 
     scope->set_block_as_method(call_frame->block_as_method_p());
 
-    on_heap_ = scope;
+    call_frame->on_heap_ = scope;
 
     return scope;
-  }
-
-  void StackVariables::flush_to_heap(STATE) {
-    if(!on_heap_) return;
-
-    on_heap_->isolated_ = true;
-
-    for(int i = 0; i < on_heap_->number_of_locals_; i++) {
-      on_heap_->set_local(state, i, locals_[i]);
-    }
   }
 }

@@ -139,11 +139,6 @@ namespace rubinius {
         scope->set_local(i, mark_object(local));
       }
     }
-
-    VariableScope* heap = scope->on_heap();
-    if(heap) {
-      scope->on_heap_ = (VariableScope*)mark_object(heap);
-    }
   }
 
   template <typename T>
@@ -241,6 +236,11 @@ namespace rubinius {
       VariableScope* parent = call_frame->parent_;
       if(parent) {
         call_frame->parent_ = (VariableScope*)mark_object(parent);
+      }
+
+      VariableScope* heap = call_frame->on_heap_;
+      if(heap) {
+        call_frame->on_heap_ = (VariableScope*)mark_object(heap);
       }
 
       saw_variable_scope(call_frame, displace(call_frame->scope, offset));
