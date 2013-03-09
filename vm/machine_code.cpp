@@ -568,6 +568,8 @@ namespace rubinius {
       MachineCode* mcode = code->machine_code();
 
       StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
+      InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+
       // Originally, I tried using msg.module directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
       // being called recursively, msg.module can change, causing super() to
@@ -576,7 +578,6 @@ namespace rubinius {
       // Thus, we have to cache the value in the StackVariables.
       scope->initialize(mcode->number_of_locals);
 
-      InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
       frame->scope = scope;
 
       // If argument handling fails..
@@ -667,6 +668,8 @@ namespace rubinius {
     MachineCode* mcode = code->machine_code();
 
     StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
+    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+
     // Originally, I tried using msg.module directly, but what happens is if
     // super is used, that field is read. If you combine that with the method
     // being called recursively, msg.module can change, causing super() to
@@ -674,8 +677,6 @@ namespace rubinius {
     //
     // Thus, we have to cache the value in the StackVariables.
     scope->initialize(mcode->number_of_locals);
-
-    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
 
     frame->prepare(mcode->stack_size);
 
