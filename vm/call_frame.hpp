@@ -50,6 +50,7 @@ namespace rubinius {
     Module* module_;
     Object* block_;
     Object* last_match_;
+    VariableScope* parent_;
 
     int flags;
     int ip_;
