@@ -176,7 +176,7 @@ namespace rubinius {
       }
 
       if(call_frame->compiled_code && call_frame->stk) {
-        native_int stack_size = call_frame->compiled_code->stack_size()->to_native();
+        native_int stack_size = call_frame->compiled_code->stack_size()->to_native() + call_frame->compiled_code->machine_code()->number_of_locals;
         for(native_int i = 0; i < stack_size; i++) {
           Object* obj = call_frame->stk[i];
           if(obj && obj->reference_p()) {
