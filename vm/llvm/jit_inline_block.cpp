@@ -42,12 +42,16 @@ namespace jit {
 
     info_.set_stack(stk);
 
-    Value* var_mem = new AllocaInst(obj_type,
-        cint((sizeof(StackVariables) / sizeof(Object*)) + machine_code_->number_of_locals),
-        "var_mem", alloca_block->getTerminator());
+    Value* idx2[] = {
+      cint(0),
+      cint(offset::CallFrame::stk),
+      cint(machine_code_->stack_size),
+    };
+
+    Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
 
     vars = b().CreateBitCast(
-        var_mem,
+        pos,
         llvm::PointerType::getUnqual(stack_vars_type), "vars");
 
     info_.set_variables(vars);

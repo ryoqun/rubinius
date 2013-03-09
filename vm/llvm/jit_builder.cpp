@@ -701,10 +701,6 @@ namespace jit {
         cint((sizeof(CallFrame) / sizeof(Object*)) + machine_code_->stack_size + machine_code_->number_of_locals),
         "cfstk");
 
-    Value* var_mem = b().CreateAlloca(obj_type,
-        cint((sizeof(StackVariables) / sizeof(Object*)) + machine_code_->number_of_locals),
-        "var_mem");
-
     call_frame = b().CreateBitCast(
         cfstk,
         llvm::PointerType::getUnqual(cf_type), "call_frame");
@@ -723,8 +719,16 @@ namespace jit {
 
     info_.set_stack(stk);
 
+    Value* idx2[] = {
+      cint(0),
+      cint(offset::CallFrame::stk),
+      cint(machine_code_->stack_size),
+    };
+
+    Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
+
     vars = b().CreateBitCast(
-        var_mem,
+        pos,
         llvm::PointerType::getUnqual(stack_vars_type), "vars");
 
     info_.set_variables(vars);
