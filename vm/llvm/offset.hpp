@@ -45,13 +45,14 @@ namespace CallFrame {
   const static int block = 6;
   const static int last_match = 7;
   const static int parent = 8;
-  const static int flags = 9;
-  const static int ip = 10;
-  const static int jit_data = 11;
-  const static int top_scope = 12;
-  const static int scope = 13;
-  const static int arguments = 14;
-  const static int stk = 15;
+  const static int on_heap = 9;
+  const static int flags = 10;
+  const static int ip = 11;
+  const static int jit_data = 12;
+  const static int top_scope = 13;
+  const static int scope = 14;
+  const static int arguments = 15;
+  const static int stk = 16;
 }
 namespace Class {
   const static int header = 0;
@@ -152,8 +153,7 @@ namespace Proc {
   const static int bound_method = 2;
 }
 namespace StackVariables {
-  const static int on_heap = 0;
-  const static int locals = 1;
+  const static int locals = 0;
 }
 namespace State {
   const static int vm = 0;
