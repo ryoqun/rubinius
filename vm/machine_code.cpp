@@ -219,6 +219,11 @@ namespace rubinius {
       case InstructionSequence::insn_find_const_fast:
         original->literals()->put(state, opcodes[ip + 2], GlobalCacheEntry::empty(state));
         break;
+      case InstructionSequence::insn_push_local:
+      case InstructionSequence::insn_set_local:
+        opcodes[ip + 1] = opcodes[ip + 1] + original->stack_size()->to_native();
+        update_addresses(ip, 1);
+        break;
       case InstructionSequence::insn_send_super_stack_with_block:
       case InstructionSequence::insn_send_super_stack_with_splat:
       case InstructionSequence::insn_zsuper:
