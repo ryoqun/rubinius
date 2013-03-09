@@ -275,6 +275,8 @@ namespace rubinius {
     void set_local(int which, Object* val) {
       scope->locals_[which] = val;
     }
+
+    VariableScope* create_heap_alias(STATE, bool full=true);
   };
 
   class InterpreterCallFrame : public CallFrame {

@@ -17,7 +17,6 @@ namespace rubinius {
       }
     }
 
-    VariableScope* create_heap_alias(STATE, CallFrame* call_frame, bool full=true);
     friend class GarbageCollector;
   };
 
