@@ -568,7 +568,7 @@ namespace rubinius {
       MachineCode* mcode = code->machine_code();
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
-      StackVariables* scope = (StackVariables*)(frame->stk + mcode->stack_size);
+      frame->compiled_code = code;
       frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
       // Originally, I tried using msg.module directly, but what happens is if
@@ -577,8 +577,6 @@ namespace rubinius {
       // look in the wrong place.
       //
       // Thus, we have to cache the value in the StackVariables.
-
-      frame->scope = scope;
 
       // If argument handling fails..
       if(ArgumentHandler::call(state, mcode, frame, args) == false) {
@@ -593,7 +591,6 @@ namespace rubinius {
       frame->previous = previous;
       frame->constant_scope_ = 0;
       frame->dispatch_data = 0;
-      frame->compiled_code = code;
       frame->flags = 0;
       frame->optional_jit_data = 0;
       frame->top_scope_ = 0;
@@ -666,7 +663,7 @@ namespace rubinius {
     MachineCode* mcode = code->machine_code();
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
-    StackVariables* scope = (StackVariables*)(frame->stk + mcode->stack_size);
+    frame->compiled_code = code;
 
     // Originally, I tried using msg.module directly, but what happens is if
     // super is used, that field is read. If you combine that with the method
@@ -681,11 +678,9 @@ namespace rubinius {
     frame->previous = previous;
     frame->constant_scope_ = 0;
     frame->dispatch_data = 0;
-    frame->compiled_code = code;
     frame->flags = 0;
     frame->optional_jit_data = 0;
     frame->top_scope_ = 0;
-    frame->scope = scope;
     frame->arguments = &args;
     frame->self_ = G(main);
     frame->module_ = G(object); 

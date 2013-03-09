@@ -185,12 +185,12 @@ namespace rubinius {
     current_native_frame_->update_cached_data();
   }
 
-  StackVariables* NativeMethodEnvironment::scope() {
+  CallFrame* NativeMethodEnvironment::scope() {
     CallFrame* cur = current_call_frame();
-    while(!cur->scope) {
+    while(!cur) {
       cur = cur->previous;
     }
-    return cur->scope;
+    return cur;
   }
 
   void NativeMethod::init(STATE) {
@@ -669,7 +669,6 @@ namespace rubinius {
     cf.flags = CallFrame::cNativeMethod;
     cf.optional_jit_data = 0;
     cf.top_scope_ = 0;
-    cf.scope = 0;
     cf.arguments = 0;
 
     CallFrame* saved_frame = env->current_call_frame();

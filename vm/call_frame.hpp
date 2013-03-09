@@ -58,7 +58,6 @@ namespace rubinius {
 
     void* optional_jit_data;
     VariableScope* top_scope_;
-    StackVariables* scope;
 
     Arguments* arguments;
 
@@ -239,7 +238,6 @@ namespace rubinius {
     VariableScope* promote_scope_full(STATE);
 
     VariableScope* promote_scope(STATE) {
-      if(!scope) rubinius::bug("bad CallFrame to promote");
       if(VariableScope* vs = on_heap_) return vs;
       return promote_scope_full(state);
     }
@@ -269,11 +267,11 @@ namespace rubinius {
     void flush_to_heap(STATE);
 
     Object* get_local(int which) {
-      return scope->locals_[which];
+      return stk[compiled_code->machine_code()->stack_size + which];
     }
 
     void set_local(int which, Object* val) {
-      scope->locals_[which] = val;
+      stk[compiled_code->machine_code()->stack_size + which] = val;
     }
 
     VariableScope* create_heap_alias(STATE, bool full=true);

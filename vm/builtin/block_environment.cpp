@@ -285,7 +285,7 @@ namespace rubinius {
 #endif
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
-    StackVariables* scope = (StackVariables*)(frame->stk + mcode->stack_size);
+    frame->compiled_code = env->compiled_code_;
 
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
@@ -297,8 +297,6 @@ namespace rubinius {
 
     frame->arguments = &args;
     frame->dispatch_data = env;
-    frame->compiled_code = env->compiled_code_;
-    frame->scope = scope;
     frame->top_scope_ = env->top_scope_;
     frame->flags = invocation.flags | CallFrame::cCustomConstantScope
                                     | CallFrame::cMultipleScopes
@@ -472,11 +470,7 @@ namespace rubinius {
 
     target->compiled_code->machine_code()->set_no_inline();
 
-    if(target->scope) {
-      return target->block_;
-    }
-
-    return cNil;
+    return target->block_;
   }
 
   void BlockEnvironment::Info::show(STATE, Object* self, int level) {

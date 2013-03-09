@@ -177,7 +177,6 @@ extern "C" {
     cf.flags = CallFrame::cNativeMethod;
     cf.optional_jit_data = 0;
     cf.top_scope_ = 0;
-    cf.scope = 0;
     cf.arguments = 0;
 
     CallFrame* saved_frame = env->current_call_frame();
