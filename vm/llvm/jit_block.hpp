@@ -10,7 +10,7 @@ namespace jit {
       : Builder(ctx, info)
     {}
 
-    void initialize_frame(int stack_size);
+    void initialize_frame();
     void setup_block_scope();
     void setup();
     void import_args_19_style();

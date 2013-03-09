@@ -61,7 +61,7 @@ namespace jit {
 
     // check_self_type();
 
-    initialize_frame(machine_code_->stack_size);
+    initialize_frame();
 
     nil_stack(machine_code_->stack_size, constant(cNil, obj_type));
 
@@ -526,7 +526,7 @@ namespace jit {
 
 
 
-  void MethodBuilder::initialize_frame(int stack_size) {
+  void MethodBuilder::initialize_frame() {
     Value* code_gep = get_field(call_frame, offset::CallFrame::compiled_code);
     method = b().CreateBitCast(
         exec, cast<llvm::PointerType>(code_gep->getType())->getElementType(), "compiled_code");
