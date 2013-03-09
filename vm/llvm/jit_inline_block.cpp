@@ -29,7 +29,7 @@ namespace jit {
     BasicBlock* alloca_block = &info_.function()->getEntryBlock();
 
     Value* cfstk = new AllocaInst(obj_type,
-        cint((sizeof(CallFrame) / sizeof(Object*)) + machine_code_->stack_size),
+        cint((sizeof(CallFrame) / sizeof(Object*)) + machine_code_->stack_size + machine_code_->number_of_locals),
         "cfstk", alloca_block->getTerminator());
 
     call_frame = b().CreateBitCast(
@@ -86,7 +86,7 @@ namespace jit {
     // scope
     b().CreateStore(vars, get_field(call_frame, offset::CallFrame::scope));
 
-    nil_stack(machine_code_->stack_size, constant(cNil, obj_type));
+    nil_stack(machine_code_->stack_size + machine_code_->number_of_locals, constant(cNil, obj_type));
 
     setup_inline_scope(self, constant(cNil, obj_type), mod);
 
