@@ -567,8 +567,8 @@ namespace rubinius {
       CompiledCode* code = as<CompiledCode>(exec);
       MachineCode* mcode = code->machine_code();
 
-      StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+      StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
 
       // Originally, I tried using msg.module directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
@@ -667,8 +667,8 @@ namespace rubinius {
   Object* MachineCode::execute_as_script(STATE, CompiledCode* code, CallFrame* previous) {
     MachineCode* mcode = code->machine_code();
 
-    StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+    StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
 
     // Originally, I tried using msg.module directly, but what happens is if
     // super is used, that field is read. If you combine that with the method
