@@ -159,7 +159,7 @@ namespace rubinius {
 
       set_block(bail_out_fast_);
       if(use_full_scope_) {
-        flush_scope_to_heap(vars_);
+        flush_scope_to_heap(call_frame_);
       }
 
       info().add_return_value(Constant::getNullValue(ObjType), current_block());
@@ -167,7 +167,7 @@ namespace rubinius {
 
       set_block(ret_raise_val);
       Value* crv = f.clear_raise_value.call(&state_, 1, "crv", b());
-      if(use_full_scope_) flush_scope_to_heap(vars_);
+      if(use_full_scope_) flush_scope_to_heap(call_frame_);
 
       info().add_return_value(crv, current_block());
       b().CreateBr(info().return_pad());
@@ -530,7 +530,7 @@ namespace rubinius {
         set_block(cont);
       }
 
-      if(use_full_scope_) flush_scope_to_heap(vars_);
+      if(use_full_scope_) flush_scope_to_heap(call_frame_);
 
       info().add_return_value(stack_top(), current_block());
       b().CreateBr(info().return_pad());
@@ -3033,7 +3033,7 @@ use_send:
         JITMethodInfo* nfo = &info();
         while(nfo) {
           if(nfo->use_full_scope()) {
-            flush_scope_to_heap(nfo->variables());
+            flush_scope_to_heap(nfo->call_frame());
           }
 
           nfo = nfo->parent_info();

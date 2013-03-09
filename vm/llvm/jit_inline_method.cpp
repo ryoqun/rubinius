@@ -136,7 +136,7 @@ namespace jit {
 
   void InlineMethodBuilder::setup_inline_scope(Value* self, Value* blk, Value* mod) {
     Value* heap_null = ConstantExpr::getNullValue(llvm::PointerType::getUnqual(vars_type));
-    Value* heap_pos = get_field(vars, offset::StackVariables::on_heap);
+    Value* heap_pos = get_field(call_frame, offset::CallFrame::on_heap);
     b().CreateStore(heap_null, heap_pos);
 
     b().CreateStore(self, get_field(call_frame, offset::CallFrame::self));
