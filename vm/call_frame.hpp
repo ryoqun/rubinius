@@ -296,7 +296,7 @@ namespace rubinius {
   };
 
 #define ALLOCA_CALLFRAME(stack_size) \
-  reinterpret_cast<InterpreterCallFrame*>(alloca(sizeof(InterpreterCallFrame) + (sizeof(Object*) * stack_size)))
+  reinterpret_cast<InterpreterCallFrame*>(alloca(sizeof(InterpreterCallFrame) + (sizeof(Object*) * (stack_size))))
 };
 
 #endif
