@@ -140,11 +140,6 @@ namespace rubinius {
       }
     }
 
-    VariableScope* parent = scope->parent();
-    if(parent) {
-      scope->parent_ = (VariableScope*)mark_object(parent);
-    }
-
     VariableScope* heap = scope->on_heap();
     if(heap) {
       scope->on_heap_ = (VariableScope*)mark_object(heap);
@@ -241,6 +236,11 @@ namespace rubinius {
 
       if(call_frame->last_match_ && call_frame->last_match_->reference_p()) {
         call_frame->last_match_ = mark_object(call_frame->last_match_);
+      }
+
+      VariableScope* parent = call_frame->parent_;
+      if(parent) {
+        call_frame->parent_ = (VariableScope*)mark_object(parent);
       }
 
       saw_variable_scope(call_frame, displace(call_frame->scope, offset));

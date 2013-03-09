@@ -258,7 +258,7 @@ extern "C" {
     va_start(ap, count);
     for(int i = 0; i < count; i++) {
       closest = va_arg(ap, CallFrame*);
-      closest->scope->set_parent(parent);
+      closest->parent_ = parent;
       parent = closest->promote_scope(state);
 
       if(!top) {
@@ -790,7 +790,7 @@ extern "C" {
                                 "illegal set_local_depth usage");
       return 0;
     } else {
-      VariableScope* scope = call_frame->scope->parent();
+      VariableScope* scope = call_frame->parent_;
 
       if(!scope || scope->nil_p()) {
         Exception::internal_error(state, call_frame,
@@ -821,7 +821,7 @@ extern "C" {
 
   Object* rbx_set_local_from(STATE, CallFrame* call_frame, Object* top,
                              int depth, int index) {
-    VariableScope* scope = call_frame->scope->parent();
+    VariableScope* scope = call_frame->parent_;
 
     if(!scope || scope->nil_p()) {
       Exception::internal_error(state, call_frame,
@@ -851,7 +851,7 @@ extern "C" {
                                 "illegal push_local_depth usage");
       return 0;
     } else {
-      VariableScope* scope = call_frame->scope->parent();
+      VariableScope* scope = call_frame->parent_;
 
       if(!scope || scope->nil_p()) {
         Exception::internal_error(state, call_frame,
@@ -880,7 +880,7 @@ extern "C" {
 
   Object* rbx_push_local_from(STATE, CallFrame* call_frame,
                               int depth, int index) {
-    VariableScope* scope = call_frame->scope->parent();
+    VariableScope* scope = call_frame->parent_;
 
     if(!scope || scope->nil_p()) {
       Exception::internal_error(state, call_frame,
@@ -1213,8 +1213,8 @@ extern "C" {
       // jumps to raising the exception right away.
       state->vm()->thread_state()->raise_return(top,
                                           call_frame->promote_scope(state));
-    } else if(call_frame->scope_still_valid(call_frame->scope->parent())) {
-      state->vm()->thread_state()->raise_break(top, call_frame->scope->parent());
+    } else if(call_frame->scope_still_valid(call_frame->parent_)) {
+      state->vm()->thread_state()->raise_break(top, call_frame->parent_);
     } else {
       Exception* exc = Exception::make_exception(state, G(jump_error), "attempted to break to exited method");
       exc->locations(state, Location::from_call_stack(state, call_frame));
@@ -1270,7 +1270,7 @@ extern "C" {
         assert(creator);
 
         VariableScope* parent = creator->promote_scope(state);
-        call_frame->scope->set_parent(parent);
+        call_frame->parent_ = parent;
 
         // Only support one depth!
         assert(!creator->compiled_code->machine_code()->parent());
@@ -1303,7 +1303,7 @@ extern "C" {
         assert(creator);
 
         VariableScope* parent = creator->promote_scope(state);
-        call_frame->scope->set_parent(parent);
+        call_frame->parent_ = parent;
 
         // Only support one depth!
         assert(!creator->compiled_code->machine_code()->parent());

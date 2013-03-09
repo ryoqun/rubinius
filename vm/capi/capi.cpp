@@ -380,7 +380,7 @@ namespace rubinius {
 
     void capi_raise_break(VALUE obj) {
       NativeMethodEnvironment* env = NativeMethodEnvironment::get();
-      env->state()->vm()->thread_state()->raise_break(env->get_object(obj), env->scope()->parent());
+      env->state()->vm()->thread_state()->raise_break(env->get_object(obj), env->current_call_frame()->parent_);
       env->current_ep()->return_to(env);
     }
 

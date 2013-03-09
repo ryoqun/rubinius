@@ -28,8 +28,8 @@ namespace rubinius {
     if(!use) return cNil;
     // For closures, get back to the top of the chain and get that
     // last_match.
-    if(use->scope->parent_) {
-      VariableScope* scope = use->scope->parent_;
+    if(use->parent_) {
+      VariableScope* scope = use->parent_;
       while(CBOOL(scope->parent())) {
         scope = scope->parent();
       }
@@ -63,8 +63,8 @@ namespace rubinius {
     // last_match there. This means that the last_match is shared
     // amongst all closures in a method, but thats how it's implemented
     // in ruby.
-    if(use->scope->parent_) {
-      VariableScope* scope = use->scope->parent_;
+    if(use->parent_) {
+      VariableScope* scope = use->parent_;
       while(CBOOL(scope->parent())) {
         scope = scope->parent();
       }

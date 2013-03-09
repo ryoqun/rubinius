@@ -14,8 +14,8 @@ namespace rubinius {
     MachineCode* mcode = call_frame->compiled_code->machine_code();
     VariableScope* scope = state->new_object_dirty<VariableScope>(G(variable_scope));
 
-    if(parent_) {
-      scope->parent(state, parent_);
+    if(call_frame->parent_) {
+      scope->parent(state, call_frame->parent_);
     } else {
       scope->parent(state, nil<VariableScope>());
     }
