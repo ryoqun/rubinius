@@ -502,7 +502,7 @@ namespace jit {
     llvm::Value* args = info_.args();
 
     Value* heap_null = ConstantExpr::getNullValue(llvm::PointerType::getUnqual(vars_type));
-    Value* heap_pos = get_field(vars, offset::StackVariables::on_heap);
+    Value* heap_pos = get_field(call_frame, offset::CallFrame::on_heap);
 
     b().CreateStore(heap_null, heap_pos);
 

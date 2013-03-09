@@ -103,7 +103,7 @@ namespace jit {
 
   void BlockBuilder::setup_block_scope() {
     b().CreateStore(ConstantExpr::getNullValue(llvm::PointerType::getUnqual(vars_type)),
-        get_field(vars, offset::StackVariables::on_heap));
+        get_field(call_frame, offset::CallFrame::on_heap));
     Value* self = b().CreateLoad(
         get_field(block_inv, offset::BlockInvocation::self),
         "invocation.self");

@@ -1074,8 +1074,8 @@ namespace rubinius {
     }
 
     // Scope maintenance
-    void flush_scope_to_heap(Value* vars) {
-      Value* pos = b().CreateConstGEP2_32(vars, 0, offset::StackVariables::on_heap,
+    void flush_scope_to_heap(Value* call_frame) {
+      Value* pos = b().CreateConstGEP2_32(call_frame, 0, offset::CallFrame::on_heap,
                                      "on_heap_pos");
 
       Value* on_heap = b().CreateLoad(pos, "on_heap");
@@ -1092,9 +1092,9 @@ namespace rubinius {
 
       Signature sig(ctx_, "Object");
       sig << "State";
-      sig << "StackVariables";
+      sig << "CallFrame";
 
-      Value* call_args[] = { state_, vars };
+      Value* call_args[] = { state_, call_frame };
 
       sig.call("rbx_flush_scope", call_args, 2, "", b());
 
