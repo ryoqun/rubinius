@@ -698,7 +698,7 @@ namespace jit {
     valid_flag = b().CreateAlloca(ctx_->Int1Ty, 0, "valid_flag");
 
     Value* cfstk = b().CreateAlloca(obj_type,
-        cint((sizeof(CallFrame) / sizeof(Object*)) + machine_code_->stack_size),
+        cint((sizeof(CallFrame) / sizeof(Object*)) + machine_code_->stack_size + machine_code_->number_of_locals),
         "cfstk");
 
     Value* var_mem = b().CreateAlloca(obj_type,

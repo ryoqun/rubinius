@@ -57,7 +57,7 @@ namespace jit {
 
     initialize_frame();
 
-    nil_stack(machine_code_->stack_size, constant(cNil, obj_type));
+    nil_stack(machine_code_->stack_size + machine_code_->number_of_locals, constant(cNil, obj_type));
 
     setup_block_scope();
 
