@@ -118,7 +118,7 @@ continue_to_run:
     exc->locations(state, Location::from_call_stack(state, call_frame));
 
     state->raise_exception(exc);
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   } catch(const RubyException& exc) {
     exc.exception->locations(state,
@@ -144,13 +144,13 @@ exception:
       cache_ip(info.target_ip);
       goto continue_to_run;
     } else {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       return NULL;
     }
 
   case cBreak:
     // If we're trying to break to here, we're done!
-    if(th->destination_scope() == call_frame->scope->on_heap()) {
+    if(th->destination_scope() == call_frame->on_heap()) {
       stack_push(th->raise_value());
       th->clear_break();
       goto continue_to_run;
@@ -178,10 +178,10 @@ exception:
 
     // Ok, no ensures to run.
     if(th->raise_reason() == cReturn) {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
 
       // If we're trying to return to here, we're done!
-      if(th->destination_scope() == call_frame->scope->on_heap()) {
+      if(th->destination_scope() == call_frame->on_heap()) {
         Object* val = th->raise_value();
         th->clear_return();
         return val;
@@ -191,13 +191,13 @@ exception:
       }
 
     } else { // Not for us!
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       // Give control of this exception to the caller.
       return NULL;
     }
 
   case cExit:
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   default:
     break;
@@ -264,7 +264,7 @@ continue_to_run:
     exc->locations(state, Location::from_call_stack(state, call_frame));
 
     state->raise_exception(exc);
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   } catch(const RubyException& exc) {
     exc.exception->locations(state,
@@ -288,13 +288,13 @@ exception:
       cache_ip(info.target_ip);
       goto continue_to_run;
     } else {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       return NULL;
     }
 
   case cBreak:
     // If we're trying to break to here, we're done!
-    if(th->destination_scope() == call_frame->scope->on_heap()) {
+    if(th->destination_scope() == call_frame->on_heap()) {
       stack_push(th->raise_value());
       th->clear_break();
       goto continue_to_run;
@@ -322,10 +322,10 @@ exception:
 
     // Ok, no ensures to run.
     if(th->raise_reason() == cReturn) {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
 
       // If we're trying to return to here, we're done!
-      if(th->destination_scope() == call_frame->scope->on_heap()) {
+      if(th->destination_scope() == call_frame->on_heap()) {
         Object* val = th->raise_value();
         th->clear_return();
         return val;
@@ -335,13 +335,13 @@ exception:
       }
 
     } else { // It's cBreak thats not for us!
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       // Give control of this exception to the caller.
       return NULL;
     }
 
   case cExit:
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   default:
     break;
@@ -409,7 +409,7 @@ continue_to_run:
     exc->locations(state, Location::from_call_stack(state, call_frame));
 
     state->raise_exception(exc);
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   } catch(const RubyException& exc) {
     exc.exception->locations(state,
@@ -434,13 +434,13 @@ exception:
       cache_ip(info.target_ip);
       goto continue_to_run;
     } else {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       return NULL;
     }
 
   case cBreak:
     // If we're trying to break to here, we're done!
-    if(th->destination_scope() == call_frame->scope->on_heap()) {
+    if(th->destination_scope() == call_frame->on_heap()) {
       stack_push(th->raise_value());
       th->clear_break();
       goto continue_to_run;
@@ -470,10 +470,10 @@ exception:
 
     // Ok, no ensures to run.
     if(th->raise_reason() == cReturn) {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
 
       // If we're trying to return to here, we're done!
-      if(th->destination_scope() == call_frame->scope->on_heap()) {
+      if(th->destination_scope() == call_frame->on_heap()) {
         Object* val = th->raise_value();
         th->clear_return();
         return val;
@@ -483,13 +483,13 @@ exception:
       }
 
     } else { // It's cBreak thats not for us!
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       // Give control of this exception to the caller.
       return NULL;
     }
 
   case cExit:
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   default:
     break;
@@ -542,7 +542,7 @@ continue_to_run:
     exc->locations(state, Location::from_call_stack(state, call_frame));
 
     state->raise_exception(exc);
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   } catch(const RubyException& exc) {
     exc.exception->locations(state,
@@ -566,13 +566,13 @@ exception:
       cache_ip(info.target_ip);
       goto continue_to_run;
     } else {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       return NULL;
     }
 
   case cBreak:
     // If we're trying to break to here, we're done!
-    if(th->destination_scope() == call_frame->scope->on_heap()) {
+    if(th->destination_scope() == call_frame->on_heap()) {
       stack_push(th->raise_value());
       th->clear_break();
       goto continue_to_run;
@@ -600,10 +600,10 @@ exception:
 
     // Ok, no ensures to run.
     if(th->raise_reason() == cReturn) {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
 
       // If we're trying to return to here, we're done!
-      if(th->destination_scope() == call_frame->scope->on_heap()) {
+      if(th->destination_scope() == call_frame->on_heap()) {
         Object* val = th->raise_value();
         th->clear_return();
         return val;
@@ -613,13 +613,13 @@ exception:
       }
 
     } else { // It's cBreak thats not for us!
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       // Give control of this exception to the caller.
       return NULL;
     }
 
   case cExit:
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   default:
     break;
@@ -673,7 +673,7 @@ continue_to_run:
     exc->locations(state, Location::from_call_stack(state, call_frame));
 
     state->raise_exception(exc);
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   } catch(const RubyException& exc) {
     exc.exception->locations(state,
@@ -698,13 +698,13 @@ exception:
       cache_ip(info.target_ip);
       goto continue_to_run;
     } else {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       return NULL;
     }
 
   case cBreak:
     // If we're trying to break to here, we're done!
-    if(th->destination_scope() == call_frame->scope->on_heap()) {
+    if(th->destination_scope() == call_frame->on_heap()) {
       stack_push(th->raise_value());
       th->clear_break();
       goto continue_to_run;
@@ -734,10 +734,10 @@ exception:
 
     // Ok, no ensures to run.
     if(th->raise_reason() == cReturn) {
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
 
       // If we're trying to return to here, we're done!
-      if(th->destination_scope() == call_frame->scope->on_heap()) {
+      if(th->destination_scope() == call_frame->on_heap()) {
         Object* val = th->raise_value();
         th->clear_return();
         return val;
@@ -747,13 +747,13 @@ exception:
       }
 
     } else { // It's cBreak thats not for us!
-      call_frame->scope->flush_to_heap(state);
+      call_frame->flush_to_heap(state);
       // Give control of this exception to the caller.
       return NULL;
     }
 
   case cExit:
-    call_frame->scope->flush_to_heap(state);
+    call_frame->flush_to_heap(state);
     return NULL;
   default:
     break;
