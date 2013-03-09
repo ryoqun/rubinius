@@ -84,7 +84,7 @@ namespace rubinius {
   }
 
   VariableScope* CallFrame::promote_scope_full(STATE) {
-    return scope->create_heap_alias(state, this, !has_closed_scope_p());
+    return create_heap_alias(state, !has_closed_scope_p());
   }
 
   VariableScope* CallFrame::method_scope(STATE) {
@@ -288,6 +288,45 @@ namespace rubinius {
     for(int i = 0; i < on_heap_->number_of_locals_; i++) {
       on_heap_->set_local(state, i, scope->locals_[i]);
     }
+  }
+
+  VariableScope* CallFrame::create_heap_alias(STATE, bool full)
+  {
+    if(on_heap_) return on_heap_;
+
+    MachineCode* mcode = compiled_code->machine_code();
+    VariableScope* new_scope = state->new_object_dirty<VariableScope>(G(variable_scope));
+
+    if(parent_) {
+      new_scope->parent(state, parent_);
+    } else {
+      new_scope->parent(state, nil<VariableScope>());
+    }
+
+    new_scope->self(state, self_);
+    new_scope->block(state, block_);
+    new_scope->module(state, module_);
+    new_scope->method(state, compiled_code);
+    new_scope->heap_locals(state, Tuple::create(state, mcode->number_of_locals));
+    new_scope->last_match(state, last_match_);
+    new_scope->fiber(state, state->vm()->current_fiber.get());
+
+    new_scope->number_of_locals_ = mcode->number_of_locals;
+
+    if(full) {
+      new_scope->isolated_ = false;
+    } else {
+      new_scope->isolated_ = true;
+    }
+
+    new_scope->locals_ = scope->locals_;
+    new_scope->dynamic_locals(state, nil<LookupTable>());
+
+    new_scope->set_block_as_method(block_as_method_p());
+
+    on_heap_ = new_scope;
+
+    return new_scope;
   }
 
   /* For debugging. */
