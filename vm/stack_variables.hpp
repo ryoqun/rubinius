@@ -7,7 +7,7 @@ namespace rubinius {
   class VariableScope;
 
   class StackVariables {
-  public: // Treat these like private!
+  private: // Treat these like private!
     Object* locals_[0];
 
   public:
@@ -18,6 +18,7 @@ namespace rubinius {
     }
 
     friend class GarbageCollector;
+    friend struct CallFrame;
   };
 
 #define ALLOCA_STACKVARIABLES(local_size) \
