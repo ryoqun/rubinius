@@ -274,6 +274,14 @@ namespace rubinius {
       stk[compiled_code->machine_code()->stack_size + which] = val;
     }
 
+    Object* get_local_fast(int which) {
+      return stk[which];
+    }
+
+    void set_local_fast(int which, Object* val) {
+      stk[which] = val;
+    }
+
     VariableScope* create_heap_alias(STATE, bool full=true);
   };
 
