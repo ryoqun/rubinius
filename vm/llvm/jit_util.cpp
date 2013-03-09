@@ -350,11 +350,11 @@ extern "C" {
       size_t limit = MIN((int)ary->size(), size);
 
       for(size_t i = 0; i < limit; i++) {
-        vars->set_local(i, ary->get(state, i));
+        call_frame->set_local(i, ary->get(state, i));
       }
     } else {
       assert(size > 0);
-      vars->set_local(0, obj);
+      call_frame->set_local(0, obj);
     }
 
     return cNil;

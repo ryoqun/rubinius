@@ -267,6 +267,14 @@ namespace rubinius {
     }
 
     void flush_to_heap(STATE);
+
+    Object* get_local(int which) {
+      return scope->locals_[which];
+    }
+
+    void set_local(int which, Object* val) {
+      scope->locals_[which] = val;
+    }
   };
 
   class InterpreterCallFrame : public CallFrame {

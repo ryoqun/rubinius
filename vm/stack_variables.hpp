@@ -17,14 +17,6 @@ namespace rubinius {
       }
     }
 
-    Object* get_local(int which) {
-      return locals_[which];
-    }
-
-    void set_local(int which, Object* val) {
-      locals_[which] = val;
-    }
-
     VariableScope* create_heap_alias(STATE, CallFrame* call_frame, bool full=true);
     friend class GarbageCollector;
   };

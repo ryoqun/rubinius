@@ -134,9 +134,9 @@ namespace rubinius {
   {
     int locals = call_frame->compiled_code->machine_code()->number_of_locals;
     for(int i = 0; i < locals; i++) {
-      Object* local = scope->get_local(i);
+      Object* local = scope->locals_[i];
       if(local->reference_p()) {
-        scope->set_local(i, mark_object(local));
+        scope->locals_[i] = mark_object(local);
       }
     }
   }
