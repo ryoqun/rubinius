@@ -11,18 +11,9 @@ namespace rubinius {
     Object* locals_[0];
 
   public:
-    void initialize(int locals) {
-      for(int i = 0; i < locals; i++) {
-        locals_[i] = cNil;
-      }
-    }
-
     friend class GarbageCollector;
     friend struct CallFrame;
   };
-
-#define ALLOCA_STACKVARIABLES(local_size) \
-  reinterpret_cast<StackVariables*>(alloca(sizeof(StackVariables) + (sizeof(Object*) * (local_size))))
 }
 
 #endif
