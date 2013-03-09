@@ -9,13 +9,11 @@ namespace rubinius {
   class StackVariables {
   public: // Treat these like private!
     VariableScope* on_heap_;
-    VariableScope* parent_;
     Object* locals_[0];
 
   public:
     void initialize(int locals) {
       on_heap_ = 0;
-      parent_ = 0;
 
       for(int i = 0; i < locals; i++) {
         locals_[i] = cNil;
@@ -24,14 +22,6 @@ namespace rubinius {
 
     VariableScope* on_heap() {
       return on_heap_;
-    }
-
-    VariableScope* parent() {
-      return parent_;
-    }
-
-    void set_parent(VariableScope* scope) {
-      parent_ = scope;
     }
 
     bool made_alias_p() {
