@@ -146,8 +146,8 @@ end
 #   raise_exc
 
 instruction ret() [ value -- value ] => return
-  if(call_frame->scope->made_alias_p()) {
-    call_frame->scope->flush_to_heap(state);
+  if(call_frame->made_alias_p()) {
+    call_frame->flush_to_heap(state);
   }
   return stack_top();
 end

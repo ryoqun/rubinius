@@ -51,6 +51,7 @@ namespace rubinius {
     Object* block_;
     Object* last_match_;
     VariableScope* parent_;
+    VariableScope* on_heap_;
 
     int flags;
     int ip_;
@@ -239,7 +240,7 @@ namespace rubinius {
 
     VariableScope* promote_scope(STATE) {
       if(!scope) rubinius::bug("bad CallFrame to promote");
-      if(VariableScope* vs = scope->on_heap()) return vs;
+      if(VariableScope* vs = on_heap_) return vs;
       return promote_scope_full(state);
     }
 
@@ -256,6 +257,16 @@ namespace rubinius {
     void dump();
 
     Object* find_breakpoint(STATE);
+
+    VariableScope* on_heap() {
+      return on_heap_;
+    }
+
+    bool made_alias_p() {
+      return on_heap_ != 0;
+    }
+
+    void flush_to_heap(STATE);
   };
 
   class InterpreterCallFrame : public CallFrame {

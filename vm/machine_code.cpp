@@ -604,6 +604,7 @@ namespace rubinius {
       frame->block_ = args.block(); 
       frame->last_match_ = cNil;
       frame->parent_ = 0;
+      frame->on_heap_ = 0;
 
       GCTokenImpl gct;
 
@@ -694,6 +695,7 @@ namespace rubinius {
     frame->block_ = cNil; 
     frame->last_match_ = cNil;
     frame->parent_ = 0;
+    frame->on_heap_ = 0;
 
     // Do NOT check if we should JIT this. We NEVER want to jit a script.
 

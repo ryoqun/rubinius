@@ -38,8 +38,8 @@ namespace rubinius {
     }
 
     // Otherwise, if this has a heap alias, get the last_match from there.
-    if(use->scope->on_heap_) {
-      return use->scope->on_heap_->last_match();
+    if(use->on_heap_) {
+      return use->on_heap_->last_match();
 
     // Lastly, use the local one. This is where a last_match begins life.
     } else {
@@ -73,8 +73,8 @@ namespace rubinius {
     }
 
     // Use a heap alias if there is one.
-    if(use->scope->on_heap_) {
-      use->scope->on_heap_->last_match(state, obj);
+    if(use->on_heap_) {
+      use->on_heap_->last_match(state, obj);
 
     // Otherwise, use the local one. This is where a last_match usually
     // first appears.
@@ -229,7 +229,7 @@ namespace rubinius {
   bool CallFrame::scope_still_valid(VariableScope* scope) {
     CallFrame* cur = this;
     while(cur) {
-      if(cur->scope && cur->scope->on_heap() == scope) return true;
+      if(cur->scope && cur->on_heap() == scope) return true;
       cur = cur->previous;
     }
 
@@ -278,6 +278,16 @@ namespace rubinius {
     if(found) return obj;
 
     return 0;
+  }
+
+  void CallFrame::flush_to_heap(STATE) {
+    if(!on_heap_) return;
+
+    on_heap_->isolated_ = true;
+
+    for(int i = 0; i < on_heap_->number_of_locals_; i++) {
+      on_heap_->set_local(state, i, scope->locals_[i]);
+    }
   }
 
   /* For debugging. */
