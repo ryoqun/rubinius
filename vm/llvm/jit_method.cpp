@@ -517,7 +517,7 @@ namespace jit {
     b().CreateStore(blk, get_field(call_frame, offset::CallFrame::block));
 
     b().CreateStore(Constant::getNullValue(ctx_->ptr_type("VariableScope")),
-        get_field(vars, offset::StackVariables::parent));
+        get_field(call_frame, offset::CallFrame::parent));
 
     b().CreateStore(constant(cNil, obj_type), get_field(call_frame, offset::CallFrame::last_match));
 
