@@ -284,14 +284,14 @@ namespace rubinius {
     }
 #endif
 
-    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size);
+    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
     StackVariables* scope = ALLOCA_STACKVARIABLES(mcode->number_of_locals);
 
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
     scope->initialize(mcode->number_of_locals);
 
-    frame->prepare(mcode->stack_size);
+    frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
     frame->previous = previous;
     frame->constant_scope_ = invocation.constant_scope;
