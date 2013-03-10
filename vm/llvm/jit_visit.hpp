@@ -1148,15 +1148,6 @@ namespace rubinius {
 
       LocalInfo* li = info().get_local(which);
 
-      /*
-      if(li->known_type().known_p()) {
-        std::cout << "push_local type known for " << which << ": "
-                  << li->known_type().describe() << ". "
-                  << (li->static_type_argument_p() ? "STA" : "not STA")
-                  << "\n";
-      }
-      */
-
       if(!info().use_full_scope() && li->static_type_argument_p()) {
         type::KnownType kt = li->known_type();
         kt.set_local_source(which);
@@ -1168,21 +1159,6 @@ namespace rubinius {
 
         stack_push(b().CreateLoad(pos, "local"), kt);
       }
-    }
-
-    void set_scope_local(Value* scope, opcode which) {
-      Value* pos = b().CreateConstGEP2_32(scope, 0, offset::VariableScope::locals,
-                                     "locals_pos");
-
-      Value* table = b().CreateLoad(pos, "locals");
-
-      Value* val_pos = b().CreateConstGEP1_32(table, which, "local_pos");
-
-      Value* val = stack_top();
-
-      b().CreateStore(val, val_pos);
-
-      write_barrier(scope, val);
     }
 
     void visit_set_local(opcode which) {
@@ -2464,20 +2440,6 @@ use_send:
         visit_set_local(index);
         return;
       }
-      /*
-      else if(depth == 1) {
-        Value* idx[] = {
-          cint(0),
-          cint(offset::StackVariables::parent)
-        };
-
-        Value* gep = b().CreateGEP(vars_, idx, "parent_pos");
-
-        Value* parent = b().CreateLoad(gep, "scope.parent");
-        set_scope_local(parent, index);
-        return;
-      }
-      */
 
       // Handle depth > 1
 
