@@ -153,7 +153,6 @@ namespace Proc {
   const static int bound_method = 2;
 }
 namespace StackVariables {
-  const static int locals = 0;
 }
 namespace State {
   const static int vm = 0;
