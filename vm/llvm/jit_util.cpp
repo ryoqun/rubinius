@@ -346,15 +346,16 @@ extern "C" {
       }
     }
 
+    int offset = call_frame->compiled_code->machine_code()->stack_size;
     if(ary) {
       size_t limit = MIN((int)ary->size(), size);
 
       for(size_t i = 0; i < limit; i++) {
-        call_frame->set_local(i, ary->get(state, i));
+        call_frame->set_local_fast(offset + i, ary->get(state, i));
       }
     } else {
       assert(size > 0);
-      call_frame->set_local(0, obj);
+      call_frame->set_local_fast(offset + 0, obj);
     }
 
     return cNil;
