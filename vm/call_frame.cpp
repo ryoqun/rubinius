@@ -283,10 +283,11 @@ namespace rubinius {
   void CallFrame::flush_to_heap(STATE) {
     if(!on_heap_) return;
 
+    int offset = compiled_code->machine_code()->stack_size;
     on_heap_->isolated_ = true;
 
     for(int i = 0; i < on_heap_->number_of_locals_; i++) {
-      on_heap_->set_local(state, i, get_local(i));
+      on_heap_->set_local(state, i, get_local_fast(offset + i));
     }
   }
 
