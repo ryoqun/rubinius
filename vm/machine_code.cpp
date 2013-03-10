@@ -221,8 +221,8 @@ namespace rubinius {
         break;
       case InstructionSequence::insn_push_local:
       case InstructionSequence::insn_set_local:
-        opcodes[ip + 1] = opcodes[ip + 1] + original->stack_size()->to_native();
-        update_addresses(ip, 1);
+        //opcodes[ip + 1] = opcodes[ip + 1] + original->stack_size()->to_native();
+        //update_addresses(ip, 1);
         break;
       case InstructionSequence::insn_send_super_stack_with_block:
       case InstructionSequence::insn_send_super_stack_with_splat:

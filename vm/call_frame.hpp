@@ -266,6 +266,14 @@ namespace rubinius {
 
     void flush_to_heap(STATE);
 
+    Object* get_local(int which) {
+      return stk[compiled_code->machine_code()->stack_size + which];
+    }
+
+    void set_local(int which, Object* val) {
+      stk[compiled_code->machine_code()->stack_size + which] = val;
+    }
+
     Object* get_local_fast(int which) {
       return stk[which];
     }
