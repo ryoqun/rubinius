@@ -54,10 +54,6 @@ namespace jit {
       return ctx_->root();
     }
 
-    void initialize_call_frame(llvm::Function* func,
-      llvm::BasicBlock* block, llvm::Value* call_frame,
-      int stack_size, llvm::Value* stack, llvm::Value* vars);
-
     void compile(BackgroundCompileRequest* req);
     void compile_method(BackgroundCompileRequest* req);
     void compile_block(BackgroundCompileRequest* req);
@@ -66,10 +62,6 @@ namespace jit {
     void* function_pointer();
     void* generate_function(bool indy=true);
     void show_machine_code();
-
-    void import_args(LLVMState* ls, llvm::Function* func,
-                   llvm::BasicBlock*& block, MachineCode* mcode,
-                   llvm::Value* vars, llvm::Value* call_frame);
   };
 }
 }

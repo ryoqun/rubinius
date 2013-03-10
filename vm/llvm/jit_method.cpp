@@ -96,7 +96,7 @@ namespace jit {
     // 0 ... M
 
     for(int i = 0; i < M; i++) {
-      Value* int_pos = cint(i);
+      Value* int_pos = cint(i + machine_code_->stack_size);
 
       Value* arg_val_offset = b().CreateConstGEP1_32(arg_ary, i, "arg_val_offset");
 
@@ -104,11 +104,11 @@ namespace jit {
 
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
+        cint(offset::CallFrame::stk),
         int_pos
       };
 
-      Value* pos = b().CreateGEP(vars, idx2, "var_pos");
+      Value* pos = b().CreateGEP(call_frame, idx2, "var_pos");
 
       b().CreateStore(arg_val, pos);
     }
@@ -150,15 +150,15 @@ namespace jit {
 
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        local_val
+        cint(offset::CallFrame::stk),
+        b().CreateAdd(local_val, cint(machine_code_->stack_size)),
       };
 
       // locals[local_idx] = args[loop_val]
       b().CreateStore(
           b().CreateLoad(
             b().CreateGEP(arg_ary, loop_val)),
-          b().CreateGEP(vars, idx2));
+          b().CreateGEP(call_frame, idx2));
 
       // *loop_i = loop_val + 1
       b().CreateStore(
@@ -212,15 +212,15 @@ namespace jit {
 
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        loop_val
+        cint(offset::CallFrame::stk),
+        b().CreateAdd(loop_val, cint(machine_code_->stack_size)),
       };
 
       // locals[loop_val] = args[loop_val]
       b().CreateStore(
           b().CreateLoad(
             b().CreateGEP(arg_ary, loop_val)),
-          b().CreateGEP(vars, idx2));
+          b().CreateGEP(call_frame, idx2));
 
       // *loop_i = loop_val + 1
       b().CreateStore(
@@ -258,11 +258,11 @@ namespace jit {
 
       Value* idx3[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        cint(machine_code_->splat_position)
+        cint(offset::CallFrame::stk),
+        cint(machine_code_->stack_size + machine_code_->splat_position)
       };
 
-      Value* pos = b().CreateGEP(vars, idx3, "splat_pos");
+      Value* pos = b().CreateGEP(call_frame, idx3, "splat_pos");
       b().CreateStore(splat_val, pos);
     }
   }
@@ -283,7 +283,7 @@ namespace jit {
     // If there are a precise number of args, easy.
     if(machine_code_->required_args == machine_code_->total_args) {
       for(int i = 0; i < machine_code_->required_args; i++) {
-        Value* int_pos = cint(i);
+        Value* int_pos = cint(machine_code_->stack_size + i);
 
         Value* arg_val_offset = b().CreateConstGEP1_32(arg_ary, i, "arg_val_offset");
 
@@ -291,11 +291,11 @@ namespace jit {
 
         Value* idx2[] = {
           cint(0),
-          cint(offset::StackVariables::locals),
+          cint(offset::CallFrame::stk),
           int_pos
         };
 
-        Value* pos = b().CreateGEP(vars, idx2, "var_pos");
+        Value* pos = b().CreateGEP(call_frame, idx2, "var_pos");
 
         b().CreateStore(arg_val, pos);
       }
@@ -348,11 +348,11 @@ namespace jit {
 
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        loop_val
+        cint(offset::CallFrame::stk),
+        b().CreateAdd(loop_val, cint(machine_code_->stack_size)),
       };
 
-      Value* pos = b().CreateGEP(vars, idx2, "var_pos");
+      Value* pos = b().CreateGEP(call_frame, idx2, "var_pos");
 
       b().CreateStore(arg_val, pos);
 
@@ -391,11 +391,11 @@ namespace jit {
 
       Value* idx3[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        cint(machine_code_->splat_position)
+        cint(offset::CallFrame::stk),
+        cint(machine_code_->splat_position + machine_code_->stack_size)
       };
 
-      Value* pos = b().CreateGEP(vars, idx3, "splat_pos");
+      Value* pos = b().CreateGEP(call_frame, idx3, "splat_pos");
       b().CreateStore(splat_val, pos);
     }
   }
@@ -557,9 +557,6 @@ namespace jit {
     b().CreateStore(
         cint(0),
         get_field(call_frame, offset::CallFrame::ip));
-
-    // scope
-    b().CreateStore(vars, get_field(call_frame, offset::CallFrame::scope));
 
     // jit_data
     b().CreateStore(

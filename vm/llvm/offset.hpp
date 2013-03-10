@@ -50,9 +50,8 @@ namespace CallFrame {
   const static int ip = 11;
   const static int jit_data = 12;
   const static int top_scope = 13;
-  const static int scope = 14;
-  const static int arguments = 15;
-  const static int stk = 16;
+  const static int arguments = 14;
+  const static int stk = 15;
 }
 namespace Class {
   const static int header = 0;

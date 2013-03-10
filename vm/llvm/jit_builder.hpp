@@ -45,7 +45,6 @@ namespace jit {
 
     llvm::Value* call_frame;
     llvm::Value* stk;
-    llvm::Value* vars;
 
     llvm::Value* stack_top;
     llvm::Value* method_entry_;
