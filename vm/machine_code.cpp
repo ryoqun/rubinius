@@ -295,8 +295,9 @@ namespace rubinius {
   class OneArgument {
   public:
     static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
+      int offset = mcode->stack_size;
       if(args.total() != 1) return false;
-      call_frame->set_local(0, args.get_argument(0));
+      call_frame->set_local_fast(offset, args.get_argument(0));
       return true;
     }
   };
@@ -305,9 +306,10 @@ namespace rubinius {
   class TwoArguments {
   public:
     static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
+      int offset = mcode->stack_size;
       if(args.total() != 2) return false;
-      call_frame->set_local(0, args.get_argument(0));
-      call_frame->set_local(1, args.get_argument(1));
+      call_frame->set_local_fast(offset, args.get_argument(0));
+      call_frame->set_local_fast(offset + 1, args.get_argument(1));
       return true;
     }
   };
@@ -316,10 +318,11 @@ namespace rubinius {
   class ThreeArguments {
   public:
     static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
+      int offset = mcode->stack_size;
       if(args.total() != 3) return false;
-      call_frame->set_local(0, args.get_argument(0));
-      call_frame->set_local(1, args.get_argument(1));
-      call_frame->set_local(2, args.get_argument(2));
+      call_frame->set_local_fast(offset + 0, args.get_argument(0));
+      call_frame->set_local_fast(offset + 1, args.get_argument(1));
+      call_frame->set_local_fast(offset + 2, args.get_argument(2));
       return true;
     }
   };
@@ -328,10 +331,11 @@ namespace rubinius {
   class FixedArguments {
   public:
     static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
+      int offset = mcode->stack_size;
       if((native_int)args.total() != mcode->total_args) return false;
 
       for(native_int i = 0; i < mcode->total_args; i++) {
-        call_frame->set_local(i, args.get_argument(i));
+        call_frame->set_local_fast(offset + i, args.get_argument(i));
       }
 
       return true;
@@ -342,6 +346,7 @@ namespace rubinius {
   class SplatOnlyArgument {
   public:
     static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
+      int offset = mcode->stack_size;
       const size_t total = args.total();
       Array* ary = Array::create(state, total);
 
@@ -349,7 +354,7 @@ namespace rubinius {
         ary->set(state, i, args.get_argument(i));
       }
 
-      call_frame->set_local(mcode->splat_position, ary);
+      call_frame->set_local_fast(offset + mcode->splat_position, ary);
       return true;
     }
   };
@@ -358,13 +363,14 @@ namespace rubinius {
   class GenericArguments {
   public:
     static bool call(STATE, MachineCode* mcode, CallFrame* call_frame, Arguments& args) {
+      int offset = mcode->stack_size;
       const bool has_splat = (mcode->splat_position >= 0);
       native_int total_args = args.total();
 
       // expecting 0, got 0.
       if(mcode->total_args == 0 && total_args == 0) {
         if(has_splat) {
-          call_frame->set_local(mcode->splat_position, Array::create(state, 0));
+          call_frame->set_local_fast(offset + mcode->splat_position, Array::create(state, 0));
         }
 
         return true;
@@ -413,7 +419,7 @@ namespace rubinius {
 
       // Phase 1, mandatory args
       for(native_int i = 0; i < M; i++) {
-        call_frame->set_local(i, args.get_argument(i));
+        call_frame->set_local_fast(offset + i, args.get_argument(i));
       }
 
       // Phase 2, post args
@@ -421,7 +427,7 @@ namespace rubinius {
           i < T;
           i++, l++)
       {
-        call_frame->set_local(l, args.get_argument(i));
+        call_frame->set_local_fast(offset + l, args.get_argument(i));
       }
 
       // Phase 3, optionals
@@ -429,7 +435,7 @@ namespace rubinius {
           i < limit;
           i++)
       {
-        call_frame->set_local(i, args.get_argument(i));
+        call_frame->set_local_fast(offset + i, args.get_argument(i));
       }
 
       // Phase 4, splat
@@ -458,7 +464,7 @@ namespace rubinius {
           ary = Array::create(state, 0);
         }
 
-        call_frame->set_local(mcode->splat_position, ary);
+        call_frame->set_local_fast(offset + mcode->splat_position, ary);
       }
 
       return true;

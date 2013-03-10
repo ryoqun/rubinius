@@ -89,13 +89,14 @@ namespace rubinius {
                      MachineCode* mcode,
                      Arguments& args, int flags)
     {
+      int offset = mcode->stack_size;
       const bool has_splat = (mcode->splat_position >= 0);
       native_int total_args = args.total();
 
       // expecting 0, got 0.
       if(mcode->total_args == 0 && total_args == 0) {
         if(has_splat) {
-          call_frame->set_local(mcode->splat_position, Array::create(state, 0));
+          call_frame->set_local_fast(offset + mcode->splat_position, Array::create(state, 0));
         }
 
         return true;
@@ -199,13 +200,13 @@ namespace rubinius {
           i < l;
           i++)
       {
-        call_frame->set_local(i, args.get_argument(i));
+        call_frame->set_local_fast(offset + i, args.get_argument(i));
       }
 
       // Phase 2, post args
       for(native_int i = 0; i < MIN(Z, P); i++)
       {
-        call_frame->set_local(PLO + i, args.get_argument(PAO + i));
+        call_frame->set_local_fast(offset + PLO + i, args.get_argument(PAO + i));
       }
 
       // Phase 3, optionals
@@ -214,7 +215,7 @@ namespace rubinius {
           i < limit;
           i++)
       {
-        call_frame->set_local(i, args.get_argument(i));
+        call_frame->set_local_fast(offset + i, args.get_argument(i));
       }
 
 
@@ -243,7 +244,7 @@ namespace rubinius {
           ary = Array::create(state, 0);
         }
 
-        call_frame->set_local(mcode->splat_position, ary);
+        call_frame->set_local_fast(offset + mcode->splat_position, ary);
       }
 
       return true;
