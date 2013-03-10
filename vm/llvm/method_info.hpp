@@ -21,7 +21,6 @@ namespace rubinius {
     llvm::Value* call_frame_;
     llvm::Value* stack_;
     llvm::Value* args_;
-    llvm::Value* variables_;
     llvm::Value* previous_;
     llvm::Value* profiling_entry_;
 
@@ -121,14 +120,6 @@ namespace rubinius {
 
     llvm::Value* stack() {
       return stack_;
-    }
-
-    void set_variables(llvm::Value* vars) {
-      variables_ = vars;
-    }
-
-    llvm::Value* variables() {
-      return variables_;
     }
 
     CompiledCode* method() {

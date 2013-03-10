@@ -42,20 +42,6 @@ namespace jit {
 
     info_.set_stack(stk);
 
-    Value* idx2[] = {
-      cint(0),
-      cint(offset::CallFrame::stk),
-      cint(machine_code_->stack_size),
-    };
-
-    Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
-
-    vars = b().CreateBitCast(
-        pos,
-        llvm::PointerType::getUnqual(stack_vars_type), "vars");
-
-    info_.set_variables(vars);
-
     Value* rd = constant(runtime_data_, ctx_->ptr_type("jit::RuntimeData"));
 
     //  Setup the CallFrame
@@ -87,9 +73,6 @@ namespace jit {
     b().CreateStore(cint(0),
         get_field(call_frame, offset::CallFrame::ip));
 
-    // scope
-    b().CreateStore(vars, get_field(call_frame, offset::CallFrame::scope));
-
     nil_stack(machine_code_->stack_size + machine_code_->number_of_locals, constant(cNil, obj_type));
 
     setup_inline_scope(self, constant(cNil, obj_type), mod);
@@ -103,11 +86,10 @@ namespace jit {
         sig << "State";
         sig << "CallFrame";
         sig << "Object";
-        sig << vars->getType();
         sig << ctx_->Int32Ty;
 
         Value* call_args[] = { info_.state(), info_.call_frame(),
-                               stack_args.at(0), vars, cint(machine_code_->total_args) };
+                               stack_args.at(0), cint(machine_code_->total_args) };
 
         Value* val = sig.call("rbx_destructure_inline_args", call_args, 5, "", b());
         Value* null = Constant::getNullValue(val->getType());
@@ -124,15 +106,15 @@ namespace jit {
         size_t limit = MIN((int)stack_args.size(), (int)machine_code_->total_args);
 
         for(size_t i = 0; i < limit; i++) {
-          Value* int_pos = cint(i);
+          Value* int_pos = cint(i + machine_code_->stack_size);
 
           Value* idx2[] = {
             cint(0),
-            cint(offset::StackVariables::locals),
+            cint(offset::CallFrame::stk),
             int_pos
           };
 
-          Value* pos = b().CreateGEP(vars, idx2, "local_pos");
+          Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
 
           b().CreateStore(stack_args.at(i), pos);
         }
