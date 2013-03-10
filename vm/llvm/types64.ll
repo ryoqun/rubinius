@@ -90,7 +90,6 @@ declare void @outputMethodCacheEntry(%"struct.rubinius::MethodCacheEntry"*)
 declare void @output5(%"struct.rubinius::InlineCacheHit"*)
 
 %"struct.rubinius::StackVariables" = type {
-   [0 x %"struct.rubinius::Object"*]  ; locals
 }
 
 declare void @output6(%"struct.rubinius::StackVariables"*)
