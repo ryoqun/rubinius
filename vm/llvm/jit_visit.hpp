@@ -80,7 +80,6 @@ namespace rubinius {
 
     Value* ip_pos_;
 
-    Value* vars_;
     bool use_full_scope_;
 
     Value* global_serial_pos;
@@ -114,7 +113,6 @@ namespace rubinius {
       , call_flags_(0)
       , method_entry_(info.profiling_entry())
       , args_(info.args())
-      , vars_(info.variables())
       , use_full_scope_(false)
       , called_args_(-1)
       , sends_done_(0)
@@ -207,12 +205,6 @@ namespace rubinius {
 
     int sends_done() {
       return sends_done_;
-    }
-
-    Value* scope() {
-      return b().CreateLoad(
-          b().CreateConstGEP2_32(call_frame_, 0, offset::CallFrame::scope, "scope_pos"),
-          "scope");
     }
 
     Value* top_scope() {
@@ -1117,14 +1109,14 @@ namespace rubinius {
       stack_push(b().CreateLoad(val_pos, "local"));
     }
 
-    Value* local_location(Value* vars, opcode which) {
+    Value* local_location(Value* call_frame, opcode which) {
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        cint(which)
+        cint(offset::CallFrame::stk),
+        cint(machine_code()->stack_size + which)
       };
 
-      return b().CreateGEP(vars, idx2, "local_pos");
+      return b().CreateGEP(call_frame, idx2, "local_pos");
     }
 
     void visit_push_stack_local(opcode which) {
@@ -1140,11 +1132,11 @@ namespace rubinius {
     void visit_push_local(opcode which) {
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        cint(which)
+        cint(offset::CallFrame::stk),
+        cint(machine_code()->stack_size + which)
       };
 
-      Value* pos = b().CreateGEP(vars_, idx2, "local_pos");
+      Value* pos = b().CreateGEP(call_frame_, idx2, "local_pos");
 
       if(LocalInfo* bli = current_jbb_->get_local(which)) {
         type::KnownType kt = bli->known_type();
@@ -1196,11 +1188,11 @@ namespace rubinius {
     void visit_set_local(opcode which) {
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
-        cint(which)
+        cint(offset::CallFrame::stk),
+        cint(machine_code()->stack_size + which)
       };
 
-      Value* pos = b().CreateGEP(vars_, idx2, "local_pos");
+      Value* pos = b().CreateGEP(call_frame_, idx2, "local_pos");
 
       Value* val;
 
@@ -2422,7 +2414,7 @@ use_send:
         JITMethodInfo* nfo = upscope_info(depth);
 
         if(nfo) {
-          Value* local_pos = local_location(nfo->variables(), index);
+          Value* local_pos = local_location(nfo->call_frame(), index);
           b().CreateStore(stack_top(), local_pos);
         } else {
           JITMethodInfo* nfo = &info();
@@ -2534,7 +2526,7 @@ use_send:
 
         // And we can see this scope depth directly because of inlining...
         if(nfo) {
-          Value* local_pos = local_location(nfo->variables(), index);
+          Value* local_pos = local_location(nfo->call_frame(), index);
           stack_push(b().CreateLoad(local_pos, "upscope_local"));
         } else {
           JITMethodInfo* nfo = &info();

@@ -174,7 +174,6 @@ declare void @output14(%"struct.rubinius::BlockInvocation"*)
                                   i32, ; ip
                                   i8*, ; jit_data
    %"struct.rubinius::VariableScope"*, ; top_scope
-  %"struct.rubinius::StackVariables"*, ; scope
        %"struct.rubinius::Arguments"*, ; arguments
     [0 x %"struct.rubinius::Object"*]  ; stk
 }

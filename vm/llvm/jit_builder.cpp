@@ -41,7 +41,6 @@ namespace jit {
     llvm::Module* mod = ctx->module();
     cf_type = mod->getTypeByName("struct.rubinius::CallFrame");
     vars_type = mod->getTypeByName("struct.rubinius::VariableScope");
-    stack_vars_type = mod->getTypeByName("struct.rubinius::StackVariables");
     obj_type = ctx->ptr_type("Object");
     obj_ary_type = llvm::PointerType::getUnqual(obj_type);
     check_global_interrupts_pos = b().CreateIntToPtr(
@@ -125,6 +124,7 @@ namespace jit {
 
   void Builder::nil_locals() {
     Value* nil = constant(cNil, obj_type);
+    int offset = machine_code_->stack_size;
     int size = machine_code_->number_of_locals;
 
     if(size == 0) return;
@@ -134,11 +134,11 @@ namespace jit {
       for(int i = 0; i < size; i++) {
         Value* idx[] = {
           cint(0),
-          cint(offset::StackVariables::locals),
-          cint(i)
+          cint(offset::CallFrame::stk),
+          cint(offset + i)
         };
 
-        Value* gep = b().CreateGEP(vars, idx, "local_pos");
+        Value* gep = b().CreateGEP(call_frame, idx, "local_pos");
         b().CreateStore(nil, gep);
       }
       return;
@@ -159,11 +159,11 @@ namespace jit {
     Value* cur = b().CreateLoad(info_.counter(), "counter");
     Value* idx[] = {
       cint(0),
-      cint(offset::StackVariables::locals),
-      cur
+      cint(offset::CallFrame::stk),
+      b().CreateAdd(cur, cint(offset)),
     };
 
-    Value* gep = b().CreateGEP(vars, idx, "local_pos");
+    Value* gep = b().CreateGEP(call_frame, idx, "local_pos");
     b().CreateStore(nil, gep);
 
     Value* added = b().CreateAdd(cur, one, "added");
@@ -718,21 +718,6 @@ namespace jit {
     stk = b().CreateConstGEP1_32(cfstk, sizeof(CallFrame) / sizeof(Object*), "stack");
 
     info_.set_stack(stk);
-
-    Value* idx2[] = {
-      cint(0),
-      cint(offset::CallFrame::stk),
-      cint(machine_code_->stack_size),
-    };
-
-    Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
-
-    vars = b().CreateBitCast(
-        pos,
-        llvm::PointerType::getUnqual(stack_vars_type), "vars");
-
-    info_.set_variables(vars);
-
   }
 }
 }

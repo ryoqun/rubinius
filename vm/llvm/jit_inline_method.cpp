@@ -41,20 +41,6 @@ namespace jit {
     info_.set_call_frame(call_frame);
     info_.set_stack(stk);
 
-    Value* idx2[] = {
-      cint(0),
-      cint(offset::CallFrame::stk),
-      cint(machine_code_->stack_size),
-    };
-
-    Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
-
-    vars = b().CreateBitCast(
-        pos,
-        llvm::PointerType::getUnqual(stack_vars_type), "vars");
-
-    info_.set_variables(vars);
-
     Value* rd = constant(runtime_data_, ctx_->ptr_type("jit::RuntimeData"));
 
     //  Setup the CallFrame
@@ -86,9 +72,6 @@ namespace jit {
     b().CreateStore(cint(0),
         get_field(call_frame, offset::CallFrame::ip));
 
-    // scope
-    b().CreateStore(vars, get_field(call_frame, offset::CallFrame::scope));
-
     nil_stack(machine_code_->stack_size + machine_code_->number_of_locals, constant(cNil, obj_type));
 
     Value* mod = b().CreateLoad(
@@ -106,15 +89,15 @@ namespace jit {
     assert(stack_args.size() <= (size_t)machine_code_->total_args);
 
     for(size_t i = 0; i < stack_args.size(); i++) {
-      Value* int_pos = cint(i);
+      Value* int_pos = cint(i + machine_code_->stack_size);
 
       Value* idx2[] = {
         cint(0),
-        cint(offset::StackVariables::locals),
+        cint(offset::CallFrame::stk),
         int_pos
       };
 
-      Value* pos = b().CreateGEP(vars, idx2, "local_pos");
+      Value* pos = b().CreateGEP(call_frame, idx2, "local_pos");
 
       Value* arg_val = stack_args.at(i);
 

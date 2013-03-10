@@ -332,7 +332,7 @@ extern "C" {
   }
 
   Object* rbx_destructure_inline_args(STATE, CallFrame* call_frame, Object* obj,
-                                      StackVariables* vars, int size)
+                                      int size)
   {
     Array* ary = try_as<Array>(obj);
 
