@@ -1098,14 +1098,14 @@ namespace rubinius {
       stack_push(dup, type::KnownType::instance(llvm_state()->string_class_id()));
     }
 
-    Value* local_location(Value* call_frame, opcode which) {
+    Value* local_location(JITMethodInfo* info, opcode which) {
       Value* idx2[] = {
         cint(0),
         cint(offset::CallFrame::stk),
-        cint(machine_code()->stack_size + which)
+        cint(info->machine_code->stack_size + which)
       };
 
-      return b().CreateGEP(call_frame, idx2, "local_pos");
+      return b().CreateGEP(info->call_frame(), idx2, "local_pos");
     }
 
     void visit_push_stack_local(opcode which) {
@@ -2379,7 +2379,7 @@ use_send:
         JITMethodInfo* nfo = upscope_info(depth);
 
         if(nfo) {
-          Value* local_pos = local_location(nfo->call_frame(), index);
+          Value* local_pos = local_location(nfo, index);
           b().CreateStore(stack_top(), local_pos);
         } else {
           JITMethodInfo* nfo = &info();
@@ -2467,7 +2467,7 @@ use_send:
 
         // And we can see this scope depth directly because of inlining...
         if(nfo) {
-          Value* local_pos = local_location(nfo->call_frame(), index);
+          Value* local_pos = local_location(nfo, index);
           stack_push(b().CreateLoad(local_pos, "upscope_local"));
         } else {
           JITMethodInfo* nfo = &info();
