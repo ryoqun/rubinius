@@ -284,16 +284,15 @@ namespace rubinius {
     }
 #endif
 
-    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
-    frame->compiled_code = env->compiled_code_;
-
     Module* mod = invocation.module;
     if(!mod) mod = env->module();
 
+    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
     frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
     frame->previous = previous;
     frame->constant_scope_ = invocation.constant_scope;
+    frame->compiled_code = env->compiled_code_;
 
     frame->arguments = &args;
     frame->dispatch_data = env;
