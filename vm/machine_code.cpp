@@ -599,7 +599,7 @@ namespace rubinius {
       // Thus, we have to cache the value in the StackVariables.
 
       // If argument handling fails..
-      if(ArgumentHandler::call(state, mcode, frame, args) == false) {
+      if(unlikely(ArgumentHandler::call(state, mcode, frame, args) == false)) {
         Exception* exc =
           Exception::make_argument_error(state, mcode->total_args, args.total(), args.name());
         exc->locations(state, Location::from_call_stack(state, previous));
@@ -631,15 +631,15 @@ namespace rubinius {
       }
 #endif
 
+      if(!state->check_interrupts(gct, frame, frame)) return NULL;
+
       OnStack<3> os(state, exec, mod, code);
+      state->checkpoint(gct, frame);
+
 #ifdef RBX_PROFILER
       if(unlikely(state->vm()->tooling())) {
         // Check the stack and interrupts here rather than in the interpreter
         // loop itself.
-        if(!state->check_interrupts(gct, frame, frame)) return NULL;
-
-        state->checkpoint(gct, frame);
-
         tooling::MethodEntry method(state, exec, mod, args, code);
 
         RUBINIUS_METHOD_ENTRY_HOOK(state, mod, args.name(), previous);
@@ -647,19 +647,12 @@ namespace rubinius {
         RUBINIUS_METHOD_RETURN_HOOK(state, mod, args.name(), previous);
         return result;
       } else {
-        if(!state->check_interrupts(gct, frame, frame)) return NULL;
-
-        state->checkpoint(gct, frame);
         RUBINIUS_METHOD_ENTRY_HOOK(state, mod, args.name(), previous);
         Object* result = (*mcode->run)(state, mcode, frame);
         RUBINIUS_METHOD_RETURN_HOOK(state, mod, args.name(), previous);
         return result;
       }
 #else
-      if(!state->check_interrupts(gct, frame, frame)) return NULL;
-
-      state->checkpoint(gct, frame);
-
       RUBINIUS_METHOD_ENTRY_HOOK(state, mod, args.name(), previous);
       Object* result = (*mcode->run)(state, mcode, frame);
       RUBINIUS_METHOD_RETURN_HOOK(state, mod, args.name(), previous);
