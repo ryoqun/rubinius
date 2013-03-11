@@ -576,7 +576,7 @@ namespace rubinius {
     Object* MachineCode::execute_specialized(STATE, CallFrame* previous,
         Executable* exec, Module* mod, Arguments& args) {
 
-      CompiledCode* code = as<CompiledCode>(exec);
+      CompiledCode* code = reinterpret_cast<CompiledCode*>(exec);
       MachineCode* mcode = code->machine_code();
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->call_frame_size);
