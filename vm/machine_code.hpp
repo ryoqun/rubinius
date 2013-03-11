@@ -69,6 +69,7 @@ namespace rubinius {
 
     native_int stack_size;
     native_int number_of_locals;
+    native_int call_frame_size;
 
     native_int call_count;
     native_int uncommon_count;
