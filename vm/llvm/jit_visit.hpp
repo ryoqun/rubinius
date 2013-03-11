@@ -1122,7 +1122,7 @@ namespace rubinius {
       Value* idx2[] = {
         cint(0),
         cint(offset::CallFrame::stk),
-        cint(machine_code()->stack_size + which)
+        cint(which)
       };
 
       Value* pos = b().CreateGEP(call_frame_, idx2, "local_pos");
@@ -1154,7 +1154,7 @@ namespace rubinius {
       Value* idx2[] = {
         cint(0),
         cint(offset::CallFrame::stk),
-        cint(machine_code()->stack_size + which)
+        cint(which)
       };
 
       Value* pos = b().CreateGEP(call_frame_, idx2, "local_pos");
