@@ -145,6 +145,8 @@ namespace rubinius {
       }
     }
 
+    template<typename T1, typename T2, typename T3> inline void gc_checkpoint(GCToken gct, CallFrame* frame, T1& obj1 , T2& obj2, T3& obj3);
+
     void lock(GCToken gct) {
       gc_independent(gct);
       vm_->lock(vm_);
