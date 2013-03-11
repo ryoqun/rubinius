@@ -288,25 +288,24 @@ namespace rubinius {
     if(!mod) mod = env->module();
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
+    frame->ip_ = 0;
+    frame->last_match_ = 0;
+    frame->on_heap_ = 0;
     frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
     frame->previous = previous;
     frame->constant_scope_ = invocation.constant_scope;
     frame->compiled_code = env->compiled_code_;
-
     frame->arguments = &args;
     frame->dispatch_data = env;
     frame->top_scope_ = env->top_scope_;
-    frame->ip_ = 0;
     frame->flags = invocation.flags | CallFrame::cCustomConstantScope
                                     | CallFrame::cMultipleScopes
                                     | CallFrame::cBlock;
     frame->self_ = invocation.self;
     frame->module_ = mod;
     frame->block_ = env->top_scope_->block();
-    frame->last_match_ = 0;
     frame->parent_ = env->scope_;
-    frame->on_heap_ = 0;
 
     // TODO: this is a quick hack to process block arguments in 1.9.
     if(!LANGUAGE_18_ENABLED(state)) {
