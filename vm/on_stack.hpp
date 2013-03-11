@@ -88,6 +88,14 @@ namespace rubinius {
       objects_[3] = reinterpret_cast<Object**>(&o4);
     }
   };
+
+    template <typename T1, typename T2, typename T3>
+      inline void State::gc_checkpoint(GCToken gct, CallFrame* frame, T1& obj1 , T2& obj2, T3& obj3) {
+      if(unlikely(shared_.check_gc_p())) {
+        OnStack<3> os(this, obj1, obj2, obj3);
+        vm_->collect_maybe(gct, frame);
+      }
+    }
 }
 
 #endif
