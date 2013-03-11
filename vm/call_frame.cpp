@@ -43,6 +43,9 @@ namespace rubinius {
 
     // Lastly, use the local one. This is where a last_match begins life.
     } else {
+      if(!last_match_) {
+        last_match_ = cNil;
+      }
       return last_match_;
     }
   }
@@ -302,6 +305,10 @@ namespace rubinius {
       new_scope->parent(state, parent_);
     } else {
       new_scope->parent(state, nil<VariableScope>());
+    }
+
+    if(!last_match_) {
+      last_match_ = cNil;
     }
 
     new_scope->self(state, self_);

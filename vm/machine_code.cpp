@@ -609,7 +609,7 @@ namespace rubinius {
       frame->module_ = mod;
       frame->block_ = args.block(); 
       frame->compiled_code = code;
-      frame->last_match_ = cNil;
+      frame->last_match_ = 0;
       frame->parent_ = 0;
       frame->on_heap_ = 0;
 
@@ -695,7 +695,7 @@ namespace rubinius {
     frame->self_ = G(main);
     frame->module_ = G(object); 
     frame->block_ = cNil; 
-    frame->last_match_ = cNil;
+    frame->last_match_ = 0;
     frame->compiled_code = code;
     frame->parent_ = 0;
     frame->on_heap_ = 0;
