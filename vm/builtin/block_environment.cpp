@@ -298,6 +298,7 @@ namespace rubinius {
     frame->arguments = &args;
     frame->dispatch_data = env;
     frame->top_scope_ = env->top_scope_;
+    frame->ip_ = 0;
     frame->flags = invocation.flags | CallFrame::cCustomConstantScope
                                     | CallFrame::cMultipleScopes
                                     | CallFrame::cBlock;
