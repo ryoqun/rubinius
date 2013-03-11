@@ -89,11 +89,6 @@ declare void @outputMethodCacheEntry(%"struct.rubinius::MethodCacheEntry"*)
 
 declare void @output5(%"struct.rubinius::InlineCacheHit"*)
 
-%"struct.rubinius::StackVariables" = type {
-}
-
-declare void @output6(%"struct.rubinius::StackVariables"*)
-
 %"struct.rubinius::UnwindInfo" = type {
   i32, ; target_ip
   i32, ; stack_depth
