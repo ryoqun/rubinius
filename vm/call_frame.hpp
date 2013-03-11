@@ -40,26 +40,22 @@ namespace rubinius {
       cNativeMethod =       1 << 9
     };
 
-    CallFrame* previous;
     ConstantScope* constant_scope_;
-
     void* dispatch_data;
-    CompiledCode* compiled_code;
-
-    Object* self_;
-    Module* module_;
-    Object* block_;
+    int ip_;
+    int flags;
+    void* optional_jit_data;
+    VariableScope* top_scope_;
     Object* last_match_;
     VariableScope* parent_;
     VariableScope* on_heap_;
 
-    int flags;
-    int ip_;
-
-    void* optional_jit_data;
-    VariableScope* top_scope_;
-
+    CallFrame* previous;
     Arguments* arguments;
+    Object* self_;
+    Module* module_;
+    Object* block_;
+    CompiledCode* compiled_code;
 
     // Stack
     Object* stk[];

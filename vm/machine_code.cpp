@@ -579,6 +579,15 @@ namespace rubinius {
       MachineCode* mcode = code->machine_code();
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
+      frame->constant_scope_ = 0;
+      frame->dispatch_data = 0;
+      frame->ip_ = 0;
+      frame->flags = 0;
+      frame->optional_jit_data = 0;
+      frame->top_scope_ = 0;
+      frame->last_match_ = 0;
+      frame->parent_ = 0;
+      frame->on_heap_ = 0;
       frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
       // Originally, I tried using msg.module directly, but what happens is if
@@ -599,20 +608,11 @@ namespace rubinius {
       }
 
       frame->previous = previous;
-      frame->constant_scope_ = 0;
-      frame->dispatch_data = 0;
-      frame->ip_ = 0;
-      frame->flags = 0;
-      frame->optional_jit_data = 0;
-      frame->top_scope_ = 0;
       frame->arguments = &args;
       frame->self_ = args.recv();
+      frame->block_ = args.block();
       frame->module_ = mod;
-      frame->block_ = args.block(); 
       frame->compiled_code = code;
-      frame->last_match_ = 0;
-      frame->parent_ = 0;
-      frame->on_heap_ = 0;
 
       GCTokenImpl gct;
 
@@ -675,6 +675,16 @@ namespace rubinius {
     MachineCode* mcode = code->machine_code();
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
+    frame->constant_scope_ = 0;
+    frame->dispatch_data = 0;
+    frame->ip_ = 0;
+    frame->flags = 0;
+    frame->optional_jit_data = 0;
+    frame->top_scope_ = 0;
+    frame->last_match_ = 0;
+    frame->parent_ = 0;
+    frame->on_heap_ = 0;
+    frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
     // Originally, I tried using msg.module directly, but what happens is if
     // super is used, that field is read. If you combine that with the method
@@ -682,25 +692,15 @@ namespace rubinius {
     // look in the wrong place.
     //
     // Thus, we have to cache the value in the StackVariables.
-    frame->prepare(mcode->stack_size + mcode->number_of_locals);
 
     Arguments args(state->symbol("__script__"), G(main), cNil, 0, 0);
 
     frame->previous = previous;
-    frame->constant_scope_ = 0;
-    frame->dispatch_data = 0;
-    frame->ip_ = 0;
-    frame->flags = 0;
-    frame->optional_jit_data = 0;
-    frame->top_scope_ = 0;
     frame->arguments = &args;
     frame->self_ = G(main);
     frame->module_ = G(object); 
     frame->block_ = cNil; 
-    frame->last_match_ = 0;
     frame->compiled_code = code;
-    frame->parent_ = 0;
-    frame->on_heap_ = 0;
 
     // Do NOT check if we should JIT this. We NEVER want to jit a script.
 
