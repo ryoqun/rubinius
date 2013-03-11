@@ -285,8 +285,6 @@ namespace rubinius {
      *  Initialize frame for the given stack size.
      */
     void prepare(int stack) {
-      ip_ = 0;
-
       for(int i = 0; i < stack; i++) {
         stk[i] = cNil;
       }
