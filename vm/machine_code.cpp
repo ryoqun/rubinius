@@ -601,6 +601,7 @@ namespace rubinius {
       frame->previous = previous;
       frame->constant_scope_ = 0;
       frame->dispatch_data = 0;
+      frame->ip_ = 0;
       frame->flags = 0;
       frame->optional_jit_data = 0;
       frame->top_scope_ = 0;
@@ -688,6 +689,7 @@ namespace rubinius {
     frame->previous = previous;
     frame->constant_scope_ = 0;
     frame->dispatch_data = 0;
+    frame->ip_ = 0;
     frame->flags = 0;
     frame->optional_jit_data = 0;
     frame->top_scope_ = 0;
