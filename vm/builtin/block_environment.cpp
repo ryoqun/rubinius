@@ -304,7 +304,7 @@ namespace rubinius {
     frame->self_ = invocation.self;
     frame->module_ = mod;
     frame->block_ = env->top_scope_->block();
-    frame->last_match_ = cNil;
+    frame->last_match_ = 0;
     frame->parent_ = env->scope_;
     frame->on_heap_ = 0;
 
