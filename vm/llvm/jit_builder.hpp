@@ -33,7 +33,6 @@ namespace jit {
     MachineCode* machine_code_;
     llvm::Type* cf_type;
     llvm::Type* vars_type;
-    llvm::Type* stack_vars_type;
     llvm::Type* obj_type;
     llvm::Type* obj_ary_type;
 
