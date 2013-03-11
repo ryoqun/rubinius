@@ -151,8 +151,6 @@ namespace Proc {
   const static int lambda = 1;
   const static int bound_method = 2;
 }
-namespace StackVariables {
-}
 namespace State {
   const static int vm = 0;
   const static int vm_jit = 1;
