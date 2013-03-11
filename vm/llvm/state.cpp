@@ -692,12 +692,6 @@ halt:
     if(!start) rubinius::bug("null start");
     if(!call_frame) rubinius::bug("null call_frame");
 
-    // if(!start) {
-      // start = call_frame->compiled_code;
-      // call_frame = call_frame->previous;
-      // depth--;
-    // }
-
     if(debug_search) {
       std::cout << "> call_count: " << call_frame->compiled_code->machine_code()->call_count
             << " size: " << call_frame->compiled_code->machine_code()->total
@@ -765,15 +759,6 @@ halt:
       }
 
 
-      /*
-      if(call_frame->block_p()
-          || mcode->required_args != mcode->total_args // has a splat
-          || mcode->call_count < 200 // not called much
-          || mcode->jitted() // already jitted
-          || mcode->parent() // is a block
-        ) return callee;
-      */
-
       if(mcode->required_args != mcode->total_args) {
         if(debug_search) {
           std::cout << "JIT: STOP. reason: req_args != total_args" << std::endl;
@@ -819,12 +804,6 @@ halt:
         return call_frame;
       }
 
-      // if(mcode->required_args != mcode->total_args // has a splat
-          // || mcode->call_count < 200 // not called much
-          // || mcode->jitted() // already jitted
-          // || !mcode->no_inline_p() // method marked as not inlineable
-        // ) return callee;
-
       CallFrame* prev = call_frame->previous;
 
       if(!prev) {
@@ -833,19 +812,6 @@ halt:
         }
         return call_frame;
       }
-
-      // if(cur->machine_code()->total > SMALL_METHOD_SIZE) {
-        // if(debug_search) {
-          // std::cout << "JIT: STOP. reason: big method: "
-                // << cur->machine_code()->total << " > "
-                // << SMALL_METHOD_SIZE
-                // << "\n";
-        // }
-
-        // return call_frame;
-      // }
-
-      // if(!next || cur->machine_code()->total > SMALL_METHOD_SIZE) return call_frame;
 
       callee = call_frame;
       call_frame = prev;
