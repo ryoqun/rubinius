@@ -633,8 +633,8 @@ namespace rubinius {
 
       if(!state->check_interrupts(gct, frame, frame)) return NULL;
 
-      OnStack<3> os(state, exec, mod, code);
-      state->checkpoint(gct, frame);
+      //OnStack<3> os(state, exec, mod, code);
+      state->checkpoint(gct, frame, exec, mod, code);
 
 #ifdef RBX_PROFILER
       if(unlikely(state->vm()->tooling())) {

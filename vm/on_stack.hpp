@@ -96,6 +96,13 @@ namespace rubinius {
         vm_->collect_maybe(gct, frame);
       }
     }
+
+    template <typename T1, typename T2, typename T3>
+      inline void State::checkpoint(GCToken gct, CallFrame* call_frame, T1& obj1, T2& obj2, T3& obj3) {
+        vm_->set_call_frame(call_frame);
+        gc_checkpoint(gct, call_frame, obj1, obj2, obj3);
+        shared_.checkpoint(vm_);
+      }
 }
 
 #endif
