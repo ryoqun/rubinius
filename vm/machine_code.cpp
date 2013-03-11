@@ -80,6 +80,7 @@ namespace rubinius {
     fill_opcodes(state, meth);
     stack_size = meth->stack_size()->to_native();
     number_of_locals = meth->number_of_locals();
+    call_frame_size = stack_size + number_of_locals;
 
     total_args = meth->total_args()->to_native();
     required_args = meth->required_args()->to_native();
@@ -578,7 +579,7 @@ namespace rubinius {
       CompiledCode* code = as<CompiledCode>(exec);
       MachineCode* mcode = code->machine_code();
 
-      InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
+      InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->call_frame_size);
       frame->constant_scope_ = 0;
       frame->dispatch_data = 0;
       frame->ip_ = 0;
@@ -588,7 +589,7 @@ namespace rubinius {
       frame->last_match_ = 0;
       frame->parent_ = 0;
       frame->on_heap_ = 0;
-      frame->prepare(mcode->stack_size + mcode->number_of_locals);
+      frame->prepare(mcode->call_frame_size);
 
       // Originally, I tried using msg.module directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
@@ -674,7 +675,7 @@ namespace rubinius {
   Object* MachineCode::execute_as_script(STATE, CompiledCode* code, CallFrame* previous) {
     MachineCode* mcode = code->machine_code();
 
-    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->stack_size + mcode->number_of_locals);
+    InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->call_frame_size);
     frame->constant_scope_ = 0;
     frame->dispatch_data = 0;
     frame->ip_ = 0;
@@ -684,7 +685,7 @@ namespace rubinius {
     frame->last_match_ = 0;
     frame->parent_ = 0;
     frame->on_heap_ = 0;
-    frame->prepare(mcode->stack_size + mcode->number_of_locals);
+    frame->prepare(mcode->call_frame_size);
 
     // Originally, I tried using msg.module directly, but what happens is if
     // super is used, that field is read. If you combine that with the method
