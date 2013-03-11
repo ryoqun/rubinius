@@ -1098,17 +1098,6 @@ namespace rubinius {
       stack_push(dup, type::KnownType::instance(llvm_state()->string_class_id()));
     }
 
-    void push_scope_local(Value* scope, opcode which) {
-      Value* pos = b().CreateConstGEP2_32(scope, 0, offset::VariableScope::locals,
-                                     "locals_pos");
-
-      Value* table = b().CreateLoad(pos, "locals");
-
-      Value* val_pos = b().CreateConstGEP1_32(table, which, "local_pos");
-
-      stack_push(b().CreateLoad(val_pos, "local"));
-    }
-
     Value* local_location(Value* call_frame, opcode which) {
       Value* idx2[] = {
         cint(0),
@@ -2405,16 +2394,6 @@ use_send:
 
           assert(nfo->is_block && "confused, top must be a block");
 
-          /*
-          Value* idx[] = {
-            cint(0),
-            cint(offset::StackVariables::parent)
-          };
-
-          Value* varscope = b().CreateLoad(
-              b().CreateGEP(vars_, idx), "scope.parent");
-          */
-
           Signature sig(ctx_, ObjType);
           sig << StateTy;
           sig << "CallFrame";
@@ -2502,16 +2481,6 @@ use_send:
           // normal up from here.
 
           assert(nfo->is_block && "confused, top must be a block");
-
-          /*
-          Value* idx[] = {
-            cint(0),
-            cint(offset::StackVariables::parent)
-          };
-
-          Value* varscope = b().CreateLoad(
-              b().CreateGEP(vars_, idx), "scope.parent");
-              */
 
           Signature sig(ctx_, ObjType);
           sig << StateTy;
