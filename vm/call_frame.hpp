@@ -280,15 +280,15 @@ namespace rubinius {
     /**
      *  Initialize frame for the given stack size.
      */
-    void prepare(int stack) {
-      for(int i = 0; i < stack; i++) {
+    void prepare(const int offset, const int stack) {
+      for(int i = offset; i < offset + stack; i++) {
         stk[i] = cNil;
       }
     }
   };
 
 #define ALLOCA_CALLFRAME(stack_size) \
-  reinterpret_cast<InterpreterCallFrame*>(alloca(sizeof(InterpreterCallFrame) + (sizeof(Object*) * (stack_size))))
+    reinterpret_cast<InterpreterCallFrame*>(memset(alloca(sizeof(InterpreterCallFrame) + (sizeof(Object*) * (stack_size))), 0, (sizeof(InterpreterCallFrame) + (sizeof(Object*) * (stack_size)))));
 };
 
 #endif

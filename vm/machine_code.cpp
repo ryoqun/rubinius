@@ -580,16 +580,7 @@ namespace rubinius {
       MachineCode* mcode = code->machine_code();
 
       InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->call_frame_size);
-      frame->constant_scope_ = 0;
-      frame->dispatch_data = 0;
-      frame->ip_ = 0;
-      frame->flags = 0;
-      frame->optional_jit_data = 0;
-      frame->top_scope_ = 0;
-      frame->last_match_ = 0;
-      frame->parent_ = 0;
-      frame->on_heap_ = 0;
-      frame->prepare(mcode->call_frame_size);
+      frame->prepare(mcode->stack_size, mcode->number_of_locals);
 
       // Originally, I tried using msg.module directly, but what happens is if
       // super is used, that field is read. If you combine that with the method
@@ -669,16 +660,7 @@ namespace rubinius {
     MachineCode* mcode = code->machine_code();
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->call_frame_size);
-    frame->constant_scope_ = 0;
-    frame->dispatch_data = 0;
-    frame->ip_ = 0;
-    frame->flags = 0;
-    frame->optional_jit_data = 0;
-    frame->top_scope_ = 0;
-    frame->last_match_ = 0;
-    frame->parent_ = 0;
-    frame->on_heap_ = 0;
-    frame->prepare(mcode->call_frame_size);
+    frame->prepare(mcode->stack_size, mcode->number_of_locals);
 
     // Originally, I tried using msg.module directly, but what happens is if
     // super is used, that field is read. If you combine that with the method

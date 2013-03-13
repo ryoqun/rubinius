@@ -288,10 +288,7 @@ namespace rubinius {
     if(!mod) mod = env->module();
 
     InterpreterCallFrame* frame = ALLOCA_CALLFRAME(mcode->call_frame_size);
-    frame->ip_ = 0;
-    frame->last_match_ = 0;
-    frame->on_heap_ = 0;
-    frame->prepare(mcode->call_frame_size);
+    frame->prepare(mcode->stack_size, mcode->number_of_locals);
 
     frame->previous = previous;
     frame->constant_scope_ = invocation.constant_scope;
