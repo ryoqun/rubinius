@@ -135,14 +135,10 @@ namespace rubinius {
 
     void checkpoint(GCToken gct, CallFrame* call_frame) {
       vm_->set_call_frame(call_frame);
-      gc_checkpoint(gct, call_frame);
-      shared_.checkpoint(vm_);
-    }
-
-    void gc_checkpoint(GCToken gct, CallFrame* frame) {
       if(unlikely(shared_.check_gc_p())) {
-        vm_->collect_maybe(gct, frame);
+        vm_->collect_maybe(gct, call_frame);
       }
+      shared_.checkpoint(vm_);
     }
 
     void lock(GCToken gct) {
