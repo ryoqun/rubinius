@@ -4,7 +4,7 @@ title: Profiling JIT-ted code with OProfile
 author: Ryo Onodera
 ---
 
-You can now profile JIT-ted code!
+You can now profile JIT-ted Ruby code!
 
 Before:
 
@@ -14,17 +14,44 @@ In short, you can tell how Rubinius' JIT works.
 
 Not satified yet? Even annotated profile is supported! That means you can even know how much it spends on each line of Ruby code or on each CPU instructions.
 
+Before:
+
+After:
+
 For this, we're using OProfile, a profiling software.
 
 ### What's OProfile?
 
-It's a very useful profiling tool available on Linux. It's a sampling-based one. That means there is absolutely no change to running Rubinius and your Ruby code to profile. Just run it nor/afzumally you do. Also, profiling overhead is minimal.
+It's a very useful profiling tool available on Linux. It's a sampling-based one. That means there is absolutely no change to Rubinius and your Ruby code to profile. Just run it as you normally do. Also, the overhead of profile is minimal.
 
-This is constrasted to measuing-based profiling. Ruby's built-in profile belongs to it.
+This is constrasted to measuing-based profiling. Ruby's built-in profiler belongs to it. And you should be the way-too-much overhead. ;)
 
-### Setup
+OProfile works as a Linux kernel module. So, it's only supported for Linux. Basically, it can report how many individual profiled items are sampled compared to the overall total samples. It doesn't measure elapsed time. It's much like more detailed top command's indivisual processes' CPU usage. The actual profiled items can be any of C libraries, C functions, C source code lines, or machine instructions.
 
-Sadly, you have manually to build LLVM and OProfile even on dacent Linux distribution like Ubuntu because there is several bugs. In a say, we are really on the cutting edge. ;)
+So, OProfile can't usually profile Ruby code because it works on machine instruction level. But it can JIT-ted code because Rubinius compiles Ruby code very down into the machine instructions by definition.
+
+Sadly, Ubuntu's OProfile and LLVM has bugs relating to this feature. Apparently, there is no one using this. In a say, we are really on the cutting edge. ;)
+
+Anyway, we must overcome it. But how? You have options. :)
+
+### Setup (the super simple way; Ubuntu 12.10 only)
+
+I prepared a PPA (https://launchpad.net/~ryoqun/+archive/ppa) just for this. Add it to your system. To be specific, run this:
+
+$ sudo add-apt-repository ppa:ryoqun/ppa
+$ sudo apt-get update
+$ sudo apt-get install oprofile llvm-3.1
+
+By default, Rubinius doesn't use system-provided LLVM, so re-configure Rubinius and re-build:
+
+$ ./configure --llvm-config llvm-3.1
+$ rake
+
+Done!
+
+### Setup (the super hard way)
+
+If you really want to build LLVM and OProfile manually, do this:
 
 Build and Install OProfile
 
@@ -52,7 +79,29 @@ Run OProfile daemon (requires
     $ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
     $ sudo opcontrol --start
 
+### Setup OProfile
+
+$ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
+$ sudo opcontrol --start
+
+### Run Ruby code!
+
+### Generate profile report
+
+To annotate Ruby code correctly, your current directly must be the top directory of the Rubinius git repository.
+
+$ sudo opjitconv -d /var/lib/oprofile/ 0 0
+$ opreport --symbols image:bin/rbx
+$ opannotate --source
+
+I'll omit but you can generate profile report of annotated assemble by passing --assembly to opannottate instead of --source
+
+### Reset current profile
+
+$ sudo opcontrol --reset
+
 ### How to read the profile result
+
 
 ### Further profiling
 
