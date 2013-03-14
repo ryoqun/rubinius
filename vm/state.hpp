@@ -133,13 +133,7 @@ namespace rubinius {
       shared_.gc_dependent(vm_);
     }
 
-    void checkpoint(GCToken gct, CallFrame* call_frame) {
-      vm_->set_call_frame(call_frame);
-      if(unlikely(shared_.check_gc_p())) {
-        vm_->collect_maybe(gct, call_frame);
-      }
-      shared_.checkpoint(vm_);
-    }
+    inline void checkpoint(GCToken gct, CallFrame* call_frame);
 
     void lock(GCToken gct) {
       gc_independent(gct);
@@ -155,6 +149,10 @@ namespace rubinius {
 
     Object* park_timed(GCToken gct, CallFrame* call_frame, struct timespec* ts);
   };
+
+}
+
+#include "world_state.hpp"
 
 // OK, let me explain
 // This is called VERY frequently. We want to reduce the cost of this check REALLY
@@ -179,9 +177,19 @@ namespace rubinius {
       OnStack<3> os(state, obj1, obj2, obj3); \
       state->vm()->collect_maybe(gct, call_frame); \
     } \
-    state->shared().checkpoint(state->vm());\
+    state->shared().world()->checkpoint(state->vm()); \
 } while (0)
 
+namespace rubinius {
+    inline void State::checkpoint(GCToken gct, CallFrame* call_frame) {
+      vm_->set_call_frame(call_frame);
+      if(unlikely(shared_.check_gc_p())) {
+        vm_->collect_maybe(gct, call_frame);
+      }
+      shared_.world()->checkpoint(vm_);
+    }
 }
+
+
 
 #endif

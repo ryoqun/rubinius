@@ -621,6 +621,14 @@ namespace rubinius {
 
       CallFrame *call_frame = frame;
       CHECK_STATE_EVENT_3(exec, code, code);
+      //OnStack<3> os(state, exec, mod, code);
+      
+      // Check the stack and interrupts here rather than in the interpreter
+      // loop itself.
+      //if(!state->check_interrupts(gct, frame, frame)) return NULL;
+      
+      //state->checkpoint(gct, frame);
+
 
 #ifdef RBX_PROFILER
       if(unlikely(state->vm()->tooling())) {
