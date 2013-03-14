@@ -28,6 +28,9 @@
 #include "on_stack.hpp"
 
 #include "configuration.hpp"
+
+#include "helpers.hpp"
+
 #include "dtrace/dtrace.h"
 
 #ifdef RBX_WINDOWS
@@ -630,13 +633,8 @@ namespace rubinius {
       }
 #endif
 
-      OnStack<3> os(state, exec, mod, code);
-
-      // Check the stack and interrupts here rather than in the interpreter
-      // loop itself.
-      if(!state->check_interrupts(gct, frame, frame)) return NULL;
-
-      state->checkpoint(gct, frame);
+      CallFrame *call_frame = frame;
+      CHECK_STATE_EVENT_3(exec, code, code);
 
 #ifdef RBX_PROFILER
       if(unlikely(state->vm()->tooling())) {

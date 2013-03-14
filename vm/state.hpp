@@ -155,6 +155,33 @@ namespace rubinius {
 
     Object* park_timed(GCToken gct, CallFrame* call_frame, struct timespec* ts);
   };
+
+// OK, let me explain
+// This is called VERY frequently. We want to reduce the cost of this check REALLY
+// as much as possible.
+// For that purpose, We want to inline all check conditions into the caller's 
+// code and avoid construction of OnStack when not needed.
+// Yes, we can use the mighty templates. But, sometimes, we can accomplish the
+// same thing with macros with far fewer code.
+
+#define CHECK_STATE_EVENT_3(obj1, obj2, obj3) do { \
+    if(!state->check_stack(call_frame, call_frame)) return NULL; \
+    if(unlikely(state->check_local_interrupts())) { \
+      if(!state->process_async(call_frame)) return NULL; \
+    } \
+    if(state->vm()->thread_step()) { \
+      OnStack<3> os(state, obj1, obj2, obj3); \
+      state->vm()->clear_thread_step(); \
+      if(!Helpers::yield_debugger(state, gct, call_frame, cNil)) return NULL; \
+    } \
+    state->vm()->set_call_frame(call_frame); \
+    if(unlikely(state->shared().check_gc_p())) { \
+      OnStack<3> os(state, obj1, obj2, obj3); \
+      state->vm()->collect_maybe(gct, call_frame); \
+    } \
+    state->shared().checkpoint(state->vm());\
+} while (0)
+
 }
 
 #endif
