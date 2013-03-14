@@ -1,6 +1,9 @@
+#ifndef RBX_WORLD_STATE_HPP
+#define RBX_WORLD_STATE_HPP
 
 #include "util/thread.hpp"
 #include "gc/managed.hpp"
+#include "instruments/timing.hpp"
 
 namespace rubinius {
   class WorldState {
@@ -266,3 +269,5 @@ namespace rubinius {
     }
   };
 }
+
+#endif

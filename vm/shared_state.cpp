@@ -292,10 +292,6 @@ namespace rubinius {
     world_->restart_threads_externally();
   }
 
-  bool SharedState::checkpoint(THREAD) {
-    return world_->checkpoint(state);
-  }
-
   void SharedState::gc_dependent(STATE) {
     world_->become_dependent(state->vm());
   }
