@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Profiling JIT-ted code with OProfile
+title: Profiling JIT-ted Ruby code with OProfile
 author: Ryo Onodera
 ---
 
@@ -26,11 +26,11 @@ It's a very useful profiling tool available on Linux. It's a sampling-based one.
 
 This is constrasted to measuing-based profiling. Ruby's built-in profiler belongs to it. And you should be the way-too-much overhead. ;)
 
-OProfile works as a Linux kernel module. So, it's only supported for Linux. Basically, it can report how many individual profiled items are sampled compared to the overall total samples. It doesn't measure elapsed time. It's much like more detailed top command's indivisual processes' CPU usage. The actual profiled items can be any of C libraries, C functions, C source code lines, or machine instructions.
+OProfile works as a Linux kernel module. So, it's only supported for Linux. Basically, it can report how many individual profiled items are sampled compared to the overall total samples. It doesn't measure elapsed time. It's much like top command's indivisual processes' CPU usage with far greater flexibility. The actual profiled items can be any of C libraries, C functions, C source code lines, or machine instructions.
 
-So, OProfile can't usually profile Ruby code because it works on machine instruction level. But it can JIT-ted code because Rubinius compiles Ruby code very down into the machine instructions by definition.
+So, OProfile can't usually profile Ruby code because it works on machine instruction level. From OProfile, it can't tell which Ruby source code line Rubinius currently executing from the machine instrucitons. However, it can profile JIT-ted Ruby code because Rubinius compiles Ruby code very down into the machine instructions by definition.
 
-Sadly, Ubuntu's OProfile and LLVM has bugs relating to this feature. Apparently, there is no one using this. In a say, we are really on the cutting edge. ;)
+Sadly, Ubuntu's OProfile and LLVM have bugs relating to this feature. Apparently, there is no one using this. In a say, we are really on the cutting edge. ;)
 
 Anyway, we must overcome it. But how? You have options. :)
 
@@ -42,7 +42,7 @@ $ sudo add-apt-repository ppa:ryoqun/ppa
 $ sudo apt-get update
 $ sudo apt-get install oprofile llvm-3.1
 
-By default, Rubinius doesn't use system-provided LLVM, so re-configure Rubinius and re-build:
+By default, Rubinius doesn't use system-provided LLVM, so re-configure Rubinius to use it and re-build:
 
 $ ./configure --llvm-config llvm-3.1
 $ rake
@@ -69,9 +69,9 @@ Build and Install OProfile
 
 Force to build LLVM with OProfile support enabled and rebuild Rubinius
 
-    $ ruby1.9.1 ./configure --llvm-force-build
-    # configure prints that the header 'opagent.h' is found.)
-    $ ruby1.9.1 -S rake
+    $ ./configure --llvm-force-build
+    # assure that configure prints that the header 'opagent.h' is found.)
+    $ rake
 
 Run OProfile daemon (requires 
 
@@ -81,6 +81,7 @@ Run OProfile daemon (requires
 
 ### Setup OProfile
 
+$ sudo opcontrol --deinit
 $ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
 $ sudo opcontrol --start
 
