@@ -103,6 +103,14 @@ $ sudo opcontrol --reset
 
 ### How to read the profile result
 
+### My last favor
+
+I wish the official packages are fixed and there is no need to add any PPA. I want it-just-works. I reported affecting bugs to Ubuntu's bug tracking system. So, please vote it up for fixing!(Please, vote them with "affects you?"!!):
+
+Bug 1154025 Install PIC version of libbfd.a
+Bug 1148682 symbol lookup error: /usr/lib/libopagent.so: undefined symbol: bfd_init
+Bug 1148529 OProfile support is disabled
+
 
 ### Further profiling
 
