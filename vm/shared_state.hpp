@@ -266,6 +266,10 @@ namespace rubinius {
       return om;
     }
 
+    WorldState* world() {
+      return world_;
+    }
+
     bool check_gc_p() {
       bool c = check_gc_;
       if (unlikely(c)) {
@@ -324,7 +328,6 @@ namespace rubinius {
     void stop_threads_externally();
     void restart_threads_externally();
 
-    bool checkpoint(THREAD);
     void gc_dependent(STATE);
     void gc_independent(STATE);
 
