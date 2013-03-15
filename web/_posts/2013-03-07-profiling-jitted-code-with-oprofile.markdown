@@ -41,6 +41,7 @@ I prepared a PPA (https://launchpad.net/~ryoqun/+archive/ppa) just for this. Add
 $ sudo add-apt-repository ppa:ryoqun/ppa
 $ sudo apt-get update
 $ sudo apt-get install oprofile llvm-3.1
+$ sudo apt-get dist-upgrade # Upgrade preinstalled libllvm3.1 to my PPA version
 
 By default, Rubinius doesn't use system-provided LLVM, so re-configure Rubinius to use it and re-build:
 
