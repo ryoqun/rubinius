@@ -75,17 +75,36 @@ Force to build LLVM with OProfile support enabled and rebuild Rubinius
     # assure that configure prints that the header 'opagent.h' is found.)
     $ rake
 
-Run OProfile daemon (requires 
-
-    $ sudo opcontrol --deinit
-    $ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
-    $ sudo opcontrol --start
-
 ### Setup OProfile
 
-$ sudo opcontrol --deinit
-$ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
-$ sudo opcontrol --start
+OProfile can be configured by a command called oprofile, not by a configuration
+file.
+
+    $ sudo opcontrol --deinit
+    $ sudo modprobe oprofile timer=1      # Use only when running in VirtualBox
+    $ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
+    $ sudo opcontrol --no-vmlinux
+    $ sudo opcontrol --separete all
+    $ sudo opcontrol --start
+    $ sudo opcontrol --dump               # Flushes buffered raw profile data
+    $ opreport --merge all --threshold 1  # Prints the report of profile
+
+Setup is complete if you see an output from opreport like this:
+
+    CPU: CPU with timer interrupt, speed 1858.39 MHz (estimated)
+    Profiling through timer interrupt
+              TIMER:0|
+      samples|      %|
+    ------------------
+        92127 67.6157 no-vmlinux
+        21920 16.0880 rbx
+         7950  5.8348 libc-2.15.so
+         4068  2.9857 runner
+         3429  2.5167 libstdc++.so.6.0.17
+         2139  1.5699 cc1
+         1416  1.0393 vm
+
+Congurationlations!
 
 ### Run Ruby code!
 
@@ -93,8 +112,8 @@ $ sudo opcontrol --start
 
 To annotate Ruby code correctly, your current directly must be the top directory of the Rubinius git repository.
 
-$ sudo opjitconv -d /var/lib/oprofile/ 0 0
-$ opreport --symbols image:bin/rbx
+$ sudo opcontrol --dump && sudo opjitconv /var/lib/oprofile/ 0 0
+$ opreport --merge=all --symbols image:bin/rbx
 $ opannotate --source
 
 I'll omit but you can generate profile report of annotated assemble by passing --assembly to opannottate instead of --source
