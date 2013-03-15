@@ -227,6 +227,12 @@ namespace rubinius {
         opcodes[ip + 1] = opcodes[ip + 1] + original->stack_size()->to_native();
         update_addresses(ip, 1);
         break;
+      case InstructionSequence::insn_goto:
+      case InstructionSequence::insn_goto_if_true:
+      case InstructionSequence::insn_goto_if_false:
+        opcodes[ip + 1] = reinterpret_cast<intptr_t>(addresses + opcodes[ip + 1]);
+        update_addresses(ip, 1);
+        break;
       case InstructionSequence::insn_send_super_stack_with_block:
       case InstructionSequence::insn_send_super_stack_with_splat:
       case InstructionSequence::insn_zsuper:

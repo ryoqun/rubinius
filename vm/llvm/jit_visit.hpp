@@ -2528,8 +2528,12 @@ use_send:
       stack_push(val);
     }
 
+    opcode decode_ip(opcode which) {
+      return (which - (intptr_t)machine_code()->addresses) / sizeof(void**);
+    }
+
     void visit_goto(opcode ip) {
-      BasicBlock* bb = block_map_[ip].block;
+      BasicBlock* bb = block_map_[decode_ip(ip)].block;
       assert(bb);
       b().CreateBr(bb);
       set_block(new_block("continue"));
@@ -2547,7 +2551,7 @@ use_send:
           clong(reinterpret_cast<long>(cFalse)), "is_true");
 
       BasicBlock* cont = new_block("continue");
-      BasicBlock* bb = block_map_[ip].block;
+      BasicBlock* bb = block_map_[decode_ip(ip)].block;
       assert(bb);
       b().CreateCondBr(cmp, bb, cont);
 
@@ -2566,7 +2570,7 @@ use_send:
           clong(reinterpret_cast<long>(cFalse)), "is_true");
 
       BasicBlock* cont = new_block("continue");
-      BasicBlock* bb = block_map_[ip].block;
+      BasicBlock* bb = block_map_[decode_ip(ip)].block;
       assert(bb);
       b().CreateCondBr(cmp, bb, cont);
 
