@@ -106,7 +106,7 @@ continue_to_run:
 #undef next_int
 #define next_int ((opcode)(*ip_ptr++))
 
-#define cache_ip(which) ip_ptr = mcode->addresses + which
+#define cache_ip(which) ip_ptr = which
 #define flush_ip() call_frame->calculate_ip(ip_ptr)
 
 #include "vm/gen/instruction_implementations.hpp"
@@ -141,7 +141,7 @@ exception:
       UnwindInfo info = unwinds.pop();
       stack_position(info.stack_depth);
       call_frame->set_ip(info.target_ip);
-      cache_ip(info.target_ip);
+      cache_ip(mcode->addresses + info.target_ip);
       goto continue_to_run;
     } else {
       call_frame->flush_to_heap(state);
@@ -169,7 +169,7 @@ exception:
       if(info.for_ensure()) {
         stack_position(info.stack_depth);
         call_frame->set_ip(info.target_ip);
-        cache_ip(info.target_ip);
+        cache_ip(mcode->addresses + info.target_ip);
 
         // Don't reset ep here, we're still handling the return/break.
         goto continue_to_run;
@@ -252,7 +252,7 @@ continue_to_run:
 #undef flush_ip
 
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
-#define cache_ip(which)
+#define cache_ip(which) (void)which
 #define flush_ip()
 
 #include "vm/gen/instruction_implementations.hpp"
@@ -397,7 +397,7 @@ continue_to_run:
 #undef flush_ip
 
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
-#define cache_ip(which)
+#define cache_ip(which) void(which)
 #define flush_ip()
 
 #include "vm/gen/instruction_implementations.hpp"
@@ -530,7 +530,7 @@ continue_to_run:
 #undef flush_ip
 
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
-#define cache_ip(which)
+#define cache_ip(which) (void)which
 #define flush_ip()
 
 #include "vm/gen/instruction_implementations.hpp"
@@ -661,7 +661,7 @@ continue_to_run:
 #undef flush_ip
 
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
-#define cache_ip(which)
+#define cache_ip(which) void(which)
 #define flush_ip()
 
 #include "vm/gen/instruction_implementations.hpp"

@@ -121,7 +121,17 @@ namespace rubinius {
 
     opcode goto_target() {
       // All gotos use operand 0 as the target
-      return operand(0);
+      switch(op_) {
+      case insn_goto:
+      case insn_goto_if_true:
+      case insn_goto_if_false:
+        return (operand(0) - (intptr_t)machine_code_->addresses)/sizeof(void**);
+      case insn_setup_unwind:
+        return operand(0);
+      default:
+        printf("baaaad\n");
+        exit(-3);
+      }
     }
 
   };

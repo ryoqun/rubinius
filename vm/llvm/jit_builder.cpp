@@ -399,31 +399,28 @@ namespace jit {
       force_break_ = true;
     }
 
-    void visit_goto(opcode which) {
-      if(current_ip_ < which) loops_ = true;
+    opcode decode_ip(opcode which) {
+      return (which - (intptr_t)info_.machine_code->addresses)/sizeof(void**);
+    }
 
-      break_at(which);
+    void visit_goto(opcode which) {
+      if(current_ip_ < decode_ip(which)) loops_ = true;
+
+      break_at(decode_ip(which));
       next_ip_too();
     }
 
     void visit_goto_if_true(opcode which) {
-      if(current_ip_ < which) loops_ = true;
+      if(current_ip_ < decode_ip(which)) loops_ = true;
 
-      break_at(which);
+      break_at(decode_ip(which));
       break_at(current_ip_ + 2);
     }
 
     void visit_goto_if_false(opcode which) {
-      if(current_ip_ < which) loops_ = true;
+      if(current_ip_ < decode_ip(which)) loops_ = true;
 
-      break_at(which);
-      break_at(current_ip_ + 2);
-    }
-
-    void visit_goto_if_defined(opcode which) {
-      if(current_ip_ < which) loops_ = true;
-
-      break_at(which);
+      break_at(decode_ip(which));
       break_at(current_ip_ + 2);
     }
 

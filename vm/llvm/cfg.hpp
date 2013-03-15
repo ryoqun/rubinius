@@ -79,20 +79,15 @@ namespace jit {
     CFGBlock* root_;
     CFGBlock* current_;
     opcode* stream_;
+    void ** addresses_;
     size_t stream_size_;
 
   public:
-    CFGCalculator(opcode* stream, size_t size)
-      : root_(0)
-      , current_(0)
-      , stream_(stream)
-      , stream_size_(size)
-    {}
-
     CFGCalculator(MachineCode* mcode)
       : root_(0)
       , current_(0)
       , stream_(mcode->opcodes)
+      , addresses_(mcode->addresses)
       , stream_size_(mcode->total)
     {}
 
@@ -144,15 +139,17 @@ namespace jit {
     void find_backward_gotos() {
       MachineCode::Iterator iter(stream_, stream_size_);
 
+      opcode op1;
       while(!iter.end()) {
         switch(iter.op()) {
         case InstructionSequence::insn_goto:
         case InstructionSequence::insn_goto_if_true:
         case InstructionSequence::insn_goto_if_false:
-          if(iter.operand1() < iter.position()) {
-            if(!find_block(iter.operand1())) {
-              CFGBlock* blk = new CFGBlock(iter.operand1(), true);
-              set_block(iter.operand1(), blk);
+        op1 = ((iter.operand1() - (intptr_t)addresses_)/sizeof(void**));
+          if(op1 < iter.position()) {
+            if(!find_block(op1)) {
+              CFGBlock* blk = new CFGBlock(op1, true);
+              set_block(op1, blk);
             }
           }
           break;
@@ -204,15 +201,17 @@ namespace jit {
           }
         }
 
+        opcode op1;
         switch(iter.op()) {
         case InstructionSequence::insn_goto:
         case InstructionSequence::insn_goto_if_true:
         case InstructionSequence::insn_goto_if_false:
-          if(iter.operand1() > iter.position()) {
-            current_->add_child(add_block(iter.operand1()));
+          op1 = ((iter.operand1() - (intptr_t)addresses_)/sizeof(void**));
+          if(op1 > iter.position()) {
+            current_->add_child(add_block(op1));
           } else {
 #ifndef NDEBUG
-            CFGBlock* loop_header = find_block(iter.operand1());
+            CFGBlock* loop_header = find_block(op1);
             assert(loop_header);
             assert(loop_header->exception_handler() == current_->exception_handler());
 #endif
