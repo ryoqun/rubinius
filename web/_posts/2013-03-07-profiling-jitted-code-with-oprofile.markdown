@@ -44,7 +44,8 @@ $ sudo apt-get install oprofile llvm-3.1
 
 By default, Rubinius doesn't use system-provided LLVM, so re-configure Rubinius to use it and re-build:
 
-$ ./configure --llvm-config llvm-3.1
+$ cd path/to/rubinius-git-repository
+$ ./configure --llvm-config llvm-config-3.1
 $ rake
 
 Done!
