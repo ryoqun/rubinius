@@ -510,7 +510,7 @@ class CPPOverloadedPrimitive < BasicPrimitive
 
     str << "  #{@type}* recv = try_as<#{@type}>(args.recv());\n"
     str << "  if(likely(recv)) {\n"
-    str << "    if(args.total() != 1) goto fail;\n"
+    str << "    if(unlikely(args.total() != 1)) goto fail;\n"
 
     @kinds.each do |prim|
       type = prim.arg_types.first
