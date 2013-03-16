@@ -39,7 +39,7 @@ namespace rubinius {
       return RBOOL(obj->fixnum_p());
     }
 
-    // Rubinius.primitive! :fixnum_add
+    // Rubinius.primitive!+ :fixnum_add
     Integer* add(STATE, Fixnum* other) {
       native_int r = to_native() + other->to_native();
       if(r > FIXNUM_MAX || r < FIXNUM_MIN) {
@@ -49,10 +49,10 @@ namespace rubinius {
       }
     }
 
-    // Rubinius.primitive! :fixnum_add
+    // Rubinius.primitive!+ :fixnum_add
     Integer* add(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_add
+    // Rubinius.primitive!+ :fixnum_add
     Float* add(STATE, Float* other);
 
     // Rubinius.primitive! :fixnum_sub
@@ -157,15 +157,15 @@ namespace rubinius {
     // Rubinius.primitive! :fixnum_ge
     Object* ge(STATE, Float* other);
 
-    // Rubinius.primitive! :fixnum_lt
+    // Rubinius.primitive!+ :fixnum_lt
     Object* lt(STATE, Fixnum* other) {
       return RBOOL(to_native() < other->to_native());
     }
 
-    // Rubinius.primitive! :fixnum_lt
+    // Rubinius.primitive!+ :fixnum_lt
     Object* lt(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_lt
+    // Rubinius.primitive!+ :fixnum_lt
     Object* lt(STATE, Float* other);
 
     // Rubinius.primitive! :fixnum_le

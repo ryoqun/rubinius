@@ -504,7 +504,9 @@ class CPPOverloadedPrimitive < BasicPrimitive
     @kinds.each do |prim|
       type = prim.arg_types.first
       str << "    if(#{type}* arg = try_as<#{type}>(args.get_argument(0))) {\n"
-      str << "      try {\n"
+      unless @safe
+        str << "      try {\n"
+      end
       if @pass_state
         call = "        ret = recv->#{@cpp_name}(state, arg);\n"
       else
@@ -520,15 +522,19 @@ class CPPOverloadedPrimitive < BasicPrimitive
       str << "#else\n"
       str << call
       str << "#endif\n"
-      str << "      } catch(const RubyException& exc) {\n"
-      str << "        exc.exception->locations(state,\n"
-      str << "              Location::from_call_stack(state, call_frame));\n"
-      str << "        state->raise_exception(exc.exception);\n"
-      str << "        return NULL;\n"
-      str << "      }\n"
-      str << "      if(likely(ret != reinterpret_cast<Object*>(kPrimitiveFailed))) {\n"
+      unless @safe
+        str << "      } catch(const RubyException& exc) {\n"
+        str << "        exc.exception->locations(state,\n"
+        str << "              Location::from_call_stack(state, call_frame));\n"
+        str << "        state->raise_exception(exc.exception);\n"
+        str << "        return NULL;\n"
+        str << "      }\n"
+        str << "      if(likely(ret != reinterpret_cast<Object*>(kPrimitiveFailed))) {\n"
+      end
       prim_return(str, 8);
-      str << "      }\n"
+      unless @safe
+        str << "      }\n"
+      end
       str << "    }\n"
       str << "\n"
     end
@@ -880,7 +886,7 @@ class CPPParser
   def parse_stream(f)
     class_pattern = /class\s+([^\s]+)\s*:\s*public\s+([^\s]+)/
     slot_pattern = %r!^\s*(\w+)\*?\s+\*?(\w+)_\s*;\s*//\s*slot(.*)!
-    primitive_pattern = %r%^\s*//\s+Rubinius.primitive([?!\+])?\s+:(.*)\s*$%
+    primitive_pattern = %r%^\s*//\s+Rubinius.primitive([?!\+]*)\s+:(.*)\s*$%
     prototype_pattern = %r!\s*(static\s+)?([\w\*]+)\s+([\w]+)\((.*)\)!
     object_size_pattern = %r|size_t\s+object_size\s*\(const\s+ObjectHeader\s*|
 
@@ -933,9 +939,9 @@ class CPPParser
           idx += 1
         # A primitive declaration marked with '// Rubinius.primitive'
         elsif m = primitive_pattern.match(l)
-          overload = m[1] == "!"
-          raw = m[1] == "?"
-          safe = m[1] == "+"
+          overload = m[1].include?("!")
+          raw = m[1].include?("?")
+          safe = m[1].include?("+")
           prim = m[2]
           prototype = f.gets
           pass_state = false
