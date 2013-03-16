@@ -171,6 +171,7 @@ namespace rubinius {
 
       Fixnum* obj = try_as<Fixnum>(ops_->at(ip++));
       if(!obj) {
+        printf("%p\n", ops_->at(ip - 1));
         fail("corrupt instruction sequence", ip);
         return false;
       }
@@ -193,6 +194,7 @@ namespace rubinius {
 
         obj = try_as<Fixnum>(ops_->at(ip++));
         if(!obj) {
+        printf("%p\n", ops_->at(ip - 1));
           fail("corrupt instruction sequence", ip);
           return false;
         }
@@ -207,6 +209,7 @@ namespace rubinius {
 
         obj = try_as<Fixnum>(ops_->at(ip++));
         if(!obj) {
+        printf("%p\n", ops_->at(ip - 1));
           fail("corrupt instruction sequence", ip);
           return false;
         }
@@ -220,6 +223,7 @@ namespace rubinius {
 
         obj = try_as<Fixnum>(ops_->at(ip++));
         if(!obj) {
+        printf("%p\n", ops_->at(ip - 1));
           fail("corrupt instruction sequence", ip);
           return false;
         }

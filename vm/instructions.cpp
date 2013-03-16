@@ -106,6 +106,7 @@ continue_to_run:
 #undef next_int
 #define next_int ((opcode)(*ip_ptr++))
 
+#define set_frame_ip(which)
 #define cache_ip(which) ip_ptr = which
 #define flush_ip() call_frame->calculate_ip(ip_ptr)
 
@@ -247,10 +248,12 @@ continue_to_run:
 #undef DISPATCH
 #define DISPATCH goto *insn_locations[stream[call_frame->inc_ip()]];
 
+#undef set_frame_ip
 #undef next_int
 #undef cache_ip
 #undef flush_ip
 
+#define set_frame_ip(which) call_frame->set_ip(which)
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
 #define cache_ip(which) (void)which
 #define flush_ip()
@@ -392,10 +395,12 @@ continue_to_run:
     } \
     goto *insn_locations[stream[call_frame->inc_ip()]];
 
+#undef set_frame_ip
 #undef next_int
 #undef cache_ip
 #undef flush_ip
 
+#define set_frame_ip(which) call_frame->set_ip(which)
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
 #define cache_ip(which) void(which)
 #define flush_ip()
@@ -525,10 +530,12 @@ continue_to_run:
     } \
     goto *insn_locations[stream[call_frame->inc_ip()]];
 
+#undef set_frame_ip
 #undef next_int
 #undef cache_ip
 #undef flush_ip
 
+#define set_frame_ip(which) call_frame->set_ip(which)
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
 #define cache_ip(which) (void)which
 #define flush_ip()
@@ -656,10 +663,12 @@ continue_to_run:
     state->shared().tool_broker()->at_ip(state, mcode, call_frame->ip_2()); \
     goto *insn_locations[stream[call_frame->inc_ip()]];
 
+#undef set_frame_ip
 #undef next_int
 #undef cache_ip
 #undef flush_ip
 
+#define set_frame_ip(which) call_frame->set_ip(which)
 #define next_int ((opcode)(stream[call_frame->inc_ip()]))
 #define cache_ip(which) void(which)
 #define flush_ip()

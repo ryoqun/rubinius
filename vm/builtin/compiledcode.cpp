@@ -124,7 +124,7 @@ namespace rubinius {
         if(!bv.verify(state)) {
           if(reason) *reason = bv.failure_reason();
           if(ip) *ip = bv.failure_ip();
-          std::cerr << "Error validating bytecode: " << bv.failure_reason() << "\n";
+          std::cerr << "Error validating bytecode: " << bv.failure_reason() << " at " << bv.failure_ip() << "\n";
           return 0;
         }
       }

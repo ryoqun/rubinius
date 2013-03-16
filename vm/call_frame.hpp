@@ -54,9 +54,7 @@ namespace rubinius {
     VariableScope* on_heap_;
 
     int flags;
-    private:
     int ip_;
-    public:
 
     void* optional_jit_data;
     VariableScope* top_scope_;
