@@ -201,7 +201,7 @@ namespace rubinius {
         stream << "<unknown>";
       }
 
-      stream << " (+" << cf->ip();
+      stream << " (+" << cf->ip_2();
       if(cf->is_inline_frame()) {
         stream << " inline";
       } else if(cf->jitted_p()) {
@@ -225,7 +225,7 @@ namespace rubinius {
 
   int CallFrame::line(STATE) {
     if(!compiled_code) return -2;        // trampoline context
-    return compiled_code->line(state, ip());
+    return compiled_code->line(state, ip_2());
   }
 
   // Walks the CallFrame list to see if +scope+ is still running
@@ -277,7 +277,7 @@ namespace rubinius {
 
     bool found = false;
 
-    Object* obj = tbl->fetch(state, Fixnum::from(ip()), &found);
+    Object* obj = tbl->fetch(state, Fixnum::from(ip_2()), &found);
     if(found) return obj;
 
     return 0;

@@ -1307,7 +1307,7 @@ extern "C" {
       }
     }
 
-    call_frame->ip_ = entry_ip;
+    call_frame->set_ip(entry_ip);
 
     MachineCode::InterpreterState is;
 

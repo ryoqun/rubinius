@@ -412,7 +412,7 @@ namespace rubinius {
 
     VariableScope* scope = cf->promote_scope(state);
 
-    return Tuple::from(state, 3, Fixnum::from(cf->ip()), cf->compiled_code, scope);
+    return Tuple::from(state, 3, Fixnum::from(cf->ip_2()), cf->compiled_code, scope);
   }
 
   Array* Thread::mri_backtrace(STATE, GCToken gct, CallFrame* calling_environment) {

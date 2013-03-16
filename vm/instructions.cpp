@@ -653,7 +653,7 @@ continue_to_run:
 
 #undef DISPATCH
 #define DISPATCH \
-    state->shared().tool_broker()->at_ip(state, mcode, call_frame->ip()); \
+    state->shared().tool_broker()->at_ip(state, mcode, call_frame->ip_2()); \
     goto *insn_locations[stream[call_frame->inc_ip()]];
 
 #undef next_int
