@@ -32,7 +32,7 @@ namespace rubinius {
     loc->method_module(state, call_frame->module());
     loc->receiver(state, call_frame->self());
     loc->method(state, call_frame->compiled_code);
-    loc->ip(state, Fixnum::from(call_frame->ip()));
+    loc->ip(state, Fixnum::from(call_frame->ip_2()));
     loc->flags(state, Fixnum::from(0));
 
     if(call_frame->is_block_p(state)) {
