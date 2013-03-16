@@ -18,7 +18,6 @@ class BasicPrimitive
 
   def output_header(str)
     str << "Object* Primitives::#{@name}(STATE, CallFrame* call_frame, Executable* exec, Module* mod, Arguments& args) {\n"
-    str << "  state->set_call_frame(call_frame);\n"
     str << emit_counter
     # str << " std::cout << \"[Primitive #{@name}]\\n\";\n"
     str << "  Object* ret;\n"
@@ -86,6 +85,7 @@ class BasicPrimitive
     str << "    RUBINIUS_METHOD_PRIMITIVE_RETURN_HOOK(state, mod, args.name(), call_frame);\n"
     str << "#endif\n"
     str << "  } catch(const RubyException& exc) {\n"
+    str << "    state->set_call_frame(call_frame);\n"
     str << "    exc.exception->locations(state,\n"
     str << "          Location::from_call_stack(state, call_frame));\n"
     str << "    state->raise_exception(exc.exception);\n"
@@ -97,6 +97,7 @@ class BasicPrimitive
     str << "    goto fail;\n\n"
     prim_return(str);
     str << "fail:\n"
+    str << "  state->set_call_frame(call_frame);\n"
     str << "  return CompiledCode::primitive_failed(state, call_frame, exec, mod, args);\n"
     str << "}\n\n"
   end
