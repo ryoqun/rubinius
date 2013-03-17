@@ -2529,7 +2529,7 @@ use_send:
     }
 
     opcode decode_ip(opcode which) {
-      return (which - (intptr_t)machine_code()->addresses) / sizeof(void**);
+      return ((which + sizeof(void**)) - (opcode)machine_code()->addresses) / sizeof(void**);
     }
 
     void visit_goto(opcode ip) {

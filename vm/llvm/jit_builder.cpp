@@ -400,7 +400,7 @@ namespace jit {
     }
 
     opcode decode_ip(opcode which) {
-      return (which - (intptr_t)info_.machine_code->addresses)/sizeof(void**);
+      return ((which + sizeof(void**)) - (opcode)info_.machine_code->addresses)/sizeof(void**);
     }
 
     void visit_goto(opcode which) {

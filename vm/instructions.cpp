@@ -288,7 +288,6 @@ exception:
       UnwindInfo info = unwinds.pop();
       stack_position(info.stack_depth);
       call_frame->set_ip(info.target_ip);
-      cache_ip(info.target_ip);
       goto continue_to_run;
     } else {
       call_frame->flush_to_heap(state);
@@ -316,7 +315,6 @@ exception:
       if(info.for_ensure()) {
         stack_position(info.stack_depth);
         call_frame->set_ip(info.target_ip);
-        cache_ip(info.target_ip);
 
         // Don't reset ep here, we're still handling the return/break.
         goto continue_to_run;
