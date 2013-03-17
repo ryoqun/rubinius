@@ -121,58 +121,6 @@ namespace jit {
     b().SetInsertPoint(cont);
   }
 
-  void Builder::nil_locals() {
-    Value* nil = constant(cNil, obj_type);
-    int offset = machine_code_->stack_size;
-    int size = machine_code_->number_of_locals;
-
-    if(size == 0) return;
-    // Stack size 5 or less, do 5 stores in a row rather than
-    // the loop.
-    if(size <= 5) {
-      for(int i = 0; i < size; i++) {
-        Value* idx[] = {
-          cint(0),
-          cint(offset::CallFrame::stk),
-          cint(offset + i)
-        };
-
-        Value* gep = b().CreateGEP(call_frame, idx, "local_pos");
-        b().CreateStore(nil, gep);
-      }
-      return;
-    }
-
-    Value* max = cint(size);
-    Value* one = cint(1);
-
-    BasicBlock* top = info_.new_block("locactx_nil");
-    BasicBlock* cont = info_.new_block("bottom");
-
-    b().CreateStore(cint(0), info_.counter());
-
-    b().CreateBr(top);
-
-    b().SetInsertPoint(top);
-
-    Value* cur = b().CreateLoad(info_.counter(), "counter");
-    Value* idx[] = {
-      cint(0),
-      cint(offset::CallFrame::stk),
-      b().CreateAdd(cur, cint(offset)),
-    };
-
-    Value* gep = b().CreateGEP(call_frame, idx, "local_pos");
-    b().CreateStore(nil, gep);
-
-    Value* added = b().CreateAdd(cur, one, "added");
-    b().CreateStore(added, info_.counter());
-
-    Value* cmp = b().CreateICmpEQ(added, max, "loop_check");
-    b().CreateCondBr(cmp, cont, top);
-
-    b().SetInsertPoint(cont);
-  }
 
 
   void Builder::check_self_type() {

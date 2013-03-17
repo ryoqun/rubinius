@@ -520,8 +520,6 @@ namespace jit {
         get_field(call_frame, offset::CallFrame::parent));
 
     b().CreateStore(constant(cNil, obj_type), get_field(call_frame, offset::CallFrame::last_match));
-
-    nil_locals();
   }
 
 
