@@ -223,10 +223,6 @@ namespace rubinius {
       ip_ = new_ip;
     }
 
-    int dec_ip() {
-      return ip_--;
-    }
-
     int inc_ip() {
       return ip_++;
     }

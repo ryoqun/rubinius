@@ -125,7 +125,7 @@ namespace rubinius {
       case insn_goto:
       case insn_goto_if_true:
       case insn_goto_if_false:
-        return (operand(0) - (intptr_t)machine_code_->addresses)/sizeof(void**);
+        return (operand(0) + (sizeof(void**)) - (opcode)machine_code_->addresses)/sizeof(void**);
       case insn_setup_unwind:
         return operand(0);
       default:

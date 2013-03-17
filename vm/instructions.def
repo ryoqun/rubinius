@@ -98,7 +98,7 @@ section "Flow control"
 #   goto_if_false
 
 instruction goto(location) [ -- ] => branch
-  set_frame_ip(((location - (intptr_t)mcode->addresses)/sizeof(void**)));
+  set_frame_ip(((((opcode)location + sizeof(void**)) - (opcode)mcode->addresses)/sizeof(void**)));
   cache_ip((reinterpret_cast<void**>(location)));
 end
 
@@ -112,7 +112,7 @@ end
 instruction goto_if_false(location) [ value -- ] => branch
   Object* t1 = stack_pop();
   if(!CBOOL(t1)) {
-    set_frame_ip(((location - (intptr_t)mcode->addresses)/sizeof(void**)));
+    set_frame_ip(((((opcode)location + sizeof(void**)) - (opcode)mcode->addresses)/sizeof(void**)));
     cache_ip((reinterpret_cast<void**>(location)));
   }
 end
@@ -127,7 +127,7 @@ end
 instruction goto_if_true(location) [ value -- ] => branch
   Object* t1 = stack_pop();
   if(CBOOL(t1)) {
-    set_frame_ip(((location - (intptr_t)mcode->addresses)/sizeof(void**)));
+    set_frame_ip(((((opcode)location + sizeof(void**)) - (opcode)mcode->addresses)/sizeof(void**)));
     cache_ip((reinterpret_cast<void**>(location)));
   }
 end

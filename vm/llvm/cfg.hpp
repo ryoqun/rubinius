@@ -145,7 +145,7 @@ namespace jit {
         case InstructionSequence::insn_goto:
         case InstructionSequence::insn_goto_if_true:
         case InstructionSequence::insn_goto_if_false:
-        op1 = ((iter.operand1() - (intptr_t)addresses_)/sizeof(void**));
+        op1 = (((iter.operand1() + sizeof(void**)) - (opcode)addresses_)/sizeof(void**));
           if(op1 < iter.position()) {
             if(!find_block(op1)) {
               CFGBlock* blk = new CFGBlock(op1, true);
@@ -206,7 +206,7 @@ namespace jit {
         case InstructionSequence::insn_goto:
         case InstructionSequence::insn_goto_if_true:
         case InstructionSequence::insn_goto_if_false:
-          op1 = ((iter.operand1() - (intptr_t)addresses_)/sizeof(void**));
+          op1 = (((iter.operand1() + sizeof(void**)) - (opcode)addresses_)/sizeof(void**));
           if(op1 > iter.position()) {
             current_->add_child(add_block(op1));
           } else {
