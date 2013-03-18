@@ -227,8 +227,8 @@ namespace rubinius {
       return ip_++;
     }
 
-    void calculate_ip(void** pos) {
-      ip_ = pos - compiled_code->machine_code()->addresses;
+    void calculate_ip(int ip) {
+      ip_ = ip;
     }
 
     VariableScope* promote_scope_full(STATE);

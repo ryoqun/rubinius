@@ -108,7 +108,7 @@ continue_to_run:
 
 #define set_frame_ip(which)
 #define cache_ip(which) ip_ptr = which
-#define flush_ip() call_frame->calculate_ip(ip_ptr + 1)
+#define flush_ip() call_frame->calculate_ip(ip_ptr + 1 - mcode->addresses)
 
 #include "vm/gen/instruction_implementations.hpp"
 
