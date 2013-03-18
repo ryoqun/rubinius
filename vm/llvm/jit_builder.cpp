@@ -88,9 +88,9 @@ namespace jit {
 
   void Builder::nil_stack(int size, Value* nil) {
     if(size == 0) return;
-    // Stack size 5 or less, do 5 stores in a row rather than
+    // Stack size 10 or less, do 10 stores in a row rather than
     // the loop.
-    if(size <= 5) {
+    if(size <= 10) {
       for(int i = 0; i < size; i++) {
         b().CreateStore(nil, b().CreateConstGEP1_32(stk, i, "stack_pos"));
       }
