@@ -203,7 +203,7 @@ end
 #   required.
 
 instruction pop() [ value -- ]
-  (void)stack_pop();
+  stack_fast_pop();
 end
 
 # [Description]
@@ -662,7 +662,7 @@ instruction cast_array() [ value -- array ]
     }
   }
 
-  (void)stack_pop(); // Remove original value
+  stack_fast_pop(); // Remove original value
   CHECK_AND_PUSH(t1);
 end
 
@@ -958,7 +958,7 @@ instruction send_method(literal) [ receiver -- value ] => send
   Arguments args(nil<Symbol>(), recv, cNil, 0, 0);
   Object* ret = cache->execute(state, call_frame, args);
 
-  (void)stack_pop();
+  stack_fast_pop();
 
   CHECK_AND_PUSH(ret);
 end
@@ -1852,8 +1852,8 @@ instruction meta_send_op_plus(literal) [ value1 value2 -- sum ] => send
   Object* right = stack_back(0);
 
   if(both_fixnum_p(left, right)) {
-    (void)stack_pop();
-    (void)stack_pop();
+    stack_fast_pop();
+    stack_fast_pop();
     Object* res = ((Fixnum*)(left))->add(state, (Fixnum*)(right));
     stack_push(res);
   } else {
@@ -1880,7 +1880,7 @@ instruction meta_send_op_minus(literal) [ value1 value2 -- difference ] => send
   Object* right = stack_back(0);
 
   if(both_fixnum_p(left, right)) {
-    (void)stack_pop();
+    stack_fast_pop();
     stack_set_top(((Fixnum*)(left))->sub(state, (Fixnum*)(right)));
   } else {
     flush_ip();
@@ -1909,7 +1909,7 @@ instruction meta_send_op_equal(literal) [ value1 value2 -- boolean ] => send
 
   /* If both are not references, compare them directly. */
   if(!t1->reference_p() && !t2->reference_p()) {
-    (void)stack_pop();
+    stack_fast_pop();
     stack_set_top(RBOOL(t1 == t2));
   } else {
     flush_ip();
@@ -1936,7 +1936,7 @@ instruction meta_send_op_lt(literal) [ value1 value2 -- boolean ]
   if(both_fixnum_p(t1, t2)) {
     native_int j = as<Integer>(t1)->to_native();
     native_int k = as<Integer>(t2)->to_native();
-    (void)stack_pop();
+    stack_fast_pop();
     stack_set_top(RBOOL(j < k));
   } else {
     flush_ip();
@@ -1963,7 +1963,7 @@ instruction meta_send_op_gt(literal) [ value1 value2 -- boolean ]
   if(both_fixnum_p(t1, t2)) {
     native_int j = as<Integer>(t1)->to_native();
     native_int k = as<Integer>(t2)->to_native();
-    (void)stack_pop();
+    stack_fast_pop();
     stack_set_top(RBOOL(j > k));
   } else {
     flush_ip();
@@ -1992,7 +1992,7 @@ instruction meta_send_op_tequal(literal) [ value1 value2 -- boolean ] => send
   Object* t2 = stack_back(0);
   /* If both are fixnums, or both are symbols, compare the ops directly. */
   if((t1->fixnum_p() && t2->fixnum_p()) || (t1->symbol_p() && t2->symbol_p())) {
-    (void)stack_pop();
+    stack_fast_pop();
     stack_set_top(RBOOL(t1 == t2));
   } else {
     flush_ip();
@@ -2321,7 +2321,7 @@ instruction meta_to_s(literal) [ object -- string ] => send
       ret = stack_top()->to_s(state, false);
     }
 
-    (void)stack_pop();
+    stack_fast_pop();
     CHECK_AND_PUSH(ret);
   }
 end

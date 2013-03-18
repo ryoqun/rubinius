@@ -49,6 +49,7 @@ using namespace rubinius;
  * old code used an undefined behavior, this forces the order. */
 #define stack_push(val) ({ Object* __stack_v = (val); *++STACK_PTR = __stack_v; })
 #define stack_pop() (*STACK_PTR--)
+#define stack_fast_pop() (--STACK_PTR)
 #define stack_set_top(val) *STACK_PTR = (val)
 
 #define stack_top() (*STACK_PTR)
