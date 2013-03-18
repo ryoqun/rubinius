@@ -127,7 +127,7 @@ namespace jit {
 
       // *local_i = M+O+HS
       b().CreateStore(
-        cint(M+O+HS),
+        cint(M+O+HS+machine_code_->stack_size),
         local_i);
 
       b().CreateBr(top);
@@ -151,7 +151,7 @@ namespace jit {
       Value* idx2[] = {
         cint(0),
         cint(offset::CallFrame::stk),
-        b().CreateAdd(local_val, cint(machine_code_->stack_size)),
+        local_val
       };
 
       // locals[local_idx] = args[loop_val]
