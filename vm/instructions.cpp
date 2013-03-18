@@ -94,7 +94,7 @@ Object* MachineCode::interpreter(STATE,
 
   register void** ip_ptr = mcode->addresses - 1;
 
-  Object** stack_ptr = call_frame->stk - 1;
+  register Object** stack_ptr = call_frame->stk - 1;
 
   UnwindInfoSet unwinds;
 
