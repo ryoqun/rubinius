@@ -117,6 +117,7 @@ class Module
     be = Rubinius::Compiler.construct_block string, binding,
                                             filename, line
 
+    be.update_compiled_code_scope(cs)
     be.call_under self, cs, self
   end
 

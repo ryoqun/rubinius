@@ -380,6 +380,30 @@ namespace rubinius {
     return cFalse;
   }
 
+  Object* CompiledCode::update_code_literal_scope(STATE) {
+    Tuple* lits = literals();
+    for(native_int i = 0; i < lits->num_fields(); i++) {
+      if(CompiledCode* code = try_as<CompiledCode>(lits->at(state, i))) {
+        bool for_block = false;
+        if(Tuple* metadata = try_as<Tuple>(code->metadata())) {
+          for(native_int j = 0; j < metadata->num_fields(); j += 2) {
+            if(metadata->at(state, j) == state->symbol("for_block") and
+               !metadata->at(state, j + 1)->nil_p()) {
+              for_block = true;
+            }
+          }
+        }
+        if(for_block) {
+          code->scope(state, scope());
+          code->update_code_literal_scope(state);
+        } else {
+          //std::cout << code->name()->cpp_str(state) << std::endl;
+        }
+      }
+    }
+    return cNil;
+  }
+
   CompiledCode* CompiledCode::of_sender(STATE, CallFrame* calling_environment) {
     CallFrame* caller = calling_environment->previous;
     if(caller) {
