@@ -607,12 +607,12 @@
 <tr><td>...</td><td></td></tr>
 </tbody>
 </table>
-<h3><a class="instruction" name="setup_unwind">setup_unwind(ip, type)</a></h3>
+<h3><a class="instruction" name="setup_unwind">setup_unwind(location, type)</a></h3>
 
    Register an unwind handler
 
    Registers what to happen when an exception wants to unwind through the
-   current invocation. Operand _ip_ specifies where to set the instruction
+   current invocation. Operand _location_ specifies where to set the instruction
    pointer if used. Operand _type_ is either 0 for if the value should be
    used in rescue style (not run when unwinding because of a return caused by
    `raise_return`) or 1 for ensure style (always used). The registrations are
