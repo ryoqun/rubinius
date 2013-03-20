@@ -286,7 +286,13 @@ periodically sampling it.
 Note that summing all entries up doesn't equal to 100%, because `opreport` only
 reported the top part of whole profile result (by `--threshold 1`).
 
-`5626.jo` means this is JIT-ted code created when running process of PID 5526.
+`5626.jo` is a special `app name` for JIT-ted code. Usually `app name` is the
+name of file C/C++ functions reside in (shared libraries or executables).
+So, for normal Rubinius' C++ functions, `app name` is just `rbx` because they
+reside in `./bin/rbx`. For JIT-ted Ruby code, there can be no meaningful `app
+name`, because JIT-ted Ruby code is generated at runtime and they reside in no
+file, but only in memory. So, OProfile uses `*.jo` as `app name` in such cases.
+And, `5626` means this is profiled when running the process of PID 5526.
 
 `_X_Hash#values_at@18` is the name of symbol for this entry of profile report
 (duh!).
@@ -346,5 +352,9 @@ please!!):
 There is new proling tool on Linux: `perf` and `operf` (OProfile's new
 command). I don't know them well, but certainly they will be useful for
 profiling Rubinius.
+
+As a last note, this is partially based on [Unladen Swallow's
+infomation](http://code.google.com/p/unladen-swallow/wiki/UsingOProfile)
+of profiling LLVM-based JIT-ted code by OProfile.
 
 Happy profiling!
