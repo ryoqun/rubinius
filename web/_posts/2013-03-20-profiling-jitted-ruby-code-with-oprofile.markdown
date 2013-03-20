@@ -366,12 +366,12 @@ please!!):
 
 ### Further profiling
 
-There is new proling tool on Linux: `perf` and `operf` (OProfile's new
+There is new profiling tool on Linux: `perf` and `operf` (OProfile's new
 command). I don't know them well, but certainly they will be useful for
 profiling Rubinius.
 
 As a last note, this is partially based on [Unladen Swallow's
-infomation](http://code.google.com/p/unladen-swallow/wiki/UsingOProfile)
+information](http://code.google.com/p/unladen-swallow/wiki/UsingOProfile)
 of profiling LLVM-based JIT-ted code by OProfile.
 
 Happy profiling!
