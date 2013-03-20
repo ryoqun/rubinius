@@ -40,11 +40,12 @@ After:
     288       2.2454  shared_state.cpp:295        rbx                      rubinius::SharedState::checkpoint(rubinius::ManagedThread*)
     283       2.2065  kind_of.hpp:153             rbx                      bool rubinius::kind_of<rubinius::Fiber>(rubinius::Object const*)
 
-In short, you can tell how Rubinius' JIT works in performance point of view.
+In short, you can tell how the machine code that the Rubinius JIT generates
+performs.
 
 Not satisfied yet? Even annotated profile is supported! That means you can even
-know how much it spends on each line of Ruby code or even on each CPU
-instructions:
+know how much time it spends on each line of Ruby code or even on each CPU
+instruction:
 
     /* 
      * Total samples for file : "/tmp/loop.rb"
@@ -66,18 +67,19 @@ instructions:
                    :
                    :forever
 
-We're using OProfile, a profiling software. By this blog post, I'll show you
+We're using OProfile, a profiling software. In this blog post, I'll show you
 how to profile using it!
 
 ### What's OProfile?
 
 It's a very useful profiling tool available on Linux. It's a sampling-based
 one. That means there is absolutely no change to Rubinius and your Ruby code to
-profile. Just run it as you normally do. Also, the overhead of profile is
- minimal.
+profile. Just run it as you normally do. Also, the overhead of profiling is
+minimal.
 
-This is contrasted to measuring-based profiling. Ruby's built-in profiler
- belongs to it. And you should be aware of the way-too-much overhead. ;)
+This is contrasted to measuring-based profiling. Rubinius's built-in profiler
+and ruby-prof are both examples of measuring profilers. This means the overhead
+is much bigger and can skew results because of that.
 
 Basically, it works by reporting how many individual profiled items are sampled
 compared to the overall total samples. It doesn't measure elapsed time. It's
@@ -93,10 +95,11 @@ instructions by definition.
 
 OProfile works as a Linux kernel module. So, it's supported only for Linux.
 Sadly, Ubuntu's OProfile and LLVM have bugs relating to this feature.
-Apparently, there is no one using this. In a say, we are really on the cutting
-edge. ;)
+Apparently, there is no one using this. So you can say, we are really on the
+cutting edge. ;)
 
-Anyway, we must overcome it. But how? You have options. :)
+Anyway, we must work around these problems. But how? There are a few options.
+:)
 
 ### Setup (PPA: the super simple way; Ubuntu 12.10 only)
 
@@ -225,8 +228,9 @@ directory of the Rubinius git repository:
 
 Let's check the profile report of the above benchmark.
 
-NOTE: try to run `opcontrol` at least once while running Rubinius if JIT-ted
-Ruby code doesn't show in the profile report. There is some issue...
+NOTE: try to run `opcontrol` and `opjitconv` at least once while running
+Rubinius if JIT-ted Ruby code doesn't show in the profile report. There is
+some issue...
 
     $ sudo opcontrol --dump && sudo opjitconv /var/lib/oprofile/ 0 0
     $ opreport --merge all --threshold 1 image:./bin/rbx --symbols --debug-info \
