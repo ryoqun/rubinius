@@ -28,7 +28,7 @@ After:
     samples  %        linenr info                 app name                 symbol name
     3468     27.0388  instructions.cpp:82         rbx                      rubinius::MachineCode::interpreter(rubinius::State*, rubinius::MachineCode*, rubinius::InterpreterCallFrame*)
     3048     23.7642  loop.rb:7                   5060.jo                  _X_Object#forever$block@1
-          # => Wow, the name of JIT-ted Ruby code is shown along side C++ function symbols!
+      # => Wow, the name of JIT-ted Ruby code is shown along side C++ function symbols!
     1044      8.1397  jit_util.cpp:848            rbx                      rbx_push_local_depth
     947       7.3834  (no location information)   rbx                      __x86.get_pc_thunk.bx
     916       7.1417  jit_util.cpp:787            rbx                      rbx_set_local_depth
