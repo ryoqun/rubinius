@@ -1220,6 +1220,9 @@ instruction create_block(literal) [ -- block ]
     //printf("correct!!!!!\n");
   }
   if(code->scope()->nil_p()) {
+    printf("different!!!!! %p %p\n", code->scope(), call_frame->constant_scope());
+    flush_ip();
+    call_frame->print_backtrace(state, 100, false);
     code->scope(state, call_frame->constant_scope());
   }
 

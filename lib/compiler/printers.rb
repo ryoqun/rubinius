@@ -64,6 +64,7 @@ module Rubinius
         end
         print "Literals:    #{literals.size}"
         print code.literals.size > 0 ? ": #{literals.join ", "}\n" : "\n"
+        puts "Metadata:    #{code.metadata.inspect}"
         print_lines code
         puts
       end
