@@ -53,27 +53,48 @@ Done!
 
 ### Setup (the super hard way)
 
+if you're not using Ubuntu, but other Linux distributions and the distribution doesn't provide Oprofile-enabled LLVM packages,
 If you really want to build LLVM and OProfile manually, do this:
+
+I tested this on Ubuntu 12.10. Minor adjustments may be needed to build on your environment.
 
 Build and Install OProfile
 
-    # assume you're at the top directory of rubinius repository.
-    $ sudo apt-get build-dep oprofile
-    $ git clone git://oprofile.git.sourceforge.net/gitroot/oprofile/oprofile vendor/oprofile
-    $ cd vendor/oprofile
+    $ sudo apt-get build-dep oprofile # do equivalent thing on other distributions.
+    $ cd /path/to/working-directory-to-build-things
+    $ wget http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.8.tar.gz
+    $ tar -xf oprofile-0.9.8.tar.gz
+    $ cd oprofile-0.9.8
     $ ./autogen.sh
     $ ./configure --prefix /usr
     $ make
     $ sudo make install
     $ opreport --version
-    # it says like this: opreport: oprofile 0.9.9git compiled on Mar  8 2013 00:57:08
-    $ cd ../..
+    # it says like this: opreport: oprofile 0.9.8 compiled on Mar  8 2013 00:57:08
 
 Force to build LLVM with OProfile support enabled and rebuild Rubinius
 
-    $ ./configure --llvm-force-build
-    # assure that configure prints that the header 'opagent.h' is found.)
-    $ rake
+    $ wget http://llvm.org/releases/3.2/llvm-3.2.src.tar.gz
+    $ tar -xf llvm-3.2.src.tar.gz
+    $ cd llvm-3.2.src
+    $ ./configure --enable-optimized --disable-assertions --with-oprofile
+    $ make
+    $ sudo make install
+
+If compilation of OProfileWrapper.cpp fails, apply this patch:
+
+  diff --git a/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp b/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
+  index d67f537..7c0d395 100644
+  --- a/llvm-3.1-3.1/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
+  +++ b/llvm-3.1-3.1/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
+  @@ -29,6 +29,7 @@
+   #include <dirent.h>
+   #include <sys/stat.h>
+   #include <fcntl.h>
+  +#include <unistd.h>
+   
+   namespace {
+   
 
 ### Setup OProfile
 
