@@ -90,14 +90,14 @@ sponsoring <a href="https://github.com/dbussink">Dirkjan Bussink</a> to work on 
 <p>A long time ago (around 2008) when Dirkjan first showed up in the Rubinius
 project he was still a university student finishing his Masters degree. He let
 me read a draft of his thesis on brain-computer interfaces. Dirkjan has been
-helping out on Rubinius since then. Recently, he&rsquo;s been fixing concurrency,
+helping out on Rubinius since then. Recently, he’s been fixing concurrency,
 garbage collection, and JIT issues.</p>
 
 <p>This week, Dirkjan is working from the Engine Yard office in Portland, OR.
-We&rsquo;ve got a list of topics that we&rsquo;re delving into to get ready for several
+We’ve got a list of topics that we’re delving into to get ready for several
 technology improvements in Rubinius. We started with a list of five things,
 one for each day. Unfortunately, time always goes faster than we expect so
-we&rsquo;ve dropped one topic. I&rsquo;ll blog a summary of our discussions so you get an
+we’ve dropped one topic. I’ll blog a summary of our discussions so you get an
 idea of some of the big stuff coming in Rubinius.</p>
 
 <p>Our first discussion was about our inline cache mechanisms. An inline cache is
@@ -107,26 +107,24 @@ the correct type, the same method can safely be used. This is a typical
 execution-time versus memory size trade-off. We cache the method we found,
 which saves time looking it up again at the expense of some additional memory
 to store the method. As with all caches, we have to carefully consider cache
-invalidation.  Let&rsquo;s use a quick code sample to illustrate the inline cache.</p>
+invalidation.  Let’s use a quick code sample to illustrate the inline cache.</p>
 
-<div class="highlight"><pre><code class="ruby"><span class="lineno">1</span> <span class="k">class</span> <span class="nc">A</span>
-<span class="lineno">2</span>   <span class="k">def</span> <span class="nf">a</span>
-<span class="lineno">3</span>   <span class="k">end</span>
-<span class="lineno">4</span> <span class="k">end</span>
-<span class="lineno">5</span> 
-<span class="lineno">6</span> <span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="n">A</span>
-<span class="lineno">7</span> <span class="k">end</span>
-</code></pre>
-</div>
+<div class="highlight"><pre><code class="ruby"><span class="k">class</span> <span class="nc">A</span>
+  <span class="k">def</span> <span class="nf">a</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+
+<span class="k">class</span> <span class="nc">B</span> <span class="o">&lt;</span> <span class="n">A</span>
+<span class="k">end</span>
+</code></pre></div>
 
 <p>In the example above, the class <code>B</code> inherits from <code>A</code>, which provides the method
 <code>a</code>. If we call <code>a</code> on an instance of <code>B</code>, we look up the method and find it
 in <code>A</code>.</p>
 
-<div class="highlight"><pre><code class="ruby"><span class="lineno">1</span> <span class="n">b</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">new</span>
-<span class="lineno">2</span> <span class="n">b</span><span class="o">.</span><span class="n">a</span>
-</code></pre>
-</div>
+<div class="highlight"><pre><code class="ruby"><span class="n">b</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">new</span>
+<span class="n">b</span><span class="o">.</span><span class="n">a</span>
+</code></pre></div>
 
 <p>Here, in the code representation for the call <code>b.a</code>, we store an inline cache
 object. As long as the type of object we see in <code>b</code> is the same, we can safely
@@ -177,7 +175,7 @@ of the virtual machine. Certain method calls, like <code>respond_to?</code> impl
 VM operations. This perspective is very important. Sometimes people complain
 that Ruby is too dynamic because you could, for example, alias <code>respond_to?</code>
 or <code>eval</code> to some other name. Now any attempt to statically analyze Ruby fails
-because you can&rsquo;t know ahead of time what the alias may be. This is actually
+because you can’t know ahead of time what the alias may be. This is actually
 not an issue if you consider the perspective from the VM. No matter what the
 method name is, the ultimate VM operation for looking up a method will
 execute. By associating method call sites with a VM operation, we get more
@@ -195,18 +193,400 @@ in the cache can be done efficiently.</p>
 object-oriented code, a method call site may be <em>monomorphic</em> (only one type
 is seen), <em>polymorphic</em> (a small number of different types are seen), or
 <em>megamorphic</em> (a huge number of different types are seen). This perspective
-can be very important for performance and for memory overhead. We don&rsquo;t want
+can be very important for performance and for memory overhead. We don’t want
 to waste memory for sites that are monomorphic. Nor do we want the cache to be
 thrashing when many different types are seen.</p>
 
 <p>In summary, we looked at these aspects of inline caches: method call site
 types, VM operations that result from the method call, the kind of data cached
-and cache invalidation, and the cardinality of the method call site. We&rsquo;ll be
+and cache invalidation, and the cardinality of the method call site. We’ll be
 taking the results of our discussion and implementing changes to our inline
-caching over the next few weeks. </p>
+caching over the next few weeks.</p>
 
 <p>If you get a chance, pop into the #rubinius IRC channel on freenode.net and
 say hello to Dirkjan!</p>
+
+    </div>
+  
+    <div class="post">
+      <h2 class="post_title">
+        <a href="/2013/03/07/profiling-jitted-code-with-oprofile/" title="Profiling JIT-ted Ruby code with OProfile" class="post_title">
+        Profiling JIT-ted Ruby code with OProfile
+        </a>
+      </h2>
+      <div class="by_line">
+  <p><span class="author">Ryo Onodera</span>
+    <span class="date">07 March 2013</span>
+    
+      <a href="http://rubini.us/2013/03/07/profiling-jitted-code-with-oprofile/#disqus_thread" data-disqus-identifier="/2013/03/07/profiling-jitted-code-with-oprofile/"></a>
+
+    
+  </p>
+</div>
+
+      <p>You can now profile JIT-ted Ruby code!</p>
+
+<p>Before:</p>
+
+<pre><code>samples  %        app name                 symbol name
+488      26.1522  rbx                      rubinius::MachineCode::interpreter(rubinius::State*, rubinius::MachineCode*, rubinius::InterpreterCallFrame*)
+386      20.6860  anon (tgid:7826 range:0xb577f000-0xb57ff000) anon (tgid:7826 range:0xb577f000-0xb57ff000)
+  # =&gt; The dark world of JIT-ted Ruby code
+132       7.0740  rbx                      rbx_set_local_depth
+122       6.5380  rbx                      __x86.get_pc_thunk.bx
+109       5.8414  rbx                      rubinius::BlockEnvironment::call(rubinius::State*, rubinius::CallFrame*, rubinius::Arguments&amp;, int)
+81        4.3408  rbx                      rbx_push_local_depth
+80        4.2872  no-vmlinux               /no-vmlinux
+52        2.7867  rbx                      rubinius::VariableScope::set_local(int, rubinius::Object*)
+50        2.6795  rbx                      bool rubinius::kind_of&lt;rubinius::Fiber&gt;(rubinius::Object const*)
+49        2.6259  rbx                      rubinius::VariableScope::get_local(int)
+</code></pre>
+
+<p>After:</p>
+
+<pre><code>samples  %        app name                 symbol name
+2678     27.2764  rbx                      rubinius::MachineCode::interpreter(rubinius::State*, rubinius::MachineCode*, rubinius::InterpreterCallFrame*)
+2459     25.0458  8685.jo                  _X_Object#forever$block@1
+  # =&gt; Wow, the name of JIT-ted Ruby code is shown along side C++ function symbols!
+771       7.8529  rbx                      rbx_set_local_depth
+661       6.7325  rbx                      rubinius::BlockEnvironment::call(rubinius::State*, rubinius::CallFrame*, rubinius::Arguments&amp;, int)
+650       6.6205  rbx                      __x86.get_pc_thunk.bx
+564       5.7446  rbx                      rbx_push_local_depth
+398       4.0538  rbx                      rubinius::BlockEnvironment::invoke(rubinius::State*, rubinius::CallFrame*, rubinius::BlockEnvironment*, rubinius::Arguments&amp;, rubinius::BlockInvocation&amp;)
+349       3.5547  rbx                      rubinius::VariableScope::set_local(int, rubinius::Object*)
+256       2.6075  rbx                      rubinius::VariableScope::set_local(rubinius::State*, int, rubinius::Object*)
+254       2.5871  rbx                      rubinius::VariableScope::get_local(int)
+241       2.4547  rbx                      bool rubinius::kind_of&lt;rubinius::Fiber&gt;(rubinius::Object const*)
+210       2.1389  rbx                      rubinius::SharedState::checkpoint(rubinius::ManagedThread*)
+</code></pre>
+
+<p>In short, you can tell how Rubinius’ JIT works in performance point of view.</p>
+
+<p>Not satified yet? Even annotated profile is supported! That means you can even
+know how much it spends on each line of Ruby code or even on each CPU
+instructions:</p>
+
+<pre><code>/* 
+ * Total samples for file : "/tmp/loop.rb"
+ * 
+ *   4911 19.7689
+ */
+
+
+   665  2.6769 :def increment(i)
+   373  1.5015 :  i + 1
+               :end
+               :
+               :def forever
+               :  i = 0
+  2668 10.7399 :  loop do /* _X_Object#forever$block@1 total:   6184 24.8933 */
+  1205  4.8507 :    i = increment(i)
+               :  end
+               :end
+               :
+               :forever
+</code></pre>
+
+<p>We’re using OProfile, a profiling software. By this blog post, I’ll show you
+how to profile using it!</p>
+
+<h3 id="whats-oprofile">What’s OProfile?</h3>
+
+<p>It’s a very useful profiling tool available on Linux. It’s a sampling-based
+one. That means there is absolutely no change to Rubinius and your Ruby code to
+profile. Just run it as you normally do. Also, the overhead of profile is
+ minimal.</p>
+
+<p>This is contrasted to measuing-based profiling. Ruby’s built-in profiler
+ belongs to it. And you should be aware of the way-too-much overhead. ;)</p>
+
+<p>Basically, it works by reporting how many individual profiled items are sampled
+compared to the overall total samples. It doesn’t measure elapsed time. It’s
+much like top command’s indivisual processes’ CPU % usage with far greater
+flexibility. The actual profiled items can be any of C/C++ libraries, C/C++
+functions, C/C++ source code lines, or CPU instructions.</p>
+
+<p>So, OProfile can’t usually profile Ruby code because it works on CPU
+instruction level. From OProfile, it can’t tell which Ruby source code line
+Rubinius currently executing from the CPU instrucitons. However, it can profile
+JIT-ted Ruby code because Rubinius compiles it very down into the CPU
+instructions by definition.</p>
+
+<p>OProfile works as a Linux kernel module. So, it’s supported only for Linux.
+Sadly, Ubuntu’s OProfile and LLVM have bugs relating to this feature.
+Apparently, there is no one using this. In a say, we are really on the cutting
+edge. ;)</p>
+
+<p>Anyway, we must overcome it. But how? You have options. :)</p>
+
+<h3 id="setup-ppa-the-super-simple-way-ubuntu-1210-only">Setup (PPA: the super simple way; Ubuntu 12.10 only)</h3>
+
+<p>I prepared a <a href="https://launchpad.net/~ryoqun/+archive/ppa">PPA</a> just for you.
+Add it to your system. To be specific, run this:</p>
+
+<pre><code>$ sudo add-apt-repository ppa:ryoqun/ppa
+$ sudo apt-get update
+$ sudo apt-get install oprofile llvm-3.1
+$ sudo apt-get dist-upgrade # Upgrade preinstalled libllvm3.1 to the PPA
+</code></pre>
+
+<p>By default, Rubinius doesn’t use system-provided LLVM, so re-configure Rubinius
+to use it and re-build Rubinius:</p>
+
+<pre><code>$ cd path/to/rubinius-git-repository
+$ rake clean
+$ ./configure --llvm-config llvm-config-3.1
+$ rake
+</code></pre>
+
+<p>Done!</p>
+
+<h3 id="setup-manual-build-the-hard-way">Setup (manual build: the hard way)</h3>
+
+<p>If you really want to build LLVM and OProfile manually or if you’re using an
+other Linux distribution and the distribution doesn’t provide OProfile-enabled
+ LLVM packages, manually build LLVM and OProfile like this:</p>
+
+<p>(I tested this on Ubuntu 12.10. Minor adjustments may be needed to build on
+your environment)</p>
+
+<p>Build and Install OProfile:</p>
+
+<pre><code>$ sudo apt-get build-dep oprofile # do equivalent thing on your distro.
+$ cd /path/to/working-dir-to-build-things
+$ wget http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.8.tar.gz
+$ tar -xf oprofile-0.9.8.tar.gz
+$ cd oprofile-0.9.8
+$ ./autogen.sh
+$ ./configure --prefix /usr # LLVM has a build issue. So install to /usr
+$ make
+$ sudo make install
+$ adduser oprofile # this is needed for profiling JITted code
+$ opreport --version
+  # =&gt; opreport: oprofile 0.9.8 compiled on Mar  8 2013 00:57:08
+</code></pre>
+
+<p>Force to build LLVM with OProfile support enabled and rebuild Rubinius:</p>
+
+<pre><code>$ sudo apt-get build-dep llvm # do equivalent thing on other distributions.
+$ cd /path/to/working-dir-to-build-things
+$ wget http://llvm.org/releases/3.2/llvm-3.2.src.tar.gz
+$ tar -xf llvm-3.2.src.tar.gz
+$ cd llvm-3.2.src
+$ ./configure --enable-optimized --disable-assertions --with-oprofile
+$ make
+$ sudo make install
+</code></pre>
+
+<p>If the compilation of OProfileWrapper.cpp fails like this:</p>
+
+<pre><code>OProfileWrapper.cpp: In member function ‘bool llvm::OProfileWrapper::checkForOProfileProcEntry()’:
+OProfileWrapper.cpp:141:62: error: ‘read’ was not declared in this scope
+OProfileWrapper.cpp:142:24: error: ‘close’ was not declared in this scope
+</code></pre>
+
+<p>Apply this patch and re-<code>make</code> and continue:</p>
+
+<pre><code>diff --git a/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp b/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
+index d67f537..7c0d395 100644
+--- a/llvm-3.1-3.1/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
++++ b/llvm-3.1-3.1/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
+@@ -29,6 +29,7 @@
+ #include &lt;dirent.h&gt;
+ #include &lt;sys/stat.h&gt;
+ #include &lt;fcntl.h&gt;
++#include &lt;unistd.h&gt;
+ 
+ namespace {
+</code></pre>
+
+<p>Phew, finally rebuild Rubinius!:</p>
+
+<pre><code>$ cd path/to/rubinius-repository
+$ rake clean
+$ rm -rf vendor/llvm # If you build Rubinius with vendorized LLVM.
+$ ./configure
+$ rake
+</code></pre>
+
+<h3 id="start-oprofile">Start OProfile</h3>
+
+<p>OProfile can be configured by a command called <code>opcontrol</code>, not by a
+configuration file, which are common.</p>
+
+<pre><code>$ sudo opcontrol --deinit
+$ sudo modprobe oprofile timer=1      # Needed only inside VirtualBox VMs
+$ echo 0 | sudo tee /proc/sys/kernel/nmi_watchdog
+$ sudo opcontrol --no-vmlinux
+$ sudo opcontrol --separete all
+$ sudo opcontrol --start
+$ sudo opcontrol --dump               # Flushes buffered raw profile data
+$ opreport --merge all --threshold 1  # Prints the report of profile
+</code></pre>
+
+<p>Setup is complete if you see an output from opreport like this:</p>
+
+<pre><code>CPU: CPU with timer interrupt, speed 1858.39 MHz (estimated)
+Profiling through timer interrupt
+          TIMER:0|
+  samples|      %|
+------------------
+    92127 67.6157 no-vmlinux
+    21920 16.0880 rbx
+     7950  5.8348 libc-2.15.so
+     4068  2.9857 runner
+     3429  2.5167 libstdc++.so.6.0.17
+     2139  1.5699 cc1
+     1416  1.0393 vm
+</code></pre>
+
+<p>Congratulations!</p>
+
+<h3 id="run-ruby-code">Run Ruby code!</h3>
+
+<p>To annotate Ruby code correctly, your current directory must be the top
+directory of the Rubinius git repository:</p>
+
+<pre><code>$ cd path/to/rubinius-git-repository
+$ ./bin/benchmark ./benchmark/core/hash/bench_access.rb
+</code></pre>
+
+<h3 id="generate-profile-report">Generate profile report</h3>
+
+<p>Let’s check the profile report of the above benchmark.</p>
+
+<pre><code>$ sudo opcontrol --dump &amp;&amp; sudo opjitconv /var/lib/oprofile/ 0 0
+$ opreport --merge all --threshold 1 image:bin/rbx --symbols \
+    &gt; /tmp/hash-access-symbols
+$ opannotate --merge all --threshold 1 image:bin/rbx --source \
+    &gt; /tmp/hash-access-source
+</code></pre>
+
+<p>I’ll omit but you can generate profile report of annotated assembly by passing
+<code>--assembly</code> to <code>opannotate</code> instead of <code>--source</code>.</p>
+
+<h3 id="reset-current-profile">Reset current profile</h3>
+
+<p>By default, OProfile keeps the profile data indefinitely. To reset it, run
+this:</p>
+
+<pre><code>$ sudo opcontrol --reset
+</code></pre>
+
+<h3 id="how-to-read-the-profile-result">How to read the profile result</h3>
+
+<p>Open <code>/tmp/hash-access-symbols</code>, the content should be like this:</p>
+
+<pre><code>CPU: CPU with timer interrupt, speed 1861.31 MHz (estimated)
+Profiling through timer interrupt
+samples  %        app name                 symbol name
+10760    28.4807  no-vmlinux               /no-vmlinux
+1456      3.8539  rbx                      __x86.get_pc_thunk.bx
+948       2.5093  rbx                      rbx_set_local_depth
+880       2.3293  libc-2.15.so             /lib/i386-linux-gnu/libc-2.15.so
+864       2.2869  rbx                      rubinius::Object::hash(rubinius::State*)
+834       2.2075  rbx                      jit_stub_object_hash
+831       2.1996  rbx                      rubinius::Tuple::put(rubinius::State*, int, rubinius::Object*)
+683       1.8078  rbx                      rbx_push_local_depth
+676       1.7893  5626.jo                  _X_Object#__block__$block@7
+653       1.7284  5647.jo                  _X_Object#__block__$block@11
+651       1.7231  rbx                      rubinius::InlineCache::check_cache_poly(rubinius::State*, rubinius::InlineCache*, rubinius::CallFrame*, rubinius::Arguments&amp;)
+639       1.6914  rbx                      rubinius::CompiledCode::specialized_executor(rubinius::State*, rubinius::CallFrame*, rubinius::Executable*, rubinius::Module*, rubinius::Arguments&amp;)
+632       1.6728  5586.jo                  _X_Object#__block__$block@11
+630       1.6675  5586.jo                  _X_Object#__block__$block@1
+630       1.6675  5647.jo                  _X_Object#__block__$block@7
+616       1.6305  5586.jo                  _X_Object#__block__$block@7
+607       1.6067  5626.jo                  _X_Object#__block__$block@1
+593       1.5696  5647.jo                  _X_Object#__block__$block@1
+591       1.5643  5626.jo                  _X_Object#__block__$block@10
+590       1.5617  rbx                      rubinius::VariableScope::get_local(int)
+554       1.4664  rbx                      rubinius::VariableScope::set_local(rubinius::State*, int, rubinius::Object*)
+436       1.1540  5626.jo                  _X_Hash#values_at@18
+434       1.1488  rbx                      rubinius::Object::hash_prim(rubinius::State*)
+391       1.0349  rbx                      rubinius::VM::new_young_tuple_dirty(unsigned int)
+</code></pre>
+
+<p>As you can guess, symbol names beginning with <code>_X_</code> is the JIT-ted Ruby code.
+While many Ruby blocks are JIT-ted, we can’t know much about from its mere
+names. On the other hand,  <code>_X_Hash#values_at@18</code> is obviously a JIT-ted
+code of <code>Hash#values_at</code>. I’ll explain the format of the report using it as an
+example:</p>
+
+<pre><code>436       1.1540  5626.jo                  _X_Hash#values_at@18
+</code></pre>
+
+<p><code>436</code> is the number of counts OProfile found what Rubinius was executing, while
+periodically sampling it.</p>
+
+<p><code>1.1540</code> is the percentage to the total number of samples OProfile collected.
+Note that summing all entries up doesn’t equal to 100%, because <code>opreport</code> only
+reported the top part of whole profile result (by <code>--threshold 1</code>).</p>
+
+<p><code>5626.jo</code> means this is JIT-ted code created when running process of PID 5526.</p>
+
+<p><code>_X_Hash#values_at@18</code> is the name of symbol for this entry of profile report
+(duh!).</p>
+
+<p>Open <code>/tmp/hash-access-source</code>, the content should be like this (I’ll omit some
+unimportant part, because this file is big):</p>
+
+<pre><code>/* 
+ * Total samples for file : "kernel/common/hash18.rb"
+ * 
+ *   4870 12.8904
+ */
+
+&lt;credited to line zero&gt;     19  0.0503 :
+               :# -*- encoding: us-ascii -*-
+               :
+               :class Hash
+               :
+               :  include Enumerable
+               :
+...
+               :
+               :  class Bucket
+               :    attr_accessor :key
+               :
+   633  1.6755 :    def match?(key, key_hash) /* _X_Hash::Bucket#match?@16     75  0.1985, _X_Hash::Bucket#match?@16     45  0.1191, total:    120  0.3176 */
+    40  0.1059 :      case key
+   218  0.5770 :      when Symbol, Fixnum
+   319  0.8444 :        return key.equal?(@key)
+               :      end
+               :
+               :      @key_hash == key_hash and (Rubinius::Type::object_equal(key, @key) or key.eql?(@key))
+               :    end
+               :  end
+...
+               :end
+...
+</code></pre>
+
+<p>You might wonder why Hash::Bucket#match? has so many counts while this didn’t
+appear in the report for symbols. The reason is that the method is inlined to
+each its callers (maybe many top-appearing JIT-ted Ruby blocks). How cool this
+is! You can really know which Ruby code is actually taking too much time.</p>
+
+<h3 id="my-last-favor">My last favor</h3>
+
+<p>I wish the official Ubuntu packages are fixed and there is no need to add any
+PPA. I want it-just-works. I reported affecting bugs to Ubuntu’s bug tracking
+system. So, please vote it up for fixing (vote them with “affects you?”,
+please!!):</p>
+
+<ul>
+  <li><a href="https://launchpad.net/bugs/1154025">Bug 1154025</a> Install PIC version of libbfd.a</li>
+  <li><a href="https://launchpad.net/bugs/1148682">Bug 1148682</a> symbol lookup error: /usr/lib/libopagent.so: undefined symbol: bfd_init</li>
+  <li><a href="https://launchpad.net/bugs/1148529">Bug 1148529</a> OProfile support is disabled</li>
+</ul>
+
+<h3 id="further-profiling">Further profiling</h3>
+
+<p>There is new proling tool on Linux: <code>perf</code> and <code>operf</code> (OProfile’s new
+command). I don’t know them well, but certainly they will be useful for
+profiling Rubinius.</p>
+
+<p>Happy profiling!</p>
 
     </div>
   
@@ -228,19 +608,19 @@ say hello to Dirkjan!</p>
 
       <h3 id="tldr">tl;dr</h3>
 
-<p>It&rsquo;s now <strong><a href="https://github.com/rubinius/heroku-rbx-puma-rails-app">very easy</a></strong> to get a <a href="https://devcenter.heroku.com/articles/rails3">Rails app</a> on <a href="https://devcenter.heroku.com/articles/cedar">Heroku&rsquo;s Cedar Stack</a> running on <a href="http://rubini.us" title="Rubinius : Use Ruby&#8482;">Rubinius 2.0</a> and <a href="http://puma.io" title="A Modern, Concurrent Web Server for Ruby - Puma">Puma 2.0</a>.</p>
+<p>It’s now <strong><a href="https://github.com/rubinius/heroku-rbx-puma-rails-app">very easy</a></strong> to get a <a href="https://devcenter.heroku.com/articles/rails3">Rails app</a> on <a href="https://devcenter.heroku.com/articles/cedar">Heroku’s Cedar Stack</a> running on <a href="http://rubini.us" title="Rubinius : Use Ruby&#8482;">Rubinius 2.0</a> and <a href="http://puma.io" title="A Modern, Concurrent Web Server for Ruby - Puma">Puma 2.0</a>.</p>
 
 <h3 id="the-backstory">The Backstory</h3>
 
 <p>The fine folks at Heroku have been adding support for using <a href="http://gembundler.com" title="Bundler: The best way to manage a Ruby application's gems">Bundler</a> to <a href="https://devcenter.heroku.com/articles/ruby-versions">specify which version of Ruby</a> your app uses and even <a href="https://blog.heroku.com/archives/2012/12/13/run_jruby_on_heroku_right_now">to specify which Ruby</a> it uses.</p>
 
-<p>I&rsquo;ve checked in on the progress of using Rubinius with this same method every couple few months for the past year or so. I was always met with the same results&hellip; <q>&ldquo;not quite yet, we&rsquo;re working on it&rdquo;</q>.</p>
+<p>I’ve checked in on the progress of using Rubinius with this same method every couple few months for the past year or so. I was always met with the same results… <q>“not quite yet, we’re working on it”</q>.</p>
 
-<p>Last night I was getting mentally packed for <a href="https://waza.heroku.com/2013">Waza</a> later this week and decided to check in on the state of things so I could ask the right people the right questions in person when we&rsquo;re all together. Turns out that sometime between last time and this time, they&rsquo;ve got things working. Boom diggity! And it&rsquo;s pretty ding-dang easy too! Double boom diggity!</p>
+<p>Last night I was getting mentally packed for <a href="https://waza.heroku.com/2013">Waza</a> later this week and decided to check in on the state of things so I could ask the right people the right questions in person when we’re all together. Turns out that sometime between last time and this time, they’ve got things working. Boom diggity! And it’s pretty ding-dang easy too! Double boom diggity!</p>
 
 <h3 id="the-build-up">The Build Up</h3>
 
-<p>I&rsquo;m going to assume that if you want to use Rubinius 2.0 that you also have the good sense to want to use Puma 2.0. There are three very simple steps to get up and running with Rubinius 2.0 + Puma 2.0.</p>
+<p>I’m going to assume that if you want to use Rubinius 2.0 that you also have the good sense to want to use Puma 2.0. There are three very simple steps to get up and running with Rubinius 2.0 + Puma 2.0.</p>
 
 <h4 id="step-1">Step 1</h4>
 
@@ -262,10 +642,10 @@ say hello to Dirkjan!</p>
 
 <h3 id="the-breakdown">The Breakdown</h3>
 
-<p>Once you&rsquo;ve done those things, your workflow is the same as before.
+<p>Once you’ve done those things, your workflow is the same as before.
 <code>bundle update &amp;&amp; git commit -am "Double boom diggity!" &amp;&amp; git push heroku master</code></p>
 
-<p>If you&rsquo;re changing an existing app from Heroku&rsquo;s default Ruby (MRI 1.9.x) to Rubinius, you&rsquo;ll see a message like this when you <code>git push heroku master</code>.</p>
+<p>If you’re changing an existing app from Heroku’s default Ruby (MRI 1.9.x) to Rubinius, you’ll see a message like this when you <code>git push heroku master</code>.</p>
 
 <script src="https://gist.github.com/veganstraightedge/5041986.js"></script>
 
@@ -273,7 +653,7 @@ say hello to Dirkjan!</p>
 
 <h3 id="the-outro">The Outro</h3>
 
-<p>That&rsquo;s it. You should now be up and running with Rubinius and Puma!</p>
+<p>That’s it. You should now be up and running with Rubinius and Puma!</p>
 
 <p>If you have problems, say something in the comments with a link to a gist with your problem output. If you succeed and get up and running in production, let us in the comments too. Tell the world that you love Rubinius/Puma.</p>
 
@@ -285,7 +665,7 @@ say hello to Dirkjan!</p>
 
 <h3 id="the-footnotes">The Footnotes</h3>
 
-<p>As of this writing &ldquo;Rubinius 2.0&rdquo; actually means &ldquo;Rubinius 2.0.0.dev&rdquo; and &ldquo;Puma 2.0&rdquo; actually means &ldquo;Puma 2.0.0b6&rdquo;. The net result is the same though.</p>
+<p>As of this writing “Rubinius 2.0” actually means “Rubinius 2.0.0.dev” and “Puma 2.0” actually means “Puma 2.0.0b6”. The net result is the same though.</p>
 
 
     </div>
@@ -307,32 +687,32 @@ say hello to Dirkjan!</p>
 </div>
 
       <p>Bugs, we all are in the infinite fight of getting rid of them. Sometimes
-they are trivial, other times a bit harder. In this video I&rsquo;m going to
+they are trivial, other times a bit harder. In this video I’m going to
 show how I have been debugging an issue that caused memory corruption of
 your dear Ruby objects in Rubinius.</p>
 
 <h3 id="background">Background</h3>
 
-<p>It&rsquo;s a pretty long video clocking at 55 minutes but I&rsquo;m trying to be
-detailed in the discovery process. I&rsquo;m explaining the steps I&rsquo;m taking
-along the way and explaining why I&rsquo;m taking those.</p>
+<p>It’s a pretty long video clocking at 55 minutes but I’m trying to be
+detailed in the discovery process. I’m explaining the steps I’m taking
+along the way and explaining why I’m taking those.</p>
 
 <p>The real debugging process if of course littered with taking wrong turns
-so please don&rsquo;t think I&rsquo;m brilliant and able to zoom into the issue
+so please don’t think I’m brilliant and able to zoom into the issue
 immediately all the time. The video is not recorded as I was going
 through it the first time, so I exactly knew where I was going and
 which steps to take.</p>
 
-<p>If you want to look up some more information on GDB that I&rsquo;m using
+<p>If you want to look up some more information on GDB that I’m using
 in the video, here are some links that explain some of the most
 used commands in the video:</p>
 
 <p><a href="http://sourceware.org/gdb/onlinedocs/gdb/Data.html">GDB - Examining data</a>
 <a href="http://sourceware.org/gdb/onlinedocs/gdb/Set-Watchpoints.html">GDB - Setting watchpoints</a></p>
 
-<p>During the video there&rsquo;s a part from 8:18 until 11:28 where it&rsquo;s just
-watching a rebuild of Rubinius scrolling by. I&rsquo;d suggest skipping it
-since it&rsquo;s not very useful. I tried to remove it but after having
+<p>During the video there’s a part from 8:18 until 11:28 where it’s just
+watching a rebuild of Rubinius scrolling by. I’d suggest skipping it
+since it’s not very useful. I tried to remove it but after having
 to reencode the video it only grew larger. If anyone has more skills
 to fix that, please let us know!</p>
 
@@ -342,11 +722,11 @@ to fix that, please let us know!</p>
 
 <p><a href="http://vimeo.com/34622441">Watch on Vimeo</a></p>
 
-<p>It&rsquo;s probably best to download the video and play it locally on your
-machine. It&rsquo;s 453 MB so it might take a while.</p>
+<p>It’s probably best to download the video and play it locally on your
+machine. It’s 453 MB so it might take a while.</p>
 
 <p>Please let us know if you find this useful, we might do more of them
-in the future if there&rsquo;s interest!</p>
+in the future if there’s interest!</p>
 
 
     </div>
@@ -379,7 +759,7 @@ your first Rubinius commit.</p>
 
 <p>Before diving into the Rubinius code, I want to emphasize that there are many
 ways that you can contribute to Rubinius. One of the most valuable for us is
-trying your own library or application on Rubinius. We&rsquo;ve worked super hard to
+trying your own library or application on Rubinius. We’ve worked super hard to
 make using Rubinius in place of MRI as simple as possible. For example, with a
 typical Rails application, here is all you should need to do to get set up:</p>
 
@@ -388,7 +768,7 @@ rvm use rbx
 gem install bundler
 </code></pre>
 
-<p>Once you&rsquo;ve got Rubinius and Bundler installed, running your application
+<p>Once you’ve got Rubinius and Bundler installed, running your application
 should be this simple:</p>
 
 <pre><code>cd &lt;my_application&gt;
@@ -410,8 +790,8 @@ Github</a>.</p>
 <p>Another way to contribute to Rubinius is talking about the project. If you
 tried your application and your 50 gems installed without problems, consider
 <a href="https://twitter.com/rubinius">tweeting at us</a> or writing up a quick blog post
-about your experiences. If you&rsquo;ve done something
-<a href="http://fancy-lang.org/">fancy</a> that you&rsquo;d like to share with us, we&rsquo;re always
+about your experiences. If you’ve done something
+<a href="http://fancy-lang.org/">fancy</a> that you’d like to share with us, we’re always
 happy to have <a href="http://rubini.us/2011/02/23/introduction-to-fancy/">guest blog
 posts</a>, too. We even have
 documentation on <a href="http://rubini.us/doc/en/how-to/write-a-blog-post/">how to write a blog
@@ -434,11 +814,11 @@ install it. We provide symlinks for common commands like <code>gem</code>, <code
 
 <p>If you run into any trouble with these steps, see the <a href="http://rubini.us/doc/en/getting-started/">Getting
 Started</a> page for more information.
-You may need to install libraries required to build Rubinius. If you don&rsquo;t
-find answers there, visit the <code>#rubinius</code> channel on freenode.net and we&rsquo;ll
+You may need to install libraries required to build Rubinius. If you don’t
+find answers there, visit the <code>#rubinius</code> channel on freenode.net and we’ll
 help you out.</p>
 
-<p>While the build is running, let&rsquo;s get a quick overview of how Rubinius is
+<p>While the build is running, let’s get a quick overview of how Rubinius is
 organized.</p>
 
 <h3 id="code-tour">Code Tour</h3>
@@ -453,7 +833,7 @@ debugger are written mostly or all in Ruby.</p>
 <p>The Ruby core library is found in the <code>kernel/</code> directory. The kernel is
 divided into subdirectories that are loaded in order when Rubinius boots. The
 divisions were made to help share the Ruby core library with other
-implementations. I&rsquo;ll cover those basic divisions here. For more details about
+implementations. I’ll cover those basic divisions here. For more details about
 how the loading process works, see the
 <a href="http://rubini.us/doc/en/bootstrapping/">Bootstrapping</a> documentation.</p>
 
@@ -485,7 +865,7 @@ the JIT compiler (<code>vm/llvm/</code>). The <code>main()</code> function is in
 <p>One of the important parts of Rubinius are the low-level operations that
 cannot be defined in Ruby. These are things like adding two Fixnums together.
 These operations are called primitives and the code for them is in
-<code>vm/builtin</code>. Since you will likely encounter these in the core library, we&rsquo;ll
+<code>vm/builtin</code>. Since you will likely encounter these in the core library, we’ll
 delve into them a bit.</p>
 
 <h4 id="primitives">Primitives</h4>
@@ -493,15 +873,14 @@ delve into them a bit.</p>
 <p>All methods that can be called in Ruby are exposed as, well, Ruby methods. If
 you open <code>kernel/bootstrap/fixnum.rb</code>, you should see the following code:</p>
 
-<div class="highlight"><pre><code class="ruby"><span class="lineno">1</span> <span class="k">def</span> <span class="nf">to_f</span>
-<span class="lineno">2</span>   <span class="no">Rubinius</span><span class="o">.</span><span class="n">primitive</span> <span class="ss">:fixnum_to_f</span>
-<span class="lineno">3</span>   <span class="k">raise</span> <span class="no">PrimitiveFailure</span><span class="p">,</span> <span class="s2">&quot;Fixnum#to_f primitive failed&quot;</span>
-<span class="lineno">4</span> <span class="k">end</span>
-</code></pre>
-</div>
+<div class="highlight"><pre><code class="ruby"><span class="k">def</span> <span class="nf">to_f</span>
+  <span class="no">Rubinius</span><span class="o">.</span><span class="n">primitive</span> <span class="ss">:fixnum_to_f</span>
+  <span class="k">raise</span> <span class="no">PrimitiveFailure</span><span class="p">,</span> <span class="s2">&quot;Fixnum#to_f primitive failed&quot;</span>
+<span class="k">end</span>
+</code></pre></div>
 
 <p>The <code>Rubinius.primitive :fixnum_to_f</code> code looks like a normal Ruby method
-call but it is not. It&rsquo;s actually a compiler directive to tag this Ruby method
+call but it is not. It’s actually a compiler directive to tag this Ruby method
 as having an associated primitive operation. The name of the primitive is
 <code>fixnum_to_f</code>. This naming convention is standard, being composed of the class
 name and the method name. Methods in Ruby that are characters, like <code>+</code>, are
@@ -516,10 +895,9 @@ operation is appropriate, the method should raise an exception.</p>
 <p>To see how the Ruby method relates to the primitive code, open
 <code>vm/builtin/fixnum.hpp</code>:</p>
 
-<div class="highlight"><pre><code class="cpp"><span class="lineno">1</span> <span class="c1">// Rubinius.primitive :fixnum_to_f</span>
-<span class="lineno">2</span> <span class="n">Float</span><span class="o">*</span> <span class="n">to_f</span><span class="p">(</span><span class="n">STATE</span><span class="p">);</span>
-</code></pre>
-</div>
+<div class="highlight"><pre><code class="cpp"><span class="c1">// Rubinius.primitive :fixnum_to_f</span>
+<span class="n">Float</span><span class="o">*</span> <span class="n">to_f</span><span class="p">(</span><span class="n">STATE</span><span class="p">);</span>
+</code></pre></div>
 
 <p>The <code>vm/builtin/*.hpp</code> files are processed by the Rubinius build system to
 automatically generate C++ code to resolve and bind these primitive
@@ -529,11 +907,10 @@ method.</p>
 <p>Finally, the actual implementation of this primitive is found in
 <code>vm/builtin/fixnum.cpp</code>:</p>
 
-<div class="highlight"><pre><code class="cpp"><span class="lineno">1</span> <span class="n">Float</span><span class="o">*</span> <span class="n">Fixnum</span><span class="o">::</span><span class="n">to_f</span><span class="p">(</span><span class="n">STATE</span><span class="p">)</span> <span class="p">{</span>
-<span class="lineno">2</span>   <span class="k">return</span> <span class="n">Float</span><span class="o">::</span><span class="n">create</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">to_native</span><span class="p">());</span>
-<span class="lineno">3</span> <span class="p">}</span>
-</code></pre>
-</div>
+<div class="highlight"><pre><code class="cpp"><span class="n">Float</span><span class="o">*</span> <span class="n">Fixnum</span><span class="o">::</span><span class="n">to_f</span><span class="p">(</span><span class="n">STATE</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="n">Float</span><span class="o">::</span><span class="n">create</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">to_native</span><span class="p">());</span>
+<span class="p">}</span>
+</code></pre></div>
 
 <p>Here you can see that a new Float object is being created from the value of
 the Fixnum. Rubinius names the C++ classes that implement the Ruby primitive
@@ -541,7 +918,7 @@ operations the same as their Ruby counterparts. One of the goals of Rubinius
 is to build an elegant, easily comprehensible system, and we feel that this
 consistency has been a great benefit toward that goal.</p>
 
-<p>Now that we have a basic idea of the structure of Rubinius, let&rsquo;s look at some
+<p>Now that we have a basic idea of the structure of Rubinius, let’s look at some
 aspects of its runtime behavior, in particular, supporting different Ruby
 language modes.</p>
 
@@ -563,7 +940,7 @@ bin/rbx -X19 -v
 </code></pre>
 
 <p>The default language mode is 1.8, so if you invoke <code>rbx</code> with no other
-options, you&rsquo;ll be running in 1.8 mode. You can change the default mode with a
+options, you’ll be running in 1.8 mode. You can change the default mode with a
 configure time option as follows:</p>
 
 <pre><code>./configure --default-version=1.9
@@ -572,8 +949,8 @@ configure time option as follows:</p>
 <p>If you configure Rubinius to have a default language mode of 1.9, you can
 access 1.8 mode with the <code>-X18</code> runtime option as discussed above.</p>
 
-<p>Ok, we&rsquo;ve got the code, we understand something about how it is organized,
-we&rsquo;ve got the runtime behavior down, now let&rsquo;s look at actually implementing
+<p>Ok, we’ve got the code, we understand something about how it is organized,
+we’ve got the runtime behavior down, now let’s look at actually implementing
 Ruby. To do that, we need to know how Ruby behaves, and that is what RubySpec
 is all about.</p>
 
@@ -583,7 +960,7 @@ is all about.</p>
 implementing Ruby behavior, and we are constantly contributing more to it.
 Basically, Rubinius does it by the spec. So, any commit to the Ruby core
 library in Rubinius must either have new specs or make existing specs pass. To
-effectively contribute to Rubinius, you&rsquo;ll need to understand some basics
+effectively contribute to Rubinius, you’ll need to understand some basics
 about RubySpec. I recommend that you have a read through the documentation at
 <a href="http://rubyspec.org/">rubyspec.org</a>.</p>
 
@@ -628,10 +1005,10 @@ path or the shortened version <code>core/array</code> above.</p>
 <p>One goal of MSpec is to make it as easy as possible to run the specs for the
 parts of Ruby that have been implemented. It takes a long time to implement
 all of Ruby correctly, but we want to know that the parts we have implemented
-don&rsquo;t get broken while working on other parts. That is the role of continuous
+don’t get broken while working on other parts. That is the role of continuous
 integration. To use CI effectively, we need to partition the specs into those
-that we expect to pass and those we know we don&rsquo;t pass yet. MSpec provides a
-facility for this, called tagging, that we&rsquo;ll look at shortly. For now, we&rsquo;ll
+that we expect to pass and those we know we don’t pass yet. MSpec provides a
+facility for this, called tagging, that we’ll look at shortly. For now, we’ll
 just look at running the specs in CI mode.</p>
 
 <p>To run all the Rubinius specs in CI mode under the default language version,
@@ -646,7 +1023,7 @@ use the following command:</p>
 </code></pre>
 
 <p>The <code>bin/mspec ci</code> command runs the <code>mspec-ci</code> script. You should be familiar
-with this mechanism from working with Git. It&rsquo;s the same idea. The <code>mspec</code>
+with this mechanism from working with Git. It’s the same idea. The <code>mspec</code>
 script itself is just a utility to invoke the various specific MSpec scripts.
 To see the options for <code>mspec</code>, run the following command</p>
 
@@ -669,33 +1046,33 @@ second command runs <code>mspec-run</code> with <code>core/array</code> and <cod
 mspec core/array ci
 </code></pre>
 
-<p>Now that we&rsquo;ve got the basics of MSpec down, let&rsquo;s look at how we find specs
-that fail on Rubinius. To do this, we&rsquo;ll use the <code>mspec tag</code> command.</p>
+<p>Now that we’ve got the basics of MSpec down, let’s look at how we find specs
+that fail on Rubinius. To do this, we’ll use the <code>mspec tag</code> command.</p>
 
 <h4 id="tagged-specs">Tagged Specs</h4>
 
 <p>Since Rubinius uses the tagging mechanism to create the set of CI specs to
-run, the best way to discover what parts of RubySpec that Rubinius isn&rsquo;t
-passing yet is to list the specs that are tagged. There&rsquo;s a command for that:</p>
+run, the best way to discover what parts of RubySpec that Rubinius isn’t
+passing yet is to list the specs that are tagged. There’s a command for that:</p>
 
 <pre><code>bin/mspec tag --list fails -tx19 :ci_files
 </code></pre>
 
-<p>This command lists all the specs that are tagged as failing. There&rsquo;s some new
+<p>This command lists all the specs that are tagged as failing. There’s some new
 syntax here, namely <code>:ci_files</code>. MSpec has the concept of pseudo-directories.
 Basically, they are lists of files. The reason for this is that running all
 the core or standard library specs in RubySpec is not as simple as just
-running all the files under <code>spec/ruby/core</code> or <code>spec/ruby/library</code>. It&rsquo;s more
+running all the files under <code>spec/ruby/core</code> or <code>spec/ruby/library</code>. It’s more
 complicated than that because there are 1.8- and 1.9-specific libraries.
 Rather than wrapping everything in <code>ruby_version_is</code> guards, MSpec adds
 version-specific lists and names them, for example, <code>:core</code> and <code>:library</code>.</p>
 
-<p>In this case, we&rsquo;re using the list of files specified by <code>:ci_files</code>. This
+<p>In this case, we’re using the list of files specified by <code>:ci_files</code>. This
 list excludes some files that are known to cause problems if they are run.</p>
 
 <p>The list of specs that are currently marked as failing is pretty long. We can
 reduce the number of tags we are looking at by giving a smaller set of specs
-to run.  For example, let&rsquo;s just run the File specs:</p>
+to run.  For example, let’s just run the File specs:</p>
 
 <pre><code>bin/mspec tag --list fails -tx19 core/file
 </code></pre>
@@ -707,7 +1084,7 @@ writing this post) that there are several failures in the
 <pre><code>bin/mspec tag --list fails -tx19 core/file/world_writable
 </code></pre>
 
-<p>If we look into the documentation for <code>File.world_writable?</code>, we&rsquo;ll find that
+<p>If we look into the documentation for <code>File.world_writable?</code>, we’ll find that
 it is a new method introduced in 1.9. Excellent, this gives us an opportunity
 to talk about language-specific changes in Rubinius.</p>
 
@@ -719,7 +1096,7 @@ and <code>load_order19.txt</code> files. These files are used during the build p
 create separate runtime kernels for Rubinius. You can see these in the
 <code>runtime/18</code> and <code>runtime/19</code> directories after building.</p>
 
-<p>Here&rsquo;s how language-specific features are handled in the Rubinius kernel.</p>
+<p>Here’s how language-specific features are handled in the Rubinius kernel.</p>
 
 <ol>
   <li>If there are no language-specific methods, the name of the file in
@@ -747,7 +1124,7 @@ command to do that:</p>
 <pre><code>bin/mspec -tx19 core/file/world_writable
 </code></pre>
 
-<p>If all the specs pass, then you&rsquo;re ready to remove the CI tags. To do so, run
+<p>If all the specs pass, then you’re ready to remove the CI tags. To do so, run
 the following command:</p>
 
 <pre><code>bin/mspec tag --del fails -tx19 core/file/world_writable
@@ -759,8 +1136,8 @@ pass. To run all the CI specs in both 1.8 and 1.9 modes, simply do:</p>
 <pre><code>rake
 </code></pre>
 
-<p>If everything passes, you&rsquo;re ready to submit a pull request. All in all, that
-wasn&rsquo;t too bad, right?</p>
+<p>If everything passes, you’re ready to submit a pull request. All in all, that
+wasn’t too bad, right?</p>
 
 <p>One final note, if you are making changes to RubySpec, make separate commits
 in your pull request for changes to <code>spec/ruby/**/*_specs.rb</code> and another
@@ -770,10 +1147,10 @@ with the other Rubinius changes.</p>
 <h3 id="wrapping-presents">Wrapping Presents</h3>
 
 <p>The information here should give you everything you need to get your feet wet
-in Rubinius. By the way, today is Evan&rsquo;s birthday. If you&rsquo;re not taking him to
-dinner, why don&rsquo;t you show your appreciation for this fantastic project he
+in Rubinius. By the way, today is Evan’s birthday. If you’re not taking him to
+dinner, why don’t you show your appreciation for this fantastic project he
 created by grabbing Rubinius and hacking on some Ruby code. Be safe and have
-fun! We can&rsquo;t wait to hear from you.</p>
+fun! We can’t wait to hear from you.</p>
 
     </div>
   
@@ -800,40 +1177,6 @@ fun! We can&rsquo;t wait to hear from you.</p>
 <p><a href="http://www.flickr.com/photos/veganstraightedge/6234562423"><img src="http://farm7.static.flickr.com/6232/6234562423_2c2c5b5f8b_z.jpg" alt="Me with Matz in a Rubinius shirt at RubyConf 2011 in New Orleans, LA" /></a><a href="http://www.flickr.com/photos/veganstraightedge/6234562147"><img src="http://farm7.static.flickr.com/6048/6234562147_d986abe428_z.jpg" alt="Matz in a Rubinius shirt at RubyConf 2011 in New Orleans, LA" /></a></p>
 
 <p>How was <em>your</em> RubyConf?</p>
-
-    </div>
-  
-    <div class="post">
-      <h2 class="post_title">
-        <a href="/2011/10/04/steve-klabnik-thinks-rubinius-is-awesome/" title="Steve Klabnik Thinks Rubinius is Awesome" class="post_title">
-        Steve Klabnik Thinks Rubinius is Awesome
-        </a>
-      </h2>
-      <div class="by_line">
-  <p><span class="author">Shane Becker</span>
-    <span class="date">04 October 2011</span>
-    
-      <a href="http://rubini.us/2011/10/04/steve-klabnik-thinks-rubinius-is-awesome/#disqus_thread" data-disqus-identifier="/2011/10/04/steve-klabnik-thinks-rubinius-is-awesome/"></a>
-
-    
-  </p>
-</div>
-
-      <p>Steve Klabnik <a href="https://github.com/rubinius/rubinius/pull/1184">added support for <code>require_relative</code> to Rubinius</a>. He documents his process and <a href="http://blog.steveklabnik.com/2011/10/04/rubinius-is-awesome.html" title="Rubinius Is Awesome - Literate Programming">how much fun he had</a>. We&rsquo;re glad to hear that Steve thinks Rubinius is awesome. Making Rubinius awesome for rubyists has always been one of our core tenets.</p>
-
-<blockquote>
-  <p>Even if I didn’t have some code to look at, because Rubinius is just Ruby,
-it was really easy to dive in and check out the code, because it’s all Ruby.
-Seriously. Rubinius is just Ruby. Just Ruby. Ruby.</p>
-</blockquote>
-
-<blockquote>
-  <p>So dive in and add some features today! If having an awesome alternate Ruby implementation
-isn’t enough for you, the rbx team will bribe you with special stickers for committers, and sweet 
-black-on-black tshirts for people with 10 commits or more!</p>
-</blockquote>
-
-<p><a href="http://blog.steveklabnik.com/2011/10/04/rubinius-is-awesome.html" title="Rubinius Is Awesome - Literate Programming">Read all about it on his blog Literate Programming</a>.</p>
 
     </div>
   
