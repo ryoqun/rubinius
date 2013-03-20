@@ -67,8 +67,8 @@ instruction:
                    :
                    :forever
 
-We're using OProfile, a profiling software. In this blog post, I'll show you
-how to profile using it!
+We're using [OProfile](http://oprofile.sourceforge.net/news/), a profiling
+software. In this blog post, I'll show you how to profile using it!
 
 ### What's OProfile?
 
@@ -145,9 +145,9 @@ Build and Install OProfile:
     $ opreport --version
       # => opreport: oprofile 0.9.8 compiled on Mar  8 2013 00:57:08
 
-Force to build LLVM with OProfile support enabled and rebuild Rubinius:
+Build LLVM with OProfile support enabled and rebuild Rubinius:
 
-    $ sudo apt-get build-dep llvm # do equivalent thing on other distributions.
+    $ sudo apt-get build-dep llvm # do equivalent thing on your distro.
     $ cd /path/to/working-dir-to-build-things
     $ wget http://llvm.org/releases/3.2/llvm-3.2.src.tar.gz
     $ tar -xf llvm-3.2.src.tar.gz
@@ -162,7 +162,7 @@ If the compilation of `OProfileWrapper.cpp` fails like this:
     OProfileWrapper.cpp:141:62: error: ‘read’ was not declared in this scope
     OProfileWrapper.cpp:142:24: error: ‘close’ was not declared in this scope
 
-Apply this patch and re-`make` and continue:
+Apply this patch, then, re-`make` and continue:
 
     diff --git a/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp b/lib/ExecutionEngine/OProfileJIT/OProfileWrapper.cpp
     index d67f537..7c0d395 100644
@@ -179,7 +179,7 @@ Apply this patch and re-`make` and continue:
 
 Phew, finally rebuild Rubinius!:
 
-    $ cd path/to/rubinius-repository
+    $ cd /path/to/rubinius-git-repository
     $ rake clean
     $ rm -rf vendor/llvm # If you build Rubinius with vendorized LLVM.
     $ ./configure
@@ -221,7 +221,7 @@ Congratulations!
 To annotate Ruby code correctly, your current directory must be the top
 directory of the Rubinius git repository:
 
-    $ cd path/to/rubinius-git-repository
+    $ cd /path/to/rubinius-git-repository
     $ ./bin/benchmark ./benchmark/core/hash/bench_access.rb
 
 ### Generate profile report
@@ -300,8 +300,9 @@ periodically sampling it.
 Note that summing all entries up doesn't equal to 100%, because `opreport` only
 reported the top part of whole profile result (by `--threshold 0.5`).
 
-`array18.rb:6` is the source location where this method is defined (this is same
-as `Method#source_location`).
+[`array18.rb:6`](https://github.com/rubinius/rubinius/blob/1d7d7b2e2880478776476089d4dd93fd97aff122/kernel/bootstrap/array18.rb#L6)
+is the source location where this method is defined (this is same as
+`Method#source_location`).
 
 `8295.jo` is a special `app name` for JIT-ted code. Usually `app name` is the
 name of file C/C++ functions reside in (shared libraries or executables).
