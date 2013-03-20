@@ -114,7 +114,7 @@ Add it to your system. To be specific, run this:
 By default, Rubinius doesn't use system-provided LLVM, so re-configure Rubinius
 to use it and re-build Rubinius:
 
-    $ cd path/to/rubinius-git-repository
+    $ cd /path/to/rubinius-git-repository
     $ rake clean
     $ ./configure --llvm-config llvm-config-3.1
     $ rake
@@ -228,9 +228,10 @@ directory of the Rubinius git repository:
 
 Let's check the profile report of the above benchmark.
 
-NOTE: try to run `opcontrol` and `opjitconv` at least once while running
-Rubinius if JIT-ted Ruby code doesn't show in the profile report. There is
-some issue...
+NOTE: try to run `opcontrol --dump` at least once while running Rubinius if
+JIT-ted Ruby code doesn't show in the profile report. OProfile automatically
+dumps periodically, but if your Ruby process terminates too shortly, you
+should manually run `opcontrol --dump` while it's still alive.
 
     $ sudo opcontrol --dump && sudo opjitconv /var/lib/oprofile/ 0 0
     $ opreport --merge all --threshold 1 image:./bin/rbx --symbols --debug-info \
