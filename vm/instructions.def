@@ -1219,7 +1219,9 @@ instruction create_block(literal) [ -- block ]
   } else {
     //printf("correct!!!!!\n");
   }
-  code->scope(state, call_frame->constant_scope());
+  if(code->scope()->nil_p()) {
+    code->scope(state, call_frame->constant_scope());
+  }
 
   Object* be = BlockEnvironment::under_call_frame(state, gct, code, mcode, call_frame);
 

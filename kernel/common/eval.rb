@@ -65,10 +65,12 @@ module Kernel
     lineno ||= binding.line_number
 
     existing_scope = binding.constant_scope
-    binding.constant_scope = existing_scope.dup
+    eval_scope = existing_scope.dup
+    binding.constant_scope = eval_scope
 
     be = Rubinius::Compiler.construct_block string, binding,
                                             filename, lineno
+    be.update_compiled_code_scope(eval_scope)
 
     be.set_eval_binding binding
 
