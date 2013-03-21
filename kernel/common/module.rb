@@ -405,7 +405,7 @@ class Module
   def module_exec(*args, &prc)
     raise LocalJumpError, "Missing block" unless block_given?
 
-    env = prc.block
+    env = prc.block.dup
     constant_scope = env.repoint_scope self
     return env.call_under(self, constant_scope, *args)
   end

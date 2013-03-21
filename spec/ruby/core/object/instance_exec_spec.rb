@@ -63,6 +63,14 @@ ruby_version_is "1.8.7" do
       3.instance_exec(4, &5.method(:+)).should == 9
     end
 
+    it "switches block's constant scope to receiver's one" do
+      class Style
+        COLORS = ["red", "blue"]
+      end
+      Style.new.instance_eval("proc{COLORS}.call").should == ["red", "blue"]
+      Style.new.instance_exec{proc{COLORS}.call}.should == ["red", "blue"]
+    end
+
     ruby_version_is ""..."1.9" do
       it "sets class variables in the receiver" do
         ObjectSpecs::InstExec.class_variables.should include("@@count")

@@ -33,7 +33,6 @@ module Kernel
       if string
         raise ArgumentError, 'cannot pass both a block and a string to evaluate'
       end
-      # Return a copy of the BlockEnvironment with the receiver set to self
       env = prc.block
 
       if sc

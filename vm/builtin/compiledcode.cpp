@@ -396,8 +396,6 @@ namespace rubinius {
         if(for_block) {
           code->scope(state, scope());
           code->update_code_literal_scope(state);
-        } else {
-          //std::cout << code->name()->cpp_str(state) << std::endl;
         }
       }
     }

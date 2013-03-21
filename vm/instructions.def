@@ -1206,26 +1206,12 @@ instruction create_block(literal) [ -- block ]
   Object* _lit = call_frame->compiled_code->literals()->at(state, literal);
   CompiledCode* code = as<CompiledCode>(_lit);
 
-  // TODO: We do not need to be doing this everytime.
-  if(!code->scope() and call_frame->constant_scope()) {
-    printf("%p: %p\n", code->scope(), call_frame->constant_scope());
-  }
-  if(!code->scope()->nil_p() and code->scope() != call_frame->constant_scope()) {
-    flush_ip();
-    printf("different!!!!! %p %p\n", code->scope(), call_frame->constant_scope());
-    call_frame->print_backtrace(state, 100, false);
-    //Tuple* t = as<Tuple>(cNil);
-    //(void)t;
-  } else {
-    //printf("correct!!!!!\n");
-  }
-  if(code->scope()->nil_p()) {
-    printf("different!!!!! %p %p\n", code->scope(), call_frame->constant_scope());
+  /*if(code->scope() != call_frame->constant_scope()) {
+    printf("different: %p %p\n", code->scope(), call_frame->constant_scope());
     flush_ip();
     call_frame->print_backtrace(state, 100, false);
-    code->scope(state, call_frame->constant_scope());
-  }
-
+  }*/
+  code->scope(state, call_frame->constant_scope());
   Object* be = BlockEnvironment::under_call_frame(state, gct, code, mcode, call_frame);
 
   CHECK_AND_PUSH(be);

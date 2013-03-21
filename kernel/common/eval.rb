@@ -98,8 +98,7 @@ class Module
         raise ArgumentError, "cannot pass both string and proc"
       end
 
-      # Return a copy of the BlockEnvironment with the receiver set to self
-      env = prc.block
+      env = prc.block.dup
       constant_scope = env.repoint_scope self
       return env.call_under(self, constant_scope, self)
     elsif string.equal?(undefined)
