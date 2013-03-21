@@ -92,6 +92,7 @@ module Rubinius
         end
       end
       executable.scope = constant_scope
+      executable.update_code_literal_scope
     end
 
     mod = constant_scope.for_method_definition
@@ -183,6 +184,7 @@ module Rubinius
         end
       end
       executable.scope = constant_scope
+      executable.update_code_literal_scope
     end
 
     mod = Rubinius::Type.object_singleton_class recv

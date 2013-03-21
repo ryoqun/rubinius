@@ -22,4 +22,9 @@ describe "Kernel#eval" do
       eval("__LINE__", binding, "(file)", 2).should == 2
     end
   end
+
+  describe "updates constant scope" do
+    cached_code = "proc{Rubinius::CompiledCode.current.scope}.call"
+    eval(cached_code).should_not == eval(cached_code)
+  end
 end

@@ -111,6 +111,9 @@ namespace rubinius {
     // Rubinius.primitive :compiledcode_is_breakpoint
     Object* is_breakpoint(STATE, Fixnum* ip);
 
+    // Rubinius.primitive :compiledcode_update_code_literal_scope
+    Object* update_code_literal_scope(STATE);
+
     // Rubinius.primitive :compiledcode_of_sender
     static CompiledCode* of_sender(STATE, CallFrame* calling_environment);
 

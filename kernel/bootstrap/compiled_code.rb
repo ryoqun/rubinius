@@ -15,6 +15,11 @@ module Rubinius
       raise PrimitiveFailure, "CompiledCode#dup primitive failed"
     end
 
+    def update_code_literal_scope
+      Rubinius.primitive :compiledcode_update_code_literal_scope
+      raise PrimitiveFailure, "CompiledCode#update_code_literal_scope failed"
+    end
+
     # Return the CompiledCode for caller of the method that called
     # .of_sender.
     #

@@ -1211,9 +1211,6 @@ instruction create_block(literal) [ -- block ]
   Object* _lit = call_frame->compiled_code->literals()->at(state, literal);
   CompiledCode* code = as<CompiledCode>(_lit);
 
-  // TODO: We do not need to be doing this everytime.
-  code->scope(state, call_frame->constant_scope());
-
   Object* be = BlockEnvironment::under_call_frame(state, gct, code, mcode, call_frame);
 
   CHECK_AND_PUSH(be);
@@ -1653,6 +1650,7 @@ instruction add_scope() [ module -- ]
   scope->module(state, mod);
   scope->parent(state, call_frame->constant_scope());
   call_frame->compiled_code->scope(state, scope);
+  call_frame->compiled_code->update_code_literal_scope(state);
   call_frame->constant_scope_ = scope;
 end
 

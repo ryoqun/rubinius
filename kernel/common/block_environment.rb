@@ -33,8 +33,14 @@ module Rubinius
       @compiled_code = @compiled_code.change_name name
     end
 
+    def update_compiled_code_scope(scope)
+      @compiled_code = @compiled_code.change_scope(scope)
+    end
+
     def repoint_scope(where)
-      @compiled_code.scope.using_current_as where
+      scope = @compiled_code.scope.using_current_as where
+      update_compiled_code_scope(scope)
+      scope
     end
 
     def disable_scope!

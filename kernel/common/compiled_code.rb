@@ -178,6 +178,8 @@ module Rubinius
         @scope = cs
       end
 
+      update_code_literal_scope
+
       sc = Rubinius::Type.object_singleton_class(MAIN)
       sc.method_table.store :__script__, self, :public
       VM.reset_method_cache :__script__
@@ -342,6 +344,23 @@ module Rubinius
     # @return [Tuple]
     def child_methods
       literals.select { |lit| lit.kind_of? CompiledCode }
+    end
+
+    def change_scope(scope)
+      code = dup
+      code.scope = scope
+
+      lits = Tuple.new(code.literals.size)
+      code.literals.each_with_index do |lit, idx|
+        if lit.kind_of? CompiledCode and lit.is_block?
+          lit = lit.change_scope scope
+        end
+
+        lits[idx] = lit
+      end
+
+      code.literals = lits
+      return code
     end
 
     def change_name(name)

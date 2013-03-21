@@ -963,6 +963,7 @@ namespace rubinius {
     Module* mod = scope->for_method_definition();
 
     method->scope(state, scope);
+    method->update_code_literal_scope(state);
     method->serial(state, Fixnum::from(0));
 
     OnStack<4> os(state, mod, method, scope, vis);
@@ -1023,6 +1024,7 @@ namespace rubinius {
     Module* mod = recv->singleton_class(state);
 
     method->scope(state, scope);
+    method->update_code_literal_scope(state);
     method->serial(state, Fixnum::from(0));
 
     OnStack<2> os(state, mod, method);
