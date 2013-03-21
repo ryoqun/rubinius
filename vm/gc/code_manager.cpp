@@ -26,6 +26,7 @@ namespace rubinius {
     , freed_resources_(0)
     , total_allocated_(0)
     , total_freed_(0)
+    , gc_triggered_(0)
     , bytes_used_(0)
   {
     first_chunk_ = new Chunk(chunk_size_);
@@ -58,17 +59,23 @@ namespace rubinius {
     current_chunk_ = c;
   }
 
-  void CodeManager::add_resource(CodeResource* cr) {
+  bool CodeManager::add_resource(CodeResource* cr) {
     utilities::thread::Mutex::LockGuard guard(mutex_);
 
     total_allocated_ += cr->size();
     bytes_used_ += cr->size();
 
+    bool gc_unneeded = true;
+    if(total_allocated_ - gc_triggered_ > cGCTriggerThreshold) {
+      gc_triggered_ = total_allocated_;
+      gc_unneeded = false;
+    }
+
     for(;;) {
       while(current_index_ < chunk_size_) {
         if(current_chunk_->resources[current_index_] == 0) {
           current_chunk_->resources[current_index_] = cr;
-          return;
+          return gc_unneeded;
         }
 
         current_index_++;
@@ -79,6 +86,8 @@ namespace rubinius {
       current_chunk_ = current_chunk_->next;
       if(!current_chunk_) add_chunk();
     }
+
+    return gc_unneeded;
   }
 
   void CodeManager::sweep() {
