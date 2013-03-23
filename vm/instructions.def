@@ -1204,14 +1204,8 @@ end
 
 instruction create_block(literal) [ -- block ]
   Object* _lit = call_frame->compiled_code->literals()->at(state, literal);
-  CompiledCode* code = as<CompiledCode>(_lit);
+  CompiledCode* code = reinterpret_cast<CompiledCode*>(_lit);
 
-  /*if(code->scope() != call_frame->constant_scope()) {
-    printf("different: %p %p\n", code->scope(), call_frame->constant_scope());
-    flush_ip();
-    call_frame->print_backtrace(state, 100, false);
-  }*/
-  code->scope(state, call_frame->constant_scope());
   Object* be = BlockEnvironment::under_call_frame(state, gct, code, mcode, call_frame);
 
   CHECK_AND_PUSH(be);

@@ -236,11 +236,6 @@ extern "C" {
     Object* _lit = call_frame->compiled_code->literals()->at(state, index);
     CompiledCode* code = as<CompiledCode>(_lit);
 
-    // TODO: We don't need to be doing this everytime.
-    if(code->scope()->nil_p()) {
-      code->scope(state, call_frame->constant_scope());
-    }
-
     MachineCode* mcode = call_frame->compiled_code->machine_code();
     GCTokenImpl gct;
     return BlockEnvironment::under_call_frame(state, gct, code, mcode, call_frame);
@@ -269,9 +264,6 @@ extern "C" {
       }
     }
     va_end(ap);
-
-    // TODO: We don't need to be doing this everytime.
-    code->scope(state, closest->constant_scope());
 
     MachineCode* mcode = closest->compiled_code->machine_code();
     GCTokenImpl gct;
