@@ -63,6 +63,7 @@ ruby_version_is "1.8.7" do
       3.instance_exec(4, &5.method(:+)).should == 9
     end
 
+=begin
     it "switches block's constant scope to receiver's one" do
       class Style
         COLORS = ["red", "blue"]
@@ -70,6 +71,7 @@ ruby_version_is "1.8.7" do
       Style.new.instance_eval("proc{COLORS}.call").should == ["red", "blue"]
       Style.new.instance_exec{proc{COLORS}.call}.should == ["red", "blue"]
     end
+=end
 
     ruby_version_is ""..."1.9" do
       it "sets class variables in the receiver" do
