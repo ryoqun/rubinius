@@ -532,7 +532,6 @@ auth_error:
   }
 
   void QueryAgent::Thread::perform() {
-    utilities::thread::Thread::set_os_name("rbx.agent");
     while(1) {
       fd_set read_fds = agent_->fds();
 
