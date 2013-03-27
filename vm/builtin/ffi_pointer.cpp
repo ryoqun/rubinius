@@ -42,12 +42,19 @@ namespace rubinius {
 
     G(ffi_pointer)->set_const(state, "CURRENT_PROCESS",
       Pointer::create(state, dlopen(NULL, RTLD_NOW | RTLD_GLOBAL)));
+    char *error_message = dlerror();
+    if(error_message) {
+      printf("%s\n", error_message);
+    }
 
     G(ffi_pointer)->set_const(state, "DLSYM",
       Pointer::create(state, (void*)dlsym));
 
     G(ffi_pointer)->set_const(state, "DLOPEN",
       Pointer::create(state, (void*)dlopen));
+
+    G(ffi_pointer)->set_const(state, "DLCLOSE",
+      Pointer::create(state, (void*)dlclose));
 
     G(ffi_pointer)->set_const(state, "DLERROR",
       Pointer::create(state, (void*)dlerror));
