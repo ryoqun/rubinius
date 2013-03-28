@@ -324,6 +324,7 @@ module FFI
     # Bootstrap dlsym, dlopen, and dlerror
     pointer_as_function :find_symbol, FFI::Pointer::DLSYM, [:pointer, :string], :pointer
     pointer_as_function :open_library, FFI::Pointer::DLOPEN, [:string, :int], :pointer
+    pointer_as_function :close_library, FFI::Pointer::DLCLOSE, [:pointer], :int
     pointer_as_function :last_error, FFI::Pointer::DLERROR, [], :string
 
     if Rubinius.windows?
@@ -347,6 +348,10 @@ module FFI
       flags ||= RTLD_LAZY | RTLD_GLOBAL
 
       if name
+        @@libs ||= []
+        @@libs << self
+        ObjectSpace.define_finalizer(self)
+
         @name = name
         @handle = DynamicLibrary.open_library name, flags
 
@@ -401,6 +406,10 @@ module FFI
 
     def last_error
       DynamicLibrary.last_error
+    end
+
+    def __finalize__
+      DynamicLibrary.close_library @handle
     end
 
     CURRENT_PROCESS = DynamicLibrary.new(nil)

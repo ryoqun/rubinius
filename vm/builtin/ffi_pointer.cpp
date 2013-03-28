@@ -49,6 +49,9 @@ namespace rubinius {
     G(ffi_pointer)->set_const(state, "DLOPEN",
       Pointer::create(state, (void*)dlopen));
 
+    G(ffi_pointer)->set_const(state, "DLCLOSE",
+      Pointer::create(state, (void*)dlclose));
+
     G(ffi_pointer)->set_const(state, "DLERROR",
       Pointer::create(state, (void*)dlerror));
 
