@@ -16,6 +16,18 @@ describe "Kernel#`" do
     Kernel.`(obj).should == "test\n"
   end
 
+  ruby_version_is "1.9" do
+    it "produces a String in the default external encoding" do
+      original_external = Encoding.default_external
+      Encoding.default_external = Encoding::SHIFT_JIS
+      begin
+        `echo disc`.encoding.should equal(Encoding::SHIFT_JIS)
+      ensure
+        Encoding.default_external = original_external
+      end
+    end
+  end
+
   platform_is_not :windows do
     it "sets $? to the exit status of the executed sub-process" do
       ip = 'world'
