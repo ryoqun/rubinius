@@ -58,7 +58,9 @@ class BasicPrimitive
 
   def output_call(str, call, args)
     str << "\n"
-    str << "  try {\n"
+    unless @safe
+      str << "  try {\n"
+    end
     str << "#ifdef RBX_PROFILER\n"
     str << "    if(unlikely(state->vm()->tooling())) {\n"
     str << "      tooling::MethodEntry method(state, exec, mod, args);\n"
@@ -75,13 +77,15 @@ class BasicPrimitive
     str << "    ret = #{call}(#{args.join(', ')});\n"
     str << "    RUBINIUS_METHOD_PRIMITIVE_RETURN_HOOK(state, mod, args.name(), call_frame);\n"
     str << "#endif\n"
-    str << "  } catch(const RubyException& exc) {\n"
-    str << "    exc.exception->locations(state,\n"
-    str << "          Location::from_call_stack(state, call_frame));\n"
-    str << "    state->raise_exception(exc.exception);\n"
-    str << "    RUBINIUS_METHOD_PRIMITIVE_RETURN_HOOK(state, mod, args.name(), call_frame);\n"
-    str << "    return NULL;\n"
-    str << "  }\n"
+    unless @safe
+      str << "  } catch(const RubyException& exc) {\n"
+      str << "    exc.exception->locations(state,\n"
+      str << "          Location::from_call_stack(state, call_frame));\n"
+      str << "    state->raise_exception(exc.exception);\n"
+      str << "    RUBINIUS_METHOD_PRIMITIVE_RETURN_HOOK(state, mod, args.name(), call_frame);\n"
+      str << "    return NULL;\n"
+      str << "  }\n"
+    end
     str << "\n"
     str << "  if(unlikely(ret == reinterpret_cast<Object*>(kPrimitiveFailed)))\n"
     str << "    goto fail;\n\n"
@@ -121,14 +125,18 @@ class CPPPrimitive < BasicPrimitive
 
     if @raw
       str << "\n"
-      str << "  try {\n"
+      unless @safe
+        str << "  try {\n"
+      end
       str << "    ret = recv->#{@cpp_name}(state, call_frame, exec, mod, args);\n"
-      str << "  } catch(const RubyException& exc) {\n"
-      str << "    exc.exception->locations(state,\n"
-      str << "          Location::from_call_stack(state, call_frame));\n"
-      str << "    state->raise_exception(exc.exception);\n"
-      str << "    return NULL;\n"
-      str << "  }\n"
+      unless @safe
+        str << "  } catch(const RubyException& exc) {\n"
+        str << "    exc.exception->locations(state,\n"
+        str << "          Location::from_call_stack(state, call_frame));\n"
+        str << "    state->raise_exception(exc.exception);\n"
+        str << "    return NULL;\n"
+        str << "  }\n"
+      end
       str << "  if(ret == Primitives::failure()) goto fail;\n"
       str << "  return ret;\n"
       str << "\n"
@@ -291,14 +299,18 @@ class CPPPrimitive < BasicPrimitive
     args.push "call_frame" if @pass_call_frame
 
     str << "\n"
-    str << "  try {\n"
+    unless @safe
+      str << "  try {\n"
+    end
     str << "    ret = self->#{@cpp_name}(#{args.join(', ')});\n"
-    str << "  } catch(const RubyException& exc) {\n"
-    str << "    exc.exception->locations(state,\n"
-    str << "          Location::from_call_stack(state, call_frame));\n"
-    str << "    state->raise_exception(exc.exception);\n"
-    str << "    return NULL;\n"
-    str << "  }\n"
+    unless @safe
+      str << "  } catch(const RubyException& exc) {\n"
+      str << "    exc.exception->locations(state,\n"
+      str << "          Location::from_call_stack(state, call_frame));\n"
+      str << "    state->raise_exception(exc.exception);\n"
+      str << "    return NULL;\n"
+      str << "  }\n"
+    end
     str << "\n"
     str << "  if(unlikely(ret == reinterpret_cast<Object*>(kPrimitiveFailed)))\n"
     str << "    goto fail;\n\n"
@@ -319,14 +331,18 @@ class CPPStaticPrimitive < CPPPrimitive
 
     if @raw
       str << "\n"
-      str << "  try {\n"
+      unless @safe
+        str << "  try {\n"
+      end
       str << "    return #{@type}::#{@cpp_name}(state, exec, call_frame, mod);\n"
-      str << "  } catch(const RubyException& exc) {\n"
-      str << "    exc.exception->locations(state,\n"
-      str << "          Location::from_call_stack(state, call_frame));\n"
-      str << "    state->raise_exception(exc.exception);\n"
-      str << "    return NULL;\n"
-      str << "  }\n"
+      unless @safe
+        str << "  } catch(const RubyException& exc) {\n"
+        str << "    exc.exception->locations(state,\n"
+        str << "          Location::from_call_stack(state, call_frame));\n"
+        str << "    state->raise_exception(exc.exception);\n"
+        str << "    return NULL;\n"
+        str << "  }\n"
+      end
       str << "\n"
       str << "}\n\n"
     else
