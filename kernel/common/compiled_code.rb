@@ -138,6 +138,11 @@ module Rubinius
       raise ArgumentError, "Unable to set breakpoint on #{inspect} at invalid bytecode address #{ip}"
     end
 
+    def set_breakpoint_on_send
+      Rubinius.primitive :compiledcode_set_breakpoint_on_send
+      raise ArgumentError, "Unable to set breakpoint on send"
+    end
+
     ##
     # Erase a breakpoint at +ip+
     #

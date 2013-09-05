@@ -18,6 +18,10 @@ namespace rubinius {
   public:
     const static object_type type = CompiledCodeType;
 
+    enum Breakpoint {
+      eNone = 0, eNormal, eOnSend
+    };
+
   private:
     Object* metadata_;          // slot
     Symbol* name_;              // slot
@@ -104,6 +108,11 @@ namespace rubinius {
 
     // Rubinius.primitive :compiledcode_set_breakpoint
     Object* set_breakpoint(STATE, GCToken gct, Fixnum* ip, Object* bp, CallFrame* calling_environment);
+
+    // Rubinius.primitive :compiledcode_set_breakpoint_on_send
+    Object* set_breakpoint_on_send(STATE, GCToken gc, CallFrame* calling_environment);
+
+    void clear_breakpoint_on_send();
 
     // Rubinius.primitive :compiledcode_clear_breakpoint
     Object* clear_breakpoint(STATE, Fixnum* ip);

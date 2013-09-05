@@ -417,13 +417,7 @@ Does not step into send instructions.
         i = exec.iseq[ip]
         case i
         when send
-          p ip
-          p exec.literals[exec.iseq[ip+1]]
-          bp = BreakPoint.for_ip(exec, ip)
-          bp.activate
-
-          bp = BreakPoint.for_ip(exec, 17)
-          bp.activate
+          exec.set_breakpoint_on_send
           return false
         end
 

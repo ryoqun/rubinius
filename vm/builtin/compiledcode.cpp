@@ -354,10 +354,37 @@ namespace rubinius {
     }
 
     self->breakpoints_->store(state, ip, bp);
-    self->machine_code_->debugging = 1;
+    if(self->machine_code_->debugging == eNone) {
+      self->machine_code_->debugging = eNormal;
+    }
     self->machine_code_->run = MachineCode::debugger_interpreter;
 
     return ip;
+  }
+
+  Object* CompiledCode::set_breakpoint_on_send(STATE, GCToken gct, CallFrame* calling_environment) {
+    CompiledCode* self = this;
+    OnStack<1> os(state, self);
+    if(self->machine_code_ == NULL) {
+      if(!self->internalize(state, gct, calling_environment)) return Primitives::failure();
+    }
+    printf("on send !!!!\n");
+    machine_code_->debugging = eOnSend;
+    return cNil;
+  }
+
+  void CompiledCode::clear_breakpoint_on_send() {
+    if(machine_code_ == NULL) return;
+
+    if(!breakpoints_->nil_p()) {
+      // No more breakpoints, switch back to the normal interpreter
+      if(breakpoints_->entries()->to_native() == 0) {
+        machine_code_->debugging = eNone;
+        machine_code_->run = MachineCode::interpreter;
+      } else {
+        machine_code_->debugging = eNormal;
+      }
+    }
   }
 
   Object* CompiledCode::clear_breakpoint(STATE, Fixnum* ip) {
@@ -372,8 +399,10 @@ namespace rubinius {
 
       // No more breakpoints, switch back to the normal interpreter
       if(breakpoints_->entries()->to_native() == 0) {
-        machine_code_->debugging = 0;
-        machine_code_->run = MachineCode::interpreter;
+        if(machine_code_->debugging == eNormal) {
+          machine_code_->debugging = eNone;
+          machine_code_->run = MachineCode::interpreter;
+        }
       }
     }
 
