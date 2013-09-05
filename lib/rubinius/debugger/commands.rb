@@ -433,6 +433,7 @@ Does not step into send instructions.
           :check_serial_private,
           :call_custom,
           :yield_stack,
+          :yeild_splat,
         ]
 
         if sends.collect { |s| Rubinius::InstructionSet.opcodes_map[s] }.include?(exec.iseq[ip])
