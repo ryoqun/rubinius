@@ -368,7 +368,6 @@ namespace rubinius {
     if(self->machine_code_ == NULL) {
       if(!self->internalize(state, gct, calling_environment)) return Primitives::failure();
     }
-    printf("on send !!!!\n");
     machine_code_->debugging = eOnSend;
     return cNil;
   }
@@ -391,7 +390,6 @@ namespace rubinius {
     int i = ip->to_native();
     if(machine_code_ == NULL) return ip;
     if(!machine_code_->validate_ip(state, i)) return Primitives::failure();
-    printf("clear %d\n", i);
 
     bool removed = false;
     if(!breakpoints_->nil_p()) {

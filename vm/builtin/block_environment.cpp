@@ -322,6 +322,16 @@ namespace rubinius {
       }
     }
 
+      GCTokenImpl gct;
+      if(previous &&
+         previous->compiled_code &&
+         previous->compiled_code->machine_code() &&
+         previous->compiled_code->machine_code()->debugging ) {
+        if (previous->compiled_code->machine_code()->debugging == CompiledCode::eOnSend) {
+          previous->compiled_code->clear_breakpoint_on_send();
+          env->compiled_code_->set_breakpoint(state, gct, Fixnum::from(0), cNil, frame);
+        }
+      }
 #ifdef RBX_PROFILER
     if(unlikely(state->vm()->tooling())) {
       Module* mod = scope->module();
@@ -336,7 +346,6 @@ namespace rubinius {
       // Check the stack and interrupts here rather than in the interpreter
       // loop itself.
 
-      GCTokenImpl gct;
 
       if(!state->check_interrupts(gct, frame, frame)) return NULL;
 
@@ -347,8 +356,6 @@ namespace rubinius {
     } else {
       // Check the stack and interrupts here rather than in the interpreter
       // loop itself.
-
-      GCTokenImpl gct;
 
       if(!state->check_interrupts(gct, frame, frame)) return NULL;
 

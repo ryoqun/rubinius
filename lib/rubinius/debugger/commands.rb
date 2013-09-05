@@ -413,12 +413,30 @@ Does not step into send instructions.
       end
 
       def is_send(exec, ip)
-        send = Rubinius::InstructionSet.opcodes_map[:send_stack]
-        i = exec.iseq[ip]
-        case i
-        when send
+        sends = [
+          :send_method,
+          :send_stack,
+          :send_stack_with_block,
+          :send_stack_with_splat,
+          :send_super_stack_with_block,
+          :send_super_stack_with_splat,
+          :zsuper,
+          :meta_send_call,
+          :meta_send_op_plus,
+          :meta_send_op_minus,
+          :meta_send_op_equal,
+          :meta_send_op_tequal,
+          :meta_send_op_lt,
+          :meta_send_op_gt,
+          :meta_to_s,
+          :check_serial,
+          :check_serial_private,
+          :call_custom,
+          :yield_stack,
+        ]
+
+        if sends.collect { |s| Rubinius::InstructionSet.opcodes_map[s] }.include?(exec.iseq[ip])
           exec.set_breakpoint_on_send
-          return false
         end
 
         return false
@@ -488,10 +506,17 @@ in each frame.
 
         info "Backtrace:"
 
+        offset = 0
+
+        if @debugger.primitive.is_a?(Symbol)
+          info "%4d %s" % [offset , "primitive: #{@debugger.primitive.inspect}"]
+          offset = 1
+        end
+
         @debugger.each_frame(current_frame) do |frame|
           return if count and frame.number >= count
 
-          info "%4d %s" % [frame.number, frame.describe]
+          info "%4d %s" % [frame.number + offset, frame.describe]
 
           if verbose
             frame.local_variables.each do |local|

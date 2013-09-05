@@ -67,12 +67,7 @@ class Rubinius::Debugger
         end
       end
 
-      str = "#{recv} at #{loc.method.active_path}:#{loc.line} (#{loc.ip})"
-      if @debugger.variables[:show_ip]
-        str << " (+#{loc.ip})"
-      end
-
-      str
+      "#{recv} at #{loc.method.active_path}:#{loc.line} [#{Rubinius::CompiledCode::IP_FORMAT % loc.ip}]"
     end
   end
 end

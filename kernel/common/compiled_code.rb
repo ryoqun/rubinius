@@ -2,6 +2,7 @@
 
 module Rubinius
   class CompiledCode < Executable
+    IP_FORMAT = "%04d:"
 
     ##
     # Any CompiledCode with this value in it's serial slot

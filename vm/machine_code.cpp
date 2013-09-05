@@ -640,9 +640,7 @@ namespace rubinius {
          previous->compiled_code &&
          previous->compiled_code->machine_code() &&
          previous->compiled_code->machine_code()->debugging ) {
-         printf("debugging %d\n", previous->compiled_code->machine_code()->debugging );
         if (previous->compiled_code->machine_code()->debugging == CompiledCode::eOnSend) {
-          printf("called!!!! %d\n", previous->ip());
           previous->compiled_code->clear_breakpoint_on_send();
             code->set_breakpoint(state, gct, 
             Fixnum::from(0), cNil, frame);

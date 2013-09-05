@@ -18,9 +18,7 @@ class BasicPrimitive
          call_frame->compiled_code &&
          call_frame->compiled_code->machine_code() &&
          call_frame->compiled_code->machine_code()->debugging ) {
-          printf("primitive debugging %d\\n", call_frame->compiled_code->machine_code()->debugging );
         if (call_frame->compiled_code->machine_code()->debugging == CompiledCode::eOnSend) {
-          printf("primitive called!!!! %d\\n", call_frame->ip());
           call_frame->compiled_code->clear_breakpoint_on_send();
           GCTokenImpl gct;
           if(!Helpers::yield_debugger(state, gct, call_frame, state->symbol("#{@name}", #{@name.bytesize}))) printf("super bad thing happpend\\n") ;

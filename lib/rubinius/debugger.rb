@@ -19,6 +19,8 @@ class Rubinius::Debugger
   # Find the source for the kernel.
   ROOT_DIR = File.expand_path("../", Rubinius::KERNEL_PATH)
 
+  attr_reader :primitive
+
   # Create a new debugger object. The debugger starts up a thread
   # which is where the command line interface executes from. Other
   # threads that you wish to debug are told that their debugging
@@ -144,14 +146,13 @@ class Rubinius::Debugger
 
       # Wait for someone to stop
       bp, thr, chan, locs = @local_channel.receive
-      puts [bp, thr, chan]
-      puts locs.first.inspect
 
       # Uncache all frames since we stopped at a new place
       @frames = []
 
       @locations = locs
       @breakpoint = bp
+      @primitive = nil
       @debuggee_thread = thr
       @channel = chan
 
@@ -161,6 +162,7 @@ class Rubinius::Debugger
         puts
         puts "| Primitive: #{bp.inspect}"
         @breakpoint = nil
+        @primitive = bp
         break
       end
 
@@ -178,13 +180,15 @@ class Rubinius::Debugger
       end
     end
 
-    puts
-    info "Breakpoint: #{@current_frame.describe}"
-    show_code
-    eval_code(@breakpoint.commands) if @breakpoint && @breakpoint.has_commands?
+    if !bp.is_a?(Symbol)
+      puts
+      info "Breakpoint: #{@current_frame.describe}"
+      show_code
+      eval_code(@breakpoint.commands) if @breakpoint && @breakpoint.has_commands?
 
-    if @variables[:show_bytecode]
-      decode_one
+      if @variables[:show_bytecode]
+        decode_one
+      end
     end
 
   end
@@ -264,6 +268,10 @@ class Rubinius::Debugger
 
   def set_frame(num)
     @current_frame = frame(num)
+  end
+
+  def primitive
+    @primitive
   end
 
   def each_frame(start=0)
@@ -386,17 +394,20 @@ class Rubinius::Debugger
 
   def show_code(line = @current_frame.line,
                 path = @current_frame.method.active_path)
-    if str = @file_lines[path][line - 1]
-      if @variables[:highlight]
-        if fin = @current_frame.method.first_ip_on_line(line + 1)
-          if name = send_between(@current_frame.method, @current_frame.ip, fin)
-            str = str.gsub name.to_s, "\033[0;4m#{name}\033[0m"
+    [line - 2, line - 1, line, line + 1, line + 2].each do |i|
+      if str = @file_lines[path][i - 1]
+        if @variables[:highlight]
+          if fin = @current_frame.method.first_ip_on_line(i + 1)
+            if name = send_between(@current_frame.method, @current_frame.ip, fin)
+              str = str.gsub name.to_s, "\033[0;4m#{name}\033[0m"
+            end
           end
         end
+        p = (i == line) ? "*" : " "
+        info "#{"%4d" % i}|#{p}#{str}"
+      elsif (i - 1) < @file_lines[path].size
+        show_bytecode(i)
       end
-      info "#{line}: #{str}"
-    else
-      show_bytecode(line)
     end
   end
 
@@ -405,9 +416,11 @@ class Rubinius::Debugger
 
     meth = @current_frame.method
     decoder = Rubinius::InstructionDecoder.new(meth.iseq)
-    partial = decoder.decode_between(ip, ip+1)
+    partial = decoder.decode_between(ip, meth.iseq.size)
 
-    partial.each do |ins|
+    p = "*"
+    partial.first(3).each do |ins|
+      iii = ins.size
       op = ins.shift
 
       ins.each_index do |i|
@@ -418,10 +431,14 @@ class Rubinius::Debugger
           if meth.local_names
             ins[i] = meth.local_names[ins[i]]
           end
+        when :location
+          ins[i] = Rubinius::CompiledCode::IP_FORMAT % ins[i]
         end
       end
 
-      display "ip #{ip} = #{op.opcode} #{ins.join(', ')}"
+      info "#{Rubinius::CompiledCode::IP_FORMAT % ip}#{p}  #{op.opcode} #{ins.join(', ')}"
+      ip += iii
+      p = " "
     end
   end
 
@@ -452,10 +469,12 @@ class Rubinius::Debugger
           if meth.local_names
             ins[i] = meth.local_names[ins[i]]
           end
+        when :location
+          ins[i] = Rubinius::CompiledCode::IP_FORMAT % ins[i]
         end
       end
 
-      info " %4d: #{op.opcode} #{ins.join(', ')}" % ip
+      info " #{Rubinius::CompiledCode::IP_FORMAT} #{op.opcode} #{ins.join(', ')}" % ip
 
       ip += (ins.size + 1)
     end
