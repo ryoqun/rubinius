@@ -18,6 +18,8 @@ describe "Time.at" do
     end
 
     it "returns a subclass instance on a Time subclass" do
+      require "rubinius/debugger"
+      Rubinius::Debugger.start
       c = Class.new(Time)
       t = c.at(0)
       t.should be_an_instance_of(c)

@@ -364,6 +364,7 @@ namespace rubinius {
     int i = ip->to_native();
     if(machine_code_ == NULL) return ip;
     if(!machine_code_->validate_ip(state, i)) return Primitives::failure();
+    printf("clear %d\n", i);
 
     bool removed = false;
     if(!breakpoints_->nil_p()) {

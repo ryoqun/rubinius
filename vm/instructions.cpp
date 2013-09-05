@@ -386,7 +386,9 @@ continue_to_run:
 
 #undef DISPATCH
 #define DISPATCH \
+    printf("dispatch\n"); \
     if(Object* bp = call_frame->find_breakpoint(state)) { \
+      printf("trigger\n"); \
       if(!Helpers::yield_debugger(state, gct, call_frame, bp)) goto exception; \
     } \
     goto *insn_locations[stream[call_frame->inc_ip()]];

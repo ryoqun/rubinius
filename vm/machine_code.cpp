@@ -19,6 +19,7 @@
 #include "builtin/location.hpp"
 #include "builtin/constant_cache.hpp"
 #include "builtin/call_site.hpp"
+#include "builtin/lookuptable.hpp"
 
 #include "instructions.hpp"
 
@@ -633,6 +634,19 @@ namespace rubinius {
       frame->arguments = &args;
 
       GCTokenImpl gct;
+
+
+      if(previous && previous->compiled_code && previous->compiled_code->machine_code() && previous->compiled_code->machine_code()->debugging) {
+        printf("called!!!! %d\n", previous->ip());
+        Object *breakpoint = previous->find_breakpoint(state,
+                                                       previous->ip());
+        if(breakpoint) {
+          printf("%p\n", breakpoint);
+          Fixnum *ip = (Fixnum *)code->set_breakpoint(state, gct, 
+            Fixnum::from(0), cNil, frame);
+          printf("return %ld\n", ip->to_native());
+        }
+      }
 
 #ifdef ENABLE_LLVM
       // A negative call_count means we've disabled usage based JIT

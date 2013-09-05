@@ -232,7 +232,14 @@ namespace rubinius {
     std::cout << ">\n";
   }
 
-  Object* CallFrame::find_breakpoint(STATE) {
+  Object* CallFrame::find_breakpoint(STATE, int cip) {
+    Fixnum* f;
+    if(cip == -1) {
+      f = Fixnum::from(ip());
+    } else {
+      f = Fixnum::from(cip);
+    }
+
     if(!compiled_code) return 0;
 
     LookupTable* tbl = compiled_code->breakpoints();
@@ -240,7 +247,7 @@ namespace rubinius {
 
     bool found = false;
 
-    Object* obj = tbl->fetch(state, Fixnum::from(ip()), &found);
+    Object* obj = tbl->fetch(state, f, &found);
     if(found) return obj;
 
     return 0;

@@ -43,8 +43,8 @@ class Rubinius::Debugger
     @frames = []
 
     @variables = {
-      :show_ip              => false,
-      :show_bytecode        => false,
+      :show_ip              => true,
+      :show_bytecode        => true,
       :highlight            => false,
       :list_command_history => {
         :path        => nil,
@@ -144,6 +144,8 @@ class Rubinius::Debugger
 
       # Wait for someone to stop
       bp, thr, chan, locs = @local_channel.receive
+      puts [bp, thr, chan]
+      puts locs.first.inspect
 
       # Uncache all frames since we stopped at a new place
       @frames = []

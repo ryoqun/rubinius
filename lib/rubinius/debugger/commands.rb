@@ -385,6 +385,7 @@ Does not step into send instructions.
           step_to_parent
         elsif is_a_goto(exec, current_frame.ip)
           set_breakpoints_between(exec, current_frame.ip, next_ip)
+        elsif is_send(exec, current_frame.ip)
         else
           line = exec.line_from_ip(next_ip)
 
@@ -406,6 +407,24 @@ Does not step into send instructions.
         case i
         when goto, git, gif
           return true
+        end
+
+        return false
+      end
+
+      def is_send(exec, ip)
+        send = Rubinius::InstructionSet.opcodes_map[:send_stack]
+        i = exec.iseq[ip]
+        case i
+        when send
+          p ip
+          p exec.literals[exec.iseq[ip+1]]
+          bp = BreakPoint.for_ip(exec, ip)
+          bp.activate
+
+          bp = BreakPoint.for_ip(exec, 17)
+          bp.activate
+          return false
         end
 
         return false

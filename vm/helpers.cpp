@@ -318,6 +318,7 @@ namespace rubinius {
 
       OnStack<1> os(state, my_control);
 
+      printf("send\n");
       debugger_chan->send(state, gct,
           Tuple::from(state, 4, bp, cur, my_control, locs), call_frame);
 

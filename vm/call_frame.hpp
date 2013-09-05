@@ -243,7 +243,7 @@ namespace rubinius {
 
     void dump();
 
-    Object* find_breakpoint(STATE);
+    Object* find_breakpoint(STATE, int ip=-1);
   };
 
   class InterpreterCallFrame : public CallFrame {
