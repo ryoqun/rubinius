@@ -687,6 +687,18 @@ class CPPClass
     all_fields.each do |name, type, idx, flags|
       str << "Object* Primitives::access_#{@name}_#{name}(STATE, CallFrame* call_frame, Executable* exec, Module* mod,
                    Arguments& args) {\n"
+      str << <<CODE
+        if(call_frame &&
+           call_frame->compiled_code &&
+           call_frame->compiled_code->machine_code() &&
+           call_frame->compiled_code->machine_code()->debugging ) {
+          if (call_frame->compiled_code->machine_code()->debugging == CompiledCode::eOnSend) {
+            call_frame->compiled_code->clear_breakpoint_on_send();
+            GCTokenImpl gct;
+            if(!Helpers::yield_debugger(state, gct, call_frame, state->symbol("#{@name}_#{name}", #{"#{@name}_#{name}".bytesize}))) printf("super bad thing happpend\\n") ;
+          }
+        }
+CODE
       str << "  AccessVariable* access = as<AccessVariable>(exec);\n"
       str << "  if(access->write()->true_p()) {\n"
       str << <<-ARGS
