@@ -157,6 +157,13 @@ class Rubinius::Debugger
 
       @current_frame = frame(0)
 
+      if bp.is_a?(Symbol)
+        puts
+        puts "| Primitive: #{bp.inspect}"
+        @breakpoint = nil
+        break
+      end
+
       if bp
         # Only break out if the hit was valid
         if bp.hit!(locs.first)
