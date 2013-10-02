@@ -138,6 +138,7 @@ namespace rubinius {
     };
 
     friend class Info;
+    friend class OptimizedCode;
   };
 
 };
