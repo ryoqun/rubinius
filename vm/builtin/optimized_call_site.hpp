@@ -16,6 +16,8 @@ namespace rubinius {
     attr_accessor(fallback_call_site, CallSite);
 
     static void init(STATE);
+
+    // Rubinius.primitive :optimized_call_site_allocate
     static OptimizedCallSite* create(STATE, CallSite* call_site);
 
     static Object* optimized_call_site_executor(STATE, CallSite* call_site, CallFrame* call_frame,
