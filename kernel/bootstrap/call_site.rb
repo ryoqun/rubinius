@@ -29,9 +29,19 @@ module Rubinius
   end
 
   class OptimizedCallSite < CallSite
+    attr_reader :fallback_call_site
+
     def self.new(call_site)
       Rubinius.primitive :optimized_call_site_allocate
       raise PrimitiveFailure, "OptimizedCallSite.allocate primitive failed"
+    end
+
+    def inject
+      fallback_call_site.update_call_site(self)
+    end
+
+    def inspect
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} fallback:#{fallback_call_site.inspect}>"
     end
   end
 end
