@@ -8,6 +8,13 @@ namespace rubinius {
   class OptimizedCallSite : public CallSite {
   public:
     const static object_type type = OptimizedCallSiteType;
+
+  private:
+    CallSite* fallback_call_site_; // slot
+
+  public:
+    attr_accessor(fallback_call_site, CallSite);
+
     static void init(STATE);
     static OptimizedCallSite* create(STATE, CallSite* call_site);
 
