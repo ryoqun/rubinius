@@ -1,7 +1,7 @@
 #ifndef RBX_OPTIMIZEDCODE_HPP
 #define RBX_OPTIMIZEDCODE_HPP
 
-#include "builtin/compiledcode.hpp"
+#include "builtin/compiled_code.hpp"
 #include "builtin/class.hpp"
 #include "ontology.hpp"
 
