@@ -114,6 +114,7 @@ field_extract_headers = %w[
   vm/builtin/poly_inline_cache.hpp
   vm/builtin/call_custom_cache.hpp
   vm/builtin/respond_to_cache.hpp
+  vm/builtin/optimized_call_site.hpp
   vm/builtin/weakref.hpp
   vm/builtin/fiber.hpp
   vm/builtin/thunk.hpp
