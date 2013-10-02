@@ -99,12 +99,15 @@ namespace rubinius {
       fallback_ = exec;
     }
 
-    void update_call_site(STATE, CallSite* other) {
+    // Rubinius.primitive :call_site_update_call_site
+    Object* update_call_site(STATE, CallSite* other) {
       if(this != other) {
         if(CompiledCode* ccode = try_as<CompiledCode>(executable_)) {
           ccode->machine_code()->store_call_site(state, ccode, ip_, other);
         }
       }
+
+      return cNil;
     }
 
     static bool lookup_method_missing(STATE, CallFrame* call_frame, Arguments& args, Dispatch& dis, Object* self, Module* begin);
