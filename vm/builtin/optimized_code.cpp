@@ -1,4 +1,4 @@
-#include "builtin/optimizedcode.hpp"
+#include "builtin/optimized_code.hpp"
 
 namespace rubinius {
   void OptimizedCode::init(STATE) {
