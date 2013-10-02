@@ -18,6 +18,10 @@ namespace rubinius {
     static void init(STATE);
     static OptimizedCallSite* create(STATE, CallSite* call_site);
 
+    static Object* optimized_call_site_executor(STATE, CallSite* call_site, CallFrame* call_frame,
+                               Arguments& args);
+    static void optimized_call_site_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch);
+
   public: // Rubinius Type stuff
     class Info : public CallSite::Info {
     public:
