@@ -13,6 +13,11 @@ module Rubinius
       raise PrimitiveFailure, "CallSite#ip primitive failed"
     end
 
+    def update_call_site(other)
+      Rubinius.primitive :call_site_update_call_site
+      raise PrimitiveFailure, "CallSite#update_call_site primitive failed"
+    end
+
     def location
       "#{@executable.file}:#{@executable.line_from_ip(ip)}"
     end
@@ -21,5 +26,12 @@ module Rubinius
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} #{location}##{@name}(#{hits})>"
     end
 
+  end
+
+  class OptimizedCallSite < CallSite
+    def self.new(call_site)
+      Rubinius.primitive :optimized_call_site_allocate
+      raise PrimitiveFailure, "OptimizedCallSite.allocate primitive failed"
+    end
   end
 end
