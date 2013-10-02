@@ -60,4 +60,10 @@ module Rubinius
   # deprecated. Client code should use CompiledCode.
   CompiledMethod = CompiledCode
 
+  class OptimizedCode < CompiledCode
+    def self.allocate
+      Rubinius.primitive :optimizedcode_allocate
+      raise PrimitiveFailure, "OptimizedCode.allocate primitive failed"
+    end
+  end
 end
