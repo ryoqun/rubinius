@@ -14,12 +14,23 @@ namespace rubinius {
     call_site->name_     = unoptimized->name();
     call_site->executable(state, unoptimized->executable());
     call_site->ip_       = unoptimized->ip();
-    call_site->executor_ = empty_cache;
+    call_site->executor_ = optimized_call_site_executor;
     call_site->fallback_ = unoptimized->fallback_;
-    call_site->updater_  = empty_cache_updater;
+    call_site->updater_  = optimized_call_site_updater;
     call_site->fallback_call_site(state, unoptimized);
     return call_site;
   }
+
+  Object* OptimizedCallSite::optimized_call_site_executor(STATE, CallSite* call_site, CallFrame* call_frame,
+                             Arguments& args)
+  {
+    OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
+    return optimized->fallback_call_site_->executor_(state, call_site, call_frame, args);
+  }
+
+  void OptimizedCallSite::optimized_call_site_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch) {
+  }
+
 
   void OptimizedCallSite::Info::mark(Object* obj, ObjectMark& mark) {
     auto_mark(obj, mark);
