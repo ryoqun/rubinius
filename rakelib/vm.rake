@@ -79,6 +79,7 @@ field_extract_headers = %w[
   vm/builtin/constant_table.hpp
   vm/builtin/class.hpp
   vm/builtin/compiled_code.hpp
+  vm/builtin/optimized_code.hpp
   vm/builtin/data.hpp
   vm/builtin/dir.hpp
   vm/builtin/exception.hpp

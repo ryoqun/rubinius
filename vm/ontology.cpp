@@ -16,6 +16,7 @@
 #include "builtin/class.hpp"
 #include "builtin/compact_lookup_table.hpp"
 #include "builtin/compiled_code.hpp"
+#include "builtin/optimized_code.hpp"
 #include "builtin/channel.hpp"
 #include "builtin/data.hpp"
 #include "builtin/dir.hpp"
@@ -322,6 +323,7 @@ namespace rubinius {
     Character::init(state);
     Executable::init(state);
     CompiledCode::init(state);
+    OptimizedCode::init(state);
     AtomicReference::init(state);
     IO::init(state);
     BlockEnvironment::init(state);
