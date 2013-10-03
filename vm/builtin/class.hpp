@@ -62,6 +62,16 @@ namespace rubinius {
       return data_.f.serial_id;
     }
 
+    // Rubinius.primitive :class_class_id
+    Fixnum* class_id_prim() const {
+      return Fixnum::from(class_id());
+    }
+
+    // Rubinius.primitive :class_serial_id
+    Fixnum* serial_id_prim() const {
+      return Fixnum::from(serial_id());
+    }
+
     void increment_serial() {
       atomic::fetch_and_add(&data_.f.serial_id, 1U);
     }
