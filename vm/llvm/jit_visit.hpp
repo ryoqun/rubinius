@@ -684,7 +684,8 @@ namespace rubinius {
         state_,
         call_site_const,
         call_frame_,
-        out_args_
+        out_args_,
+        ConstantInt::get(ctx_->Int64Ty, 0)
       };
 
       flush_ip();
@@ -729,7 +730,8 @@ namespace rubinius {
         state_,
         call_site_const,
         call_frame_,
-        out_args_
+        out_args_,
+        ConstantInt::get(ctx_->Int64Ty, 0)
       };
 
       flush_ip();
