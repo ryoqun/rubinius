@@ -61,7 +61,7 @@ namespace rubinius {
   }
 
   Object* MonoInlineCache::check_cache(STATE, CallSite* call_site, CallFrame* call_frame,
-                                       Arguments& args) {
+                                       Arguments& args, CallbackHandler handler) {
 
     MonoInlineCache* cache = reinterpret_cast<MonoInlineCache*>(call_site);
     Class* const recv_class = args.recv()->direct_class(state);
@@ -73,11 +73,11 @@ namespace rubinius {
       return cache->method_->execute(state, call_frame, cache->method_, cache->stored_module_, args);
     }
 
-    return call_site->fallback(state, call_frame, args);
+    return call_site->fallback(state, call_frame, args, handler);
   }
 
   Object* MonoInlineCache::check_cache_mm(STATE, CallSite* call_site, CallFrame* call_frame,
-                                   Arguments& args) {
+                                   Arguments& args, CallbackHandler handler) {
     MonoInlineCache* cache = reinterpret_cast<MonoInlineCache*>(call_site);
 
     Class* const recv_class = args.recv()->direct_class(state);
@@ -91,7 +91,7 @@ namespace rubinius {
       return cache->method_->execute(state, call_frame, cache->method_, cache->stored_module_, args);
     }
 
-    return call_site->fallback(state, call_frame, args);
+    return call_site->fallback(state, call_frame, args, handler);
   }
 
   void MonoInlineCache::mono_cache_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch) {
