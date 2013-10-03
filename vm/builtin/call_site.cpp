@@ -40,7 +40,7 @@ namespace rubinius {
   }
 
   Object* CallSite::empty_cache_custom(STATE, CallSite* call_site, CallFrame* call_frame,
-                                          Arguments& args)
+                                          Arguments& args, CallbackHandler handler)
   {
     Object* const recv = args.recv();
 
@@ -65,7 +65,7 @@ namespace rubinius {
   }
 
   Object* CallSite::empty_cache(STATE, CallSite* call_site, CallFrame* call_frame,
-                                   Arguments& args)
+                                   Arguments& args, CallbackHandler handler)
   {
     Object* const recv = args.recv();
     Class*  const recv_class  = recv->direct_class(state);
@@ -97,7 +97,7 @@ namespace rubinius {
   }
 
   Object* CallSite::empty_cache_private(STATE, CallSite* call_site, CallFrame* call_frame,
-                                   Arguments& args)
+                                   Arguments& args, CallbackHandler handler)
   {
     Object* const recv = args.recv();
     Class* const recv_class = recv->direct_class(state);
@@ -129,7 +129,7 @@ namespace rubinius {
   }
 
   Object* CallSite::empty_cache_vcall(STATE, CallSite* call_site, CallFrame* call_frame,
-                                         Arguments& args)
+                                         Arguments& args, CallbackHandler hander)
   {
 
     Object* const recv = args.recv();
@@ -162,7 +162,7 @@ namespace rubinius {
   }
 
   Object* CallSite::empty_cache_super(STATE, CallSite* call_site, CallFrame* call_frame,
-                                   Arguments& args)
+                                   Arguments& args, CallbackHandler handler)
   {
     Symbol* original_name = call_frame->original_name();
     if(call_site->name_ != original_name) {
