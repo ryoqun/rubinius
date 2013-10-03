@@ -25,12 +25,16 @@ namespace rubinius {
                              Arguments& args, CallbackHandler handler)
   {
     OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
+    handler = (handler) ? handler : on_executable_resolved;
     return optimized->fallback_call_site_->executor_(state, call_site, call_frame, args, handler);
   }
 
   void OptimizedCallSite::optimized_call_site_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch) {
   }
 
+  void OptimizedCallSite::on_executable_resolved(Executable *executable) {
+    printf("%p\n", executable);
+  }
 
   void OptimizedCallSite::Info::mark(Object* obj, ObjectMark& mark) {
     auto_mark(obj, mark);
