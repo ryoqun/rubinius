@@ -9,8 +9,11 @@ namespace rubinius {
 
   class Dispatch;
 
-  typedef Object* (CacheExecuteFunc)(STATE, CallSite*, CallFrame*, Arguments&);
-  typedef Object* (FallbackExecuteFunc)(STATE, CallSite*, CallFrame*, Arguments&);
+  typedef void (CallbackHandlerFunc)(Executable*);
+  typedef CallbackHandlerFunc* CallbackHandler;
+
+  typedef Object* (CacheExecuteFunc)(STATE, CallSite*, CallFrame*, Arguments&, CallbackHandler callback);
+  typedef Object* (FallbackExecuteFunc)(STATE, CallSite*, CallFrame*, Arguments&, CallbackHandler callback);
   typedef void (CacheUpdateFunc)(STATE, CallSite*, Class*, Dispatch&);
 
   typedef CacheExecuteFunc* CacheExecutor;
@@ -107,12 +110,12 @@ namespace rubinius {
 
     static bool lookup_method_missing(STATE, CallFrame* call_frame, Arguments& args, Dispatch& dis, Object* self, Module* begin);
 
-    Object* execute(STATE, CallFrame* call_frame, Arguments& args) {
-      return (*executor_)(state, this, call_frame, args);
+    Object* execute(STATE, CallFrame* call_frame, Arguments& args, CallbackHandler callback=0) {
+      return (*executor_)(state, this, call_frame, args, callback);
     }
 
-    Object* fallback(STATE, CallFrame* call_frame, Arguments& args) {
-      return (*fallback_)(state, this, call_frame, args);
+    Object* fallback(STATE, CallFrame* call_frame, Arguments& args, CallbackHandler callback) {
+      return (*fallback_)(state, this, call_frame, args, callback);
     }
 
     void update(STATE, Class* klass, Dispatch& dispatch) {

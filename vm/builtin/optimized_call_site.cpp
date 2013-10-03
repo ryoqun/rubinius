@@ -22,10 +22,10 @@ namespace rubinius {
   }
 
   Object* OptimizedCallSite::optimized_call_site_executor(STATE, CallSite* call_site, CallFrame* call_frame,
-                             Arguments& args)
+                             Arguments& args, CallbackHandler handler)
   {
     OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
-    return optimized->fallback_call_site_->executor_(state, call_site, call_frame, args);
+    return optimized->fallback_call_site_->executor_(state, call_site, call_frame, args, handler);
   }
 
   void OptimizedCallSite::optimized_call_site_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch) {
