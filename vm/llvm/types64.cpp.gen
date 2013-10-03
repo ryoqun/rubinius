@@ -518,6 +518,7 @@ PointerType* PointerTy_40 = PointerType::get(StructTy_struct_rubinius__CallSite,
 FuncTy_42_args.push_back(PointerTy_40);
 FuncTy_42_args.push_back(PointerTy_27);
 FuncTy_42_args.push_back(PointerTy_7);
+FuncTy_42_args.push_back(IntegerType::get(mod->getContext(), 64));
 FunctionType* FuncTy_42 = FunctionType::get(
  /*Result=*/PointerTy_9,
  /*Params=*/FuncTy_42_args,

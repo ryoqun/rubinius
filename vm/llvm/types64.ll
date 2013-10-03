@@ -67,8 +67,8 @@ declare void @outputDispatch(%"struct.rubinius::Dispatch"*)
 %"struct.rubinius::CallSite" = type {
        %"struct.rubinius::Object", ; header
       %"struct.rubinius::Symbol"*, ; name
-  %"struct.rubinius::Object"* (%"struct.rubinius::State"*, %"struct.rubinius::CallSite"*, %"struct.rubinius::CallFrame"*, %"struct.rubinius::Arguments"*)*, ; executor
-  %"struct.rubinius::Object"* (%"struct.rubinius::State"*, %"struct.rubinius::CallSite"*, %"struct.rubinius::CallFrame"*, %"struct.rubinius::Arguments"*)*, ; fallback
+  %"struct.rubinius::Object"* (%"struct.rubinius::State"*, %"struct.rubinius::CallSite"*, %"struct.rubinius::CallFrame"*, %"struct.rubinius::Arguments"*, i64)*, ; executor
+  %"struct.rubinius::Object"* (%"struct.rubinius::State"*, %"struct.rubinius::CallSite"*, %"struct.rubinius::CallFrame"*, %"struct.rubinius::Arguments"*, i64)*, ; fallback
   void (%"struct.rubinius::State"*, %"struct.rubinius::CallSite"*, %"struct.rubinius::Class"*, %"struct.rubinius::Dispatch"*)*, ; updater
   %"struct.rubinius::Executable"*, ; executable
                               i32  ; ip
