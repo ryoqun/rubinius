@@ -20,9 +20,8 @@ namespace rubinius {
     // Rubinius.primitive :optimized_call_site_allocate
     static OptimizedCallSite* create(STATE, CallSite* call_site);
 
-    static Object* optimized_call_site_executor(STATE, CallSite* call_site, CallFrame* call_frame,
-                               Arguments& args);
-    static void optimized_call_site_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch);
+    static CacheExecuteFunc optimized_call_site_executor;
+    static CacheUpdateFunc optimized_call_site_updater;
 
   public: // Rubinius Type stuff
     class Info : public CallSite::Info {
