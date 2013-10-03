@@ -40,6 +40,10 @@ module Rubinius
       fallback_call_site.update_call_site(self)
     end
 
+    def eject
+      update_call_site(fallback_call_site)
+    end
+
     def inspect
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} fallback:#{fallback_call_site.inspect}>"
     end
