@@ -113,7 +113,8 @@ namespace rubinius {
           ops_.state(),
           call_site_const,
           ops_.call_frame(),
-          ops_.out_args()
+          ops_.out_args(),
+          ConstantInt::get(ctx_->Int64Ty, 0)
         };
 
         Value* res = ops_.b().CreateCall(execute, call_args, "ic_send");
