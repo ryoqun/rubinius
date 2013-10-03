@@ -70,6 +70,11 @@ namespace rubinius {
 
     if(likely(cache->receiver_.raw == recv_data)) {
       cache->hits_++;
+      if(handler)
+      {
+        //printf("before callback %p\n", handler);
+        handler(cache->method_);
+      }
       return cache->method_->execute(state, call_frame, cache->method_, cache->stored_module_, args);
     }
 
