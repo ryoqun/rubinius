@@ -26,7 +26,7 @@ namespace rubinius {
   }
 
   Object* CallCustomCache::check_cache(STATE, CallSite* call_site,
-      CallFrame* call_frame, Arguments& args)
+      CallFrame* call_frame, Arguments& args, CallbackHandler handler)
   {
     CallCustomCache* cache = static_cast<CallCustomCache*>(call_site);
 

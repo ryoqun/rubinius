@@ -69,8 +69,7 @@ namespace rubinius {
     static RespondToCache* create(STATE, CallSite* fallback, Object* recv,
                                   Symbol* msg, Object* priv, Object* res, int hits);
 
-    static Object* check_cache(STATE, CallSite* call_site, CallFrame* call_frame,
-                               Arguments& args);
+    static CacheExecuteFunc check_cache;
 
   public: // Rubinius Type stuff
     class Info : public CallSite::Info {

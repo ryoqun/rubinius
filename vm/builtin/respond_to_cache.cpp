@@ -39,7 +39,7 @@ namespace rubinius {
   }
 
   Object* RespondToCache::check_cache(STATE, CallSite* call_site, CallFrame* call_frame,
-                                   Arguments& args) {
+                                   Arguments& args, CallbackHandler handler) {
     RespondToCache* cache = static_cast<RespondToCache*>(call_site);
 
     Class* const recv_class = args.recv()->direct_class(state);
@@ -57,7 +57,7 @@ namespace rubinius {
       }
     }
 
-    return cache->fallback_call_site_->execute(state, call_frame, args);
+    return cache->fallback_call_site_->execute(state, call_frame, args, handler);
   }
 
   Integer* RespondToCache::hits_prim(STATE) {

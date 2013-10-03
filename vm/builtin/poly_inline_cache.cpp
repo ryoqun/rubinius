@@ -92,7 +92,7 @@ namespace rubinius {
   }
 
   Object* PolyInlineCache::check_cache(STATE, CallSite* call_site, CallFrame* call_frame,
-                                   Arguments& args)
+                                   Arguments& args, CallbackHandler handler)
   {
     Class* const recv_class = args.recv()->direct_class(state);
 
@@ -107,11 +107,11 @@ namespace rubinius {
       return meth->execute(state, call_frame, meth, mod, args);
     }
 
-    return cache->fallback(state, call_frame, args);
+    return cache->fallback(state, call_frame, args, handler);
   }
 
   Object* PolyInlineCache::check_cache_mm(STATE, CallSite* call_site, CallFrame* call_frame,
-                                      Arguments& args)
+                                      Arguments& args, CallbackHandler handler)
   {
     Class* const recv_class = args.recv()->direct_class(state);
 
@@ -130,7 +130,7 @@ namespace rubinius {
       return meth->execute(state, call_frame, meth, mod, args);
     }
 
-    return cache->fallback(state, call_frame, args);
+    return cache->fallback(state, call_frame, args, handler);
   }
 
   void PolyInlineCache::inline_cache_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch) {
