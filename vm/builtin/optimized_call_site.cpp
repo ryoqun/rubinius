@@ -26,7 +26,7 @@ namespace rubinius {
                              Arguments& args, CallbackHandler handler)
   {
     OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
-    handler = (handler) ? handler : on_executable_resolved;
+    handler = (handler) ? handler : on_resolved;
     printf("%p\n", optimized->fallback_call_site_->executor_);
     printf("aaa %p\n", handler);
     Object* next = optimized->fallback_call_site_->executor_(state, optimized->fallback_call_site_, call_frame, args, handler);
@@ -43,8 +43,14 @@ namespace rubinius {
     //}
   }
 
-  void OptimizedCallSite::on_executable_resolved(Executable *executable) {
-    printf("YAAAAAAY!!! %p\n", executable);
+  Object* OptimizedCallSite::on_resolved(STATE,
+                                         CallSite* call_site,
+                                         CallFrame* frame,
+                                         Executable* resolved_method,
+                                         Module* mod,
+                                         Arguments& args) {
+    printf("YAAAAAAY!!! %p\n", mod);
+    return resolved_method->execute(state, frame, resolved_method, mod, args);
   }
 
   void OptimizedCallSite::Info::mark(Object* obj, ObjectMark& mark) {
