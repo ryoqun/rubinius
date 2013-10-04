@@ -1,5 +1,5 @@
 #ifndef RBX_OPTIMIZED_CALL_SITE_HPP
-#define RBX_MONO_INLINE_CACHE_HPP
+#define RBX_OPTIMIZED_INLINE_CACHE_HPP
 
 #include "builtin/call_site.hpp"
 #include "ontology.hpp"
