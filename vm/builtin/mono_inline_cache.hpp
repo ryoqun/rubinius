@@ -69,6 +69,7 @@ namespace rubinius {
       virtual void mark(Object* t, ObjectMark& mark);
     };
 
+    friend class OptimizedCallSite;
   };
 }
 
