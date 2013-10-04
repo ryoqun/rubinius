@@ -1,4 +1,5 @@
 #include "builtin/optimized_call_site.hpp"
+#include "builtin/mono_inline_cache.hpp"
 
 namespace rubinius {
   void OptimizedCallSite::init(STATE) {
@@ -26,14 +27,24 @@ namespace rubinius {
   {
     OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
     handler = (handler) ? handler : on_executable_resolved;
-    return optimized->fallback_call_site_->executor_(state, call_site, call_frame, args, handler);
+    printf("%p\n", optimized->fallback_call_site_->executor_);
+    printf("aaa %p\n", handler);
+    Object* next = optimized->fallback_call_site_->executor_(state, optimized->fallback_call_site_, call_frame, args, handler);
+    printf("aaa %p\n", handler);
+    return next;
   }
 
   void OptimizedCallSite::optimized_call_site_updater(STATE, CallSite* call_site, Class* klass, Dispatch& dispatch) {
+    //OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
+    //MonoInlineCache* mono_cache = reinterpret_cast<MonoInlineCache*>(optimized->fallback_call_site_);
+
+    //if(klass == mono_cache->receiver_class_) {
+    //  CallSite::empty_cache_updater(state, mono_cache, klass, dispatch);
+    //}
   }
 
   void OptimizedCallSite::on_executable_resolved(Executable *executable) {
-    printf("%p\n", executable);
+    printf("YAAAAAAY!!! %p\n", executable);
   }
 
   void OptimizedCallSite::Info::mark(Object* obj, ObjectMark& mark) {

@@ -114,7 +114,7 @@ namespace rubinius {
       return (*executor_)(state, this, call_frame, args, callback);
     }
 
-    Object* fallback(STATE, CallFrame* call_frame, Arguments& args, CallbackHandler callback=0) {
+    Object* fallback(STATE, CallFrame* call_frame, Arguments& args, CallbackHandler callback) {
       return (*fallback_)(state, this, call_frame, args, callback);
     }
 
