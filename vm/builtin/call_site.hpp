@@ -9,7 +9,7 @@ namespace rubinius {
 
   class Dispatch;
 
-  typedef void (CallbackHandlerFunc)(Executable*);
+  typedef Object* (CallbackHandlerFunc)(STATE, CallSite*, CallFrame*, Executable*, Module*, Arguments&);
   typedef CallbackHandlerFunc* CallbackHandler;
 
   typedef Object* (CacheExecuteFunc)(STATE, CallSite*, CallFrame*, Arguments&, CallbackHandler callback);
