@@ -23,7 +23,7 @@ namespace rubinius {
     static CacheExecuteFunc optimized_call_site_executor;
     static CacheUpdateFunc optimized_call_site_updater;
 
-    static CallbackHandlerFunc on_executable_resolved;
+    static CallbackHandlerFunc on_resolved;
 
   public: // Rubinius Type stuff
     class Info : public CallSite::Info {
