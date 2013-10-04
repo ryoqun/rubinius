@@ -92,6 +92,12 @@ namespace rubinius {
       state->set_call_site_information(NULL);
       return res;
     } else {
+      if(handler)
+      {
+        printf("calling from callback!\n");
+        handler(meth);
+        printf("fallback: %p\n", meth);
+      }
       return meth->execute(state, call_frame, meth, mod, args);
     }
   }
