@@ -278,6 +278,7 @@ file "gen/jit_primitives.cpp" => field_extract_headers
 file "gen/invoke_primitives.cpp" => field_extract_headers
 file "gen/accessor_primitives.cpp" => field_extract_headers
 file "gen/method_resolver.cpp" => field_extract_headers
+file "gen/known_type_resolver.cpp" => field_extract_headers
 file "gen/jit_resolver.cpp" => field_extract_headers
 file "gen/invoke_resolver.cpp" => field_extract_headers
 

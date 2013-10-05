@@ -219,6 +219,8 @@ namespace rubinius {
 
       i.exception_safe();
       i.set_result(imm_value);
+      type::KnownType kt = type::KnownType::fixnum();
+      kt.associate(ops.context(), imm_value);
       i.context()->leave_inline();
     }
 
@@ -237,6 +239,8 @@ namespace rubinius {
 
       i.exception_safe();
       i.set_result(imm_value);
+      type::KnownType kt = type::KnownType::fixnum();
+      kt.associate(ops.context(), imm_value);
       i.context()->leave_inline();
     }
 
@@ -286,7 +290,11 @@ namespace rubinius {
 
       Value* result = ops.create_load(gep, "bytearray_get_byte");
 
-      i.set_result(ops.fixnum_tag(result));
+
+      Value* imm_value = ops.fixnum_tag(result);
+      i.set_result(imm_value);
+      type::KnownType kt = type::KnownType::fixnum();
+      kt.associate(ops.context(), imm_value);
 
       i.exception_safe();
       i.context()->leave_inline();
@@ -550,7 +558,10 @@ namespace rubinius {
           ops.current_block());
 
       i.exception_safe();
-      i.set_result(ops.fixnum_tag(neg));
+      Value *imm_value = ops.fixnum_tag(neg);
+      i.set_result(imm_value);
+      type::KnownType kt = type::KnownType::fixnum();
+      kt.associate(ops.context(), imm_value);
       i.context()->leave_inline();
     }
 
@@ -561,16 +572,22 @@ namespace rubinius {
       Value* recv = i.recv();
       Value* arg = i.arg(0);
 
-      BasicBlock* push = ops.new_block("push_add");
       BasicBlock* tagnow = ops.new_block("tagnow");
       BasicBlock* bignum = ops.new_block("bignum");
       BasicBlock* cont   = ops.new_block("cont");
-      BasicBlock* send = i.class_id_failure();
 
-      Value* cmp = ops.check_if_fixnums(recv, arg);
-      ops.create_conditional_branch(push, send, cmp);
+      type::KnownType kt = type::KnownType::extract(ops.context(), recv);
+      type::KnownType kt2 = type::KnownType::extract(ops.context(), arg);
+      if(kt.fixnum_p() && kt2.fixnum_p()) {
+        printf("both arg fixnum\n");
+      } /*else {
+        BasicBlock* push = ops.new_block("push_add");
+        BasicBlock* send = i.class_id_failure();
+        Value* cmp = ops.check_if_fixnums(recv, arg);
+        ops.create_conditional_branch(push, send, cmp);
 
-      ops.set_block(push);
+        ops.set_block(push);
+      }*/
 
       Value* recv_int = ops.fixnum_strip(recv);
       Value* arg_int = ops.fixnum_strip(arg);
@@ -607,16 +624,22 @@ namespace rubinius {
       Value* recv = i.recv();
       Value* arg = i.arg(0);
 
-      BasicBlock* push = ops.new_block("push_sub");
       BasicBlock* tagnow = ops.new_block("tagnow");
       BasicBlock* bignum = ops.new_block("bignum");
       BasicBlock* cont   = ops.new_block("cont");
-      BasicBlock* send = i.class_id_failure();
 
-      Value* cmp = ops.check_if_fixnums(recv, arg);
-      ops.create_conditional_branch(push, send, cmp);
+      type::KnownType kt = type::KnownType::extract(ops.context(), recv);
+      type::KnownType kt2 = type::KnownType::extract(ops.context(), arg);
+      if(kt.fixnum_p() && kt2.fixnum_p()) {
+        printf("both arg fixnum\n");
+      } /*else {
+        BasicBlock* push = ops.new_block("push_sub");
+        BasicBlock* send = i.class_id_failure();
+        Value* cmp = ops.check_if_fixnums(recv, arg);
+        ops.create_conditional_branch(push, send, cmp);
 
-      ops.set_block(push);
+        ops.set_block(push);
+      } */
 
       Value* recv_int = ops.fixnum_strip(recv);
       Value* arg_int = ops.fixnum_strip(arg);
@@ -658,6 +681,11 @@ namespace rubinius {
       BasicBlock* tagnow = ops.new_block("tagnow");
       BasicBlock* send = i.class_id_failure();
 
+      type::KnownType kt = type::KnownType::extract(ops.context(), recv);
+      type::KnownType kt2 = type::KnownType::extract(ops.context(), arg);
+      if(kt.fixnum_p() && kt2.fixnum_p()) {
+        printf("both arg fixnum\n");
+      }
       Value* cmp = ops.check_if_fixnums(recv, arg);
       ops.create_conditional_branch(push, send, cmp);
 
