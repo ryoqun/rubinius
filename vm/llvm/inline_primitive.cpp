@@ -579,7 +579,7 @@ namespace rubinius {
       type::KnownType kt = type::KnownType::extract(ops.context(), recv);
       type::KnownType kt2 = type::KnownType::extract(ops.context(), arg);
       if(kt.fixnum_p() && kt2.fixnum_p()) {
-        printf("both arg fixnum\n");
+        //printf("both arg fixnum\n");
       } /*else {
         BasicBlock* push = ops.new_block("push_add");
         BasicBlock* send = i.class_id_failure();
@@ -631,7 +631,7 @@ namespace rubinius {
       type::KnownType kt = type::KnownType::extract(ops.context(), recv);
       type::KnownType kt2 = type::KnownType::extract(ops.context(), arg);
       if(kt.fixnum_p() && kt2.fixnum_p()) {
-        printf("both arg fixnum\n");
+        //printf("both arg fixnum\n");
       } /*else {
         BasicBlock* push = ops.new_block("push_sub");
         BasicBlock* send = i.class_id_failure();
@@ -684,7 +684,7 @@ namespace rubinius {
       type::KnownType kt = type::KnownType::extract(ops.context(), recv);
       type::KnownType kt2 = type::KnownType::extract(ops.context(), arg);
       if(kt.fixnum_p() && kt2.fixnum_p()) {
-        printf("both arg fixnum\n");
+        //printf("both arg fixnum\n");
       }
       Value* cmp = ops.check_if_fixnums(recv, arg);
       ops.create_conditional_branch(push, send, cmp);
