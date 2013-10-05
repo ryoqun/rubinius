@@ -119,42 +119,42 @@ namespace rubinius {
     // Rubinius.primitive! :fixnum_pow
     Object* pow(STATE, Float *exponent);
 
-    // Rubinius.primitive! :fixnum_equal
+    // Rubinius.primitive!+ :fixnum_equal
     Object* equal(STATE, Fixnum* other);
 
-    // Rubinius.primitive! :fixnum_equal
+    // Rubinius.primitive!+ :fixnum_equal
     Object* equal(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_equal
+    // Rubinius.primitive!+ :fixnum_equal
     Object* equal(STATE, Float* other);
 
-    // Rubinius.primitive! :fixnum_compare
+    // Rubinius.primitive!+ :fixnum_compare
     Object* compare(STATE, Fixnum* other);
 
-    // Rubinius.primitive! :fixnum_compare
+    // Rubinius.primitive!+ :fixnum_compare
     Object* compare(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_compare
+    // Rubinius.primitive!+ :fixnum_compare
     Object* compare(STATE, Float* other);
 
-    // Rubinius.primitive! :fixnum_gt
+    // Rubinius.primitive!+ :fixnum_gt
     Object* gt(STATE, Fixnum* other) {
       return RBOOL(to_native() > other->to_native());
     }
 
-    // Rubinius.primitive! :fixnum_gt
+    // Rubinius.primitive!+ :fixnum_gt
     Object* gt(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_gt
+    // Rubinius.primitive!+ :fixnum_gt
     Object* gt(STATE, Float* other);
 
-    // Rubinius.primitive! :fixnum_ge
+    // Rubinius.primitive!+ :fixnum_ge
     Object* ge(STATE, Fixnum* other);
 
-    // Rubinius.primitive! :fixnum_ge
+    // Rubinius.primitive!+ :fixnum_ge
     Object* ge(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_ge
+    // Rubinius.primitive!+ :fixnum_ge
     Object* ge(STATE, Float* other);
 
     // Rubinius.primitive!+ :fixnum_lt
@@ -168,13 +168,13 @@ namespace rubinius {
     // Rubinius.primitive!+ :fixnum_lt
     Object* lt(STATE, Float* other);
 
-    // Rubinius.primitive! :fixnum_le
+    // Rubinius.primitive!+ :fixnum_le
     Object* le(STATE, Fixnum* other);
 
-    // Rubinius.primitive! :fixnum_le
+    // Rubinius.primitive!+ :fixnum_le
     Object* le(STATE, Bignum* other);
 
-    // Rubinius.primitive! :fixnum_le
+    // Rubinius.primitive!+ :fixnum_le
     Object* le(STATE, Float* other);
 
     // Rubinius.primitive :fixnum_left_shift
