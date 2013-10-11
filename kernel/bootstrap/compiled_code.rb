@@ -61,7 +61,9 @@ module Rubinius
   CompiledMethod = CompiledCode
 
   class OptimizedCode < CompiledCode
-    def self.allocate(original_code)
+    attr_accessor :inlined_code
+
+    def self.allocate
       Rubinius.primitive :optimizedcode_allocate
       raise PrimitiveFailure, "OptimizedCode.allocate primitive failed"
     end
