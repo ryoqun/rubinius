@@ -24,7 +24,7 @@ namespace rubinius {
     return code;
   }
 
-  bool OptimizedCode::guard_p(STATE, Executable* resolved_code) {
+  bool OptimizedCode::guard_p(STATE, CallFrame* frame, Executable* resolved_code, Module* mod, Arguments& args) {
     if(resolved_code == original_code()) {
       return true;
     } else {
