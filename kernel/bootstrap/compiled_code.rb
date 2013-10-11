@@ -61,7 +61,8 @@ module Rubinius
   CompiledMethod = CompiledCode
 
   class OptimizedCode < CompiledCode
-    attr_accessor :inlined_code
+    attr_accessor :original_code
+    attr_accessor :guards
 
     def self.allocate
       Rubinius.primitive :optimizedcode_allocate
