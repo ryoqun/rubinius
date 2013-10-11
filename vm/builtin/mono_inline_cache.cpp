@@ -68,11 +68,9 @@ namespace rubinius {
 
     register uint64_t recv_data = recv_class->data_raw();
 
-    //printf(".");
     if(likely(cache->receiver_.raw == recv_data)) {
       cache->hits_++;
       if(handler) {
-        printf("calling\n");
         return handler(state, call_site,
                        call_frame, cache->method_, cache->stored_module_, args);
       } else {
