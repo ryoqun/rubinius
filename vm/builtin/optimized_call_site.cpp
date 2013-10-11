@@ -1,6 +1,7 @@
 #include "builtin/optimized_call_site.hpp"
 #include "builtin/optimized_code.hpp"
 #include "builtin/mono_inline_cache.hpp"
+#include "call_frame.hpp"
 
 namespace rubinius {
   void OptimizedCallSite::init(STATE) {
@@ -28,6 +29,9 @@ namespace rubinius {
                              Arguments& args, CallbackHandler handler)
   {
     OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
+    printf("YAAAAAAY!!! mine %p\n", optimized);
+    printf("YAAAAAAY!!! %p\n", optimized->optimized_code());
+    printf("YAAAAAAY!!! %p\n", optimized->optimized_code()->inlined_code());
     handler = (handler) ? handler : on_resolved;
     printf("%p\n", optimized->fallback_call_site_->executor_);
     printf("aaa %p\n", handler);
@@ -51,11 +55,14 @@ namespace rubinius {
                                          Executable* executable,
                                          Module* mod,
                                          Arguments& args) {
-    printf("YAAAAAAY!!! %p\n", mod);
-    OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
+    OptimizedCallSite* optimized = (OptimizedCallSite*)frame->compiled_code->current_call_site(state, frame->previous, frame->ip());
+    printf("YAAAAAAY!!! %p\n", optimized);
+    printf("YAAAAAAY!!! %d\n", frame->ip());
+    printf("YAAAAAAY!!! %p\n", optimized->optimized_code());
+    printf("YAAAAAAY!!! %p\n", optimized->optimized_code()->inlined_code());
     CompiledCode *resolved_code = try_as<CompiledCode>(executable);
-    if(resolved_code && optimized->optimized_code_->guard_p(state, resolved_code)) {
-      return optimized->optimized_code_->execute(state, frame, resolved_code, mod, args);
+    if(resolved_code && optimized->optimized_code()->guard_p(state, resolved_code)) {
+      return optimized->optimized_code()->execute(state, frame, resolved_code, mod, args);
     } else {
       return resolved_code->execute(state, frame, resolved_code, mod, args);
     }

@@ -293,6 +293,20 @@ namespace rubinius {
     return as<CallSite>(obj);
   }
 
+  CallSite* MachineCode::current_call_site(STATE, int ip) {
+    size_t i = number_of_call_sites_;
+    while(true) {
+      --i;
+      if(call_site_offsets_[i] <= ip) {
+        return call_site(state, call_site_offsets_[i]);
+      }
+      if(i == 0) {
+        break;
+      }
+    }
+    return 0;
+  }
+
   ConstantCache* MachineCode::constant_cache(STATE, int ip) {
     Object* obj = reinterpret_cast<Object*>(opcodes[ip + 1]);
     return as<ConstantCache>(obj);
