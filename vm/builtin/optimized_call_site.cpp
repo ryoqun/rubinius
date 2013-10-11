@@ -45,15 +45,18 @@ namespace rubinius {
   Object* OptimizedCallSite::on_resolved(STATE,
                                          CallSite* call_site,
                                          CallFrame* frame,
-                                         Executable* executable,
+                                         Executable* original,
                                          Module* mod,
                                          Arguments& args) {
-    OptimizedCallSite* optimized = (OptimizedCallSite*)frame->compiled_code->call_site(state, frame->previous, call_site->ip());
-    OptimizedCode* code = optimized->optimized_code();
-    if(code->guard_p(state, executable)) {
-      return code->execute(state, frame, code, mod, args);
+    OptimizedCallSite* optimized_call_site =
+      (OptimizedCallSite*)frame->compiled_code->call_site(state,
+                                                          frame->previous,
+                                                          call_site->ip());
+    OptimizedCode* optimized = optimized_call_site->optimized_code();
+    if(optimized->guard_p(state, original)) {
+      return optimized->execute(state, frame, optimized, mod, args);
     } else {
-      return executable->execute(state, frame, executable, mod, args);
+      return original->execute(state, frame, original, mod, args);
     }
   }
 
