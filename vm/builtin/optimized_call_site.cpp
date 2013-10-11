@@ -58,11 +58,15 @@ namespace rubinius {
     OptimizedCallSite* optimized = (OptimizedCallSite*)frame->compiled_code->current_call_site(state, frame->previous, frame->ip());
     printf("YAAAAAAY!!! %p\n", optimized);
     printf("YAAAAAAY!!! %d\n", frame->ip());
+    printf("YAAAAAAY!!! %p\n", executable);
     printf("YAAAAAAY!!! %p\n", optimized->optimized_code());
     printf("YAAAAAAY!!! %p\n", optimized->optimized_code()->inlined_code());
     CompiledCode *resolved_code = try_as<CompiledCode>(executable);
     if(resolved_code && optimized->optimized_code()->guard_p(state, resolved_code)) {
-      return optimized->optimized_code()->execute(state, frame, resolved_code, mod, args);
+      printf("OPTIMIZED CODE\n");
+      //return cNil; //optimized->optimized_code()->execute(state, frame, resolved_code, mod, args);
+      //return optimized->optimized_code()->literals(); //optimized->optimized_code()->execute(state, frame, resolved_code, mod, args);
+      return optimized->optimized_code()->execute(state, frame, optimized->optimized_code(), mod, args);
     } else {
       return resolved_code->execute(state, frame, resolved_code, mod, args);
     }
