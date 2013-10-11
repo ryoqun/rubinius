@@ -29,14 +29,7 @@ namespace rubinius {
                              Arguments& args, CallbackHandler handler)
   {
     OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
-    printf("YAAAAAAY!!! mine %p\n", optimized);
-    printf("YAAAAAAY!!! %p\n", optimized->optimized_code());
-    printf("YAAAAAAY!!! %p\n", optimized->optimized_code()->inlined_code());
-    handler = (handler) ? handler : on_resolved;
-    printf("%p\n", optimized->fallback_call_site_->executor_);
-    printf("aaa %p\n", handler);
-    Object* next = optimized->fallback_call_site_->executor_(state, optimized->fallback_call_site_, call_frame, args, handler);
-    printf("aaa %p\n", handler);
+    Object* next = optimized->fallback_call_site_->executor_(state, optimized->fallback_call_site_, call_frame, args, on_resolved);
     return next;
   }
 
@@ -56,19 +49,11 @@ namespace rubinius {
                                          Module* mod,
                                          Arguments& args) {
     OptimizedCallSite* optimized = (OptimizedCallSite*)frame->compiled_code->current_call_site(state, frame->previous, frame->ip());
-    printf("YAAAAAAY!!! %p\n", optimized);
-    printf("YAAAAAAY!!! %d\n", frame->ip());
-    printf("YAAAAAAY!!! %p\n", executable);
-    printf("YAAAAAAY!!! %p\n", optimized->optimized_code());
-    printf("YAAAAAAY!!! %p\n", optimized->optimized_code()->inlined_code());
-    CompiledCode *resolved_code = try_as<CompiledCode>(executable);
-    if(resolved_code && optimized->optimized_code()->guard_p(state, resolved_code)) {
-      printf("OPTIMIZED CODE\n");
-      //return cNil; //optimized->optimized_code()->execute(state, frame, resolved_code, mod, args);
-      //return optimized->optimized_code()->literals(); //optimized->optimized_code()->execute(state, frame, resolved_code, mod, args);
-      return optimized->optimized_code()->execute(state, frame, optimized->optimized_code(), mod, args);
+    OptimizedCode* code = optimized->optimized_code();
+    if(code->guard_p(state, executable)) {
+      return code->execute(state, frame, code, mod, args);
     } else {
-      return resolved_code->execute(state, frame, resolved_code, mod, args);
+      return executable->execute(state, frame, executable, mod, args);
     }
   }
 
