@@ -7,7 +7,7 @@ namespace rubinius {
     G(optimized_code)->set_object_type(state, OptimizedCodeType);
   }
 
-  OptimizedCode* OptimizedCode::create(STATE, CompiledCode* original_code) {
+  OptimizedCode* OptimizedCode::create(STATE) {
     OptimizedCode* code = state->new_object<OptimizedCode>(G(optimized_code));
     code->local_count(state, Fixnum::from(0));
     code->inliners_ = 0;
@@ -19,7 +19,6 @@ namespace rubinius {
 #ifdef ENABLE_LLVM
     code->jit_data_ = NULL;
 #endif
-    code->inlined_code_ = original_code;
 
     return code;
   }
