@@ -25,11 +25,15 @@ namespace rubinius {
   }
 
   bool OptimizedCode::guard_p(STATE, CallFrame* frame, Executable* resolved_code, Module* mod, Arguments& args) {
-    if(resolved_code == original_code()) {
-      return true;
-    } else {
+    if(resolved_code != original_code()) {
       return false;
     }
+    if(guard() != cNil && guard()->num_fields > 0) {
+      for(native_int i = 0; i <= guard()->num_fields; i += 2) {
+      }
+    }
+
+    return true;
   }
 
   void OptimizedCode::Info::mark(Object* obj, ObjectMark& mark) {
