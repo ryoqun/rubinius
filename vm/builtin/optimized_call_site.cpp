@@ -1,4 +1,5 @@
 #include "builtin/optimized_call_site.hpp"
+#include "builtin/optimized_code.hpp"
 #include "builtin/mono_inline_cache.hpp"
 
 namespace rubinius {
@@ -9,7 +10,7 @@ namespace rubinius {
     G(optimized_call_site)->set_object_type(state, OptimizedCallSiteType);
   }
 
-  OptimizedCallSite* OptimizedCallSite::create(STATE, CallSite* unoptimized) {
+  OptimizedCallSite* OptimizedCallSite::create(STATE, CallSite* unoptimized, OptimizedCode* optimized_code) {
     OptimizedCallSite* call_site =
       state->vm()->new_object_mature<OptimizedCallSite>(G(optimized_call_site));
     call_site->name_     = unoptimized->name();
@@ -19,6 +20,7 @@ namespace rubinius {
     call_site->fallback_ = unoptimized->fallback_;
     call_site->updater_  = optimized_call_site_updater;
     call_site->fallback_call_site(state, unoptimized);
+    call_site->optimized_code(state, optimized_code);
     return call_site;
   }
 
@@ -46,11 +48,17 @@ namespace rubinius {
   Object* OptimizedCallSite::on_resolved(STATE,
                                          CallSite* call_site,
                                          CallFrame* frame,
-                                         Executable* resolved_method,
+                                         Executable* executable,
                                          Module* mod,
                                          Arguments& args) {
     printf("YAAAAAAY!!! %p\n", mod);
-    return resolved_method->execute(state, frame, resolved_method, mod, args);
+    OptimizedCallSite* optimized = reinterpret_cast<OptimizedCallSite*>(call_site);
+    CompiledCode *resolved_code = try_as<CompiledCode>(executable);
+    if(resolved_code && optimized->optimized_code_->guard_p(state, resolved_code)) {
+      return optimized->optimized_code_->execute(state, frame, resolved_code, mod, args);
+    } else {
+      return resolved_code->execute(state, frame, resolved_code, mod, args);
+    }
   }
 
   void OptimizedCallSite::Info::mark(Object* obj, ObjectMark& mark) {
