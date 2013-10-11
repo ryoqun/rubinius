@@ -11,7 +11,7 @@ namespace rubinius {
     const static object_type type = OptimizedCodeType;
     CompiledCode* inlined_code_; // slot
 
-    bool guard_p(STATE, CompiledCode* resolved_code);
+    bool guard_p(STATE, Executable* resolved_code);
 
     static void init(STATE);
 
