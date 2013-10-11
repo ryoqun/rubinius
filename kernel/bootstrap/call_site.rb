@@ -30,6 +30,7 @@ module Rubinius
 
   class OptimizedCallSite < CallSite
     attr_reader :fallback_call_site
+    attr_accessor :optimized_code
 
     def self.new(call_sitek, original_code)
       Rubinius.primitive :optimized_call_site_allocate
