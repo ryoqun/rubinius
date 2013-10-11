@@ -49,9 +49,8 @@ namespace rubinius {
                                          Module* mod,
                                          Arguments& args) {
     OptimizedCallSite* optimized_call_site =
-      (OptimizedCallSite*)frame->compiled_code->call_site(state,
-                                                          frame->previous,
-                                                          call_site->ip());
+      (OptimizedCallSite*)frame->compiled_code->machine_code()->
+      call_site(state, call_site->ip());
     OptimizedCode* optimized = optimized_call_site->optimized_code();
     if(optimized->guard_p(state, original)) {
       return optimized->execute(state, frame, optimized, mod, args);
