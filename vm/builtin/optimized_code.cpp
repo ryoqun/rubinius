@@ -1,4 +1,5 @@
 #include "builtin/optimized_code.hpp"
+#include "object_utils.hpp"
 
 namespace rubinius {
   void OptimizedCode::init(STATE) {
@@ -24,7 +25,9 @@ namespace rubinius {
   }
 
   bool OptimizedCode::guard_p(STATE, CompiledCode* resolved_code) {
-    return false;
+    //printf("guard %p %p\n", try_as<CompiledCode>(resolved_code), try_as<CompiledCode>(inlined_code_));
+    printf("guard %p %p\n", resolved_code, inlined_code());
+    return true;
     //if(resolved_code == inlined_code) {
     //  // guerd checks....
     //}
