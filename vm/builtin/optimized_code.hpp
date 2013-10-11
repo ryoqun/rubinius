@@ -12,7 +12,7 @@ namespace rubinius {
     CompiledCode* original_code_; // slot
     Tuple* guards_;               // slot
 
-    bool guard_p(STATE, Executable* resolved_code);
+    bool guard_p(STATE, CallFrame*, Executable* resolved_code, Module*, Arguments& args);
 
     static void init(STATE);
 
