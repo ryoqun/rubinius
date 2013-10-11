@@ -11,14 +11,16 @@ namespace rubinius {
 
   private:
     CallSite* fallback_call_site_; // slot
+    OptimizedCode* optimized_code_; // slot
 
   public:
     attr_accessor(fallback_call_site, CallSite);
+    attr_accessor(optimized_code, OptimizedCode);
 
     static void init(STATE);
 
     // Rubinius.primitive :optimized_call_site_allocate
-    static OptimizedCallSite* create(STATE, CallSite* call_site);
+    static OptimizedCallSite* create(STATE, CallSite* call_site, OptimizedCode*);
 
     static CacheExecuteFunc optimized_call_site_executor;
     static CacheUpdateFunc optimized_call_site_updater;
