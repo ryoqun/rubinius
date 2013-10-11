@@ -52,7 +52,7 @@ namespace rubinius {
       (OptimizedCallSite*)frame->compiled_code->machine_code()->
       call_site(state, call_site->ip());
     OptimizedCode* optimized = optimized_call_site->optimized_code();
-    if(optimized->guard_p(state, original)) {
+    if(optimized->guard_p(state, frame, original, mod, args)) {
       return optimized->execute(state, frame, optimized, mod, args);
     } else {
       return original->execute(state, frame, original, mod, args);
