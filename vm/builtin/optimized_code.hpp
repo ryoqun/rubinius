@@ -9,13 +9,15 @@ namespace rubinius {
   class OptimizedCode : public CompiledCode {
   public:
     const static object_type type = OptimizedCodeType;
-    CompiledCode* inlined_code_; // slot
+    CompiledCode* original_code_; // slot
+    Tuple* guards_;               // slot
 
     bool guard_p(STATE, Executable* resolved_code);
 
     static void init(STATE);
 
-    attr_accessor(inlined_code, CompiledCode);
+    attr_accessor(original_code, CompiledCode);
+    attr_accessor(guards, Tuple);
 
     // Rubinius.primitive :optimizedcode_allocate
     static OptimizedCode* create(STATE);
