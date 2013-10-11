@@ -31,7 +31,7 @@ module Rubinius
   class OptimizedCallSite < CallSite
     attr_reader :fallback_call_site
 
-    def self.new(call_site)
+    def self.new(call_sitek, original_code)
       Rubinius.primitive :optimized_call_site_allocate
       raise PrimitiveFailure, "OptimizedCallSite.allocate primitive failed"
     end
