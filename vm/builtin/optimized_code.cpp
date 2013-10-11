@@ -25,10 +25,7 @@ namespace rubinius {
   }
 
   bool OptimizedCode::guard_p(STATE, Executable* resolved_code) {
-    //printf("guard %p %p\n", try_as<CompiledCode>(resolved_code), try_as<CompiledCode>(inlined_code_));
-    //printf("guard %p %p\n", resolved_code, inlined_code());
-    //return true;
-    if(resolved_code == inlined_code()) {
+    if(resolved_code == original_code()) {
       return true;
     } else {
       return false;
