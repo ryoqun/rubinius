@@ -16,8 +16,10 @@ namespace rubinius {
 
     static void init(STATE);
 
+    attr_accessor(inlined_code, CompiledCode);
+
     // Rubinius.primitive :optimizedcode_allocate
-    static OptimizedCode* create(STATE, CompiledCode* original_code);
+    static OptimizedCode* create(STATE);
 
     class Info : public CompiledCode::Info {
     public:
