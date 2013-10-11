@@ -48,7 +48,7 @@ namespace rubinius {
                                          Executable* executable,
                                          Module* mod,
                                          Arguments& args) {
-    OptimizedCallSite* optimized = (OptimizedCallSite*)frame->compiled_code->current_call_site(state, frame->previous, frame->ip());
+    OptimizedCallSite* optimized = (OptimizedCallSite*)frame->compiled_code->call_site(state, frame->previous, call_site->ip());
     OptimizedCode* code = optimized->optimized_code();
     if(code->guard_p(state, executable)) {
       return code->execute(state, frame, code, mod, args);

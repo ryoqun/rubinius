@@ -160,7 +160,6 @@ namespace rubinius {
     }
 
     CallSite* call_site(STATE, int ip);
-    CallSite* current_call_site(STATE, int ip);
     ConstantCache* constant_cache(STATE, int ip);
 
     Tuple* call_sites(STATE);
