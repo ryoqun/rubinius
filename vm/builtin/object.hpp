@@ -160,7 +160,8 @@ namespace rubinius {
   public:   /* Method dispatch stuff */
 
     /** Actual class for this object. Also handles immediates */
-    Class*       direct_class(STATE) const;
+    // Rubinius.primitive :object_direct_class
+    Class* direct_class(STATE) const;
 
     /** Module where to start looking for the MethodTable for this Object. */
     Module*      lookup_begin(STATE) const;

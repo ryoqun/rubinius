@@ -22,3 +22,10 @@ class Class
 
   private :set_superclass
 end
+
+class Object
+  def direct_class
+    Rubinius.primitive :object_direct_class
+    raise PrimitiveFailure, "Class#direct_class primitive failed"
+  end
+end
