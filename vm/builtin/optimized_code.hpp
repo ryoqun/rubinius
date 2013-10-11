@@ -9,8 +9,7 @@ namespace rubinius {
   class OptimizedCode : public CompiledCode {
   public:
     const static object_type type = OptimizedCodeType;
-    CompiledCode* inlined_code_;
-    Tuple* guards_;
+    CompiledCode* inlined_code_; // slot
 
     bool guard_p(STATE, CompiledCode* resolved_code);
 
