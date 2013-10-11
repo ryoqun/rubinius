@@ -72,7 +72,7 @@ namespace rubinius {
     return mcode->call_sites(state);
   }
 
-  CallSite* CompiledCode::current_call_site(STATE, CallFrame* calling_environment, int ip) {
+  CallSite* CompiledCode::call_site(STATE, CallFrame* calling_environment, int ip) {
     GCTokenImpl gct;
     CompiledCode* self = this;
     OnStack<1> os(state, self);
@@ -81,7 +81,7 @@ namespace rubinius {
       if(!self->internalize(state, gct, calling_environment)) return 0;
     }
     MachineCode* mcode = self->machine_code_;
-    return mcode->current_call_site(state, ip);
+    return mcode->call_site(state, ip);
   }
 
   Tuple* CompiledCode::constant_caches(STATE, CallFrame* calling_environment) {

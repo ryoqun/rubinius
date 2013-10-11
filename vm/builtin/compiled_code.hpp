@@ -122,7 +122,7 @@ namespace rubinius {
 
     // Rubinius.primitive :compiledcode_call_sites
     Tuple* call_sites(STATE, CallFrame* calling_environment);
-    CallSite* current_call_site(STATE, CallFrame* calling_environment, int ip);
+    CallSite* call_site(STATE, CallFrame* calling_environment, int ip);
 
     // Rubinius.primitive :compiledcode_constant_caches
     Tuple* constant_caches(STATE, CallFrame* calling_environment);
