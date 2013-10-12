@@ -23,8 +23,12 @@ namespace rubinius {
     // Rubinius.primitive :guard_allocate
     static Guard* create(STATE, Symbol* ref, Object* obj);
 
+    ClassData class_data() {
+      return class_data_;
+    }
+
     // Rubinius.primitive :guard_class_data
-    Tuple* class_data(STATE) {
+    Tuple* class_data_prim(STATE) {
       return Tuple::from(state,
                          2,
                          Fixnum::from(class_data_.f.class_id),
