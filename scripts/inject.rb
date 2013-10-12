@@ -43,12 +43,14 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction
+      attr_reader :instruction, :imports, :exports
       attr_accessor :op_rands
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
         @jump_targets = []
+        @imports = []
+        @exports = []
       end
 
       def op_code
@@ -69,17 +71,26 @@ module Rubinius
       end
 
       def stack_produced
-        instruction.instruction.stack_produced
+        count = instruction.instruction.stack_produced
+
+        case op_code
+        when :move_down
+          0
+        else
+          count
+        end
       end
 
       def stack_consumed
-        op_code = instruction.instruction
-        count = op_code.stack_consumed
+        count = instruction.instruction.stack_consumed
 
-        if count.respond_to?(:to_i)
-          count
-        else
+        case op_code
+        when :send_stack
           count.first + op_rands[count.last - 1].to_i
+        when :move_down
+          0
+        else
+          count
         end
       end
     end
@@ -194,18 +205,25 @@ module Rubinius
       end
 
       class Receiver
+        attr_reader :instruction
+        def initialize(instruction)
+          @instruction = instruction
+        end
+
         def to_label(optimizer)
-          "<receiver>"
+          "recv"
         end
       end
 
       class Argument
-        def initialize(index)
+        attr_reader :instruction
+        def initialize(index, instruction)
           @index = index
+          @instruction = instruction
         end
 
         def to_label(_optimizer)
-          "<arg#{@index}>"
+          "arg#{@index}"
         end
       end
 
@@ -227,6 +245,10 @@ module Rubinius
             instruction.op_rands.each do |op_rand|
               optimizer.data_flows.push(DataFlow.new(op_rand, instruction))
             end
+          when :set_local, :set_literal, :set_const_fast
+            instruction.op_rands.each do |op_rand|
+              optimizer.data_flows.push(DataFlow.new(instruction, op_rand))
+            end
           when :pop
             optimizer.data_flows.push(DataFlow.new(instruction, DataFlow::Void.new))
           when :ret
@@ -238,21 +260,25 @@ module Rubinius
             instruction.stack_consumed.times.to_a.reverse.each do |index|
               if index.zero?
                 source = stack.pop
-                receiver = DataFlow::Receiver.new
+                receiver = DataFlow::Receiver.new(instruction)
+                instruction.imports.unshift(receiver)
                 optimizer.data_flows.push(DataFlow.new(source, receiver))
-                optimizer.data_flows.push(DataFlow.new(receiver, instruction))
               else
                 source = stack.pop
-                arg = DataFlow::Argument.new(index)
+                arg = DataFlow::Argument.new(index, instruction)
+                instruction.imports.unshift(arg)
                 optimizer.data_flows.push(DataFlow.new(source, arg))
-                optimizer.data_flows.push(DataFlow.new(arg, instruction))
               end
             end
           else
+            puts
+            p instruction
             instruction.stack_consumed.times do
               optimizer.data_flows.push(DataFlow.new(stack.pop, instruction))
             end
           end
+          puts
+          p instruction
           instruction.stack_produced.times do
             stack.push(instruction)
           end
@@ -262,20 +288,39 @@ module Rubinius
 
     class DataFlowPrinter < Analysis
       def optimize
-        g = GraphViz.new(:G, :type => :digraph)
+        @g = GraphViz.new(:G, :type => :digraph)
 
         optimizer.data_flows.each do |data_flow|
-          source_node = g.add_nodes(data_flow.source.to_label(optimizer))
-          source_node.shape = 'rect'
+          source_node = decorate_node(data_flow.source)
 
-          sink_node = g.add_nodes(data_flow.sink.to_label(optimizer))
-          sink_node.shape = 'rect'
-
-          g.add_edges(source_node, sink_node)
+          if data_flow.sink.is_a?(DataFlow::Argument) or data_flow.sink.is_a?(DataFlow::Receiver)
+            sink_node = decorate_node(data_flow.sink.instruction)
+            edge = @g.add_edges(source_node, {sink_node => data_flow.sink.to_label(optimizer)})
+          else
+            sink_node = decorate_node(data_flow.sink)
+            edge = @g.add_edges(source_node, sink_node)
+          end
         end
 
+        @g.output(:pdf => "data_flow.pdf")
+      end
 
-        g.output(:pdf => "data_flow.pdf")
+      def escape(text)
+        text.gsub(/</, "\\<").gsub(/>/, "\\>")
+      end
+
+      def decorate_node(data)
+        if data.is_a?(Inst) and not data.imports.empty?
+          node = @g.add_nodes(data.to_label(optimizer))
+          label = escape(data.to_label(optimizer))
+          imports = data.imports.collect { |import| "<#{import.to_label(optimizer)}>#{escape(import.to_label(optimizer))}" }.join("|")
+          node.label = "{{#{imports}}|#{label}}"
+          node.shape = 'record'
+        else
+          node = @g.add_nodes(data.to_label(optimizer))
+          node.shape = 'rect'
+        end
+        node
       end
     end
 
@@ -318,7 +363,7 @@ module Rubinius
   end
 end
 
-code = "".method(:StringValue).executable
+code = "".method(:[]).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::CFGPrinter)
