@@ -59,6 +59,7 @@
 #include "builtin/class.hpp"
 #include "builtin/atomic.hpp"
 #include "builtin/thread_state.hpp"
+#include "builtin/guard.hpp"
 
 #include "environment.hpp"
 #include "configuration.hpp"
@@ -364,6 +365,7 @@ namespace rubinius {
     Alias::init(state);
     Randomizer::init(state);
     Encoding::init(state);
+    Guard::init(state);
   }
 
   // @todo document all the sections of bootstrap_ontology
