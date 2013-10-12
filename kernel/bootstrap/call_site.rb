@@ -49,4 +49,23 @@ module Rubinius
       "#<#{self.class.name}:0x#{self.object_id.to_s(16)} fallback:#{fallback_call_site.inspect}>"
     end
   end
+
+  class Guard
+    attr_accessor :reference
+
+    def self.new(reference, object)
+      Rubinius.primitive :guard_allocate
+      raise PrimitiveFailure, "Guard.allocate primitive failed"
+    end
+
+    def class_data
+      Rubinius.primitive :guard_class_data
+      raise PrimitiveFailure, "Guard.class_data primitive failed"
+    end
+
+    def inspect
+      data = class_data
+      "#<#{self.class.name}:0x#{self.object_id.to_s(16)} reference:#{reference.inspect} class_id:#{data[0]} serial_id:#{data[1]}>"
+    end
+  end
 end
