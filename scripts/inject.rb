@@ -87,6 +87,8 @@ module Rubinius
         case op_code
         when :send_stack
           count.first + op_rands[count.last - 1].to_i
+        when :string_build
+          count.first + op_rands.first.to_i
         when :move_down
           0
         else
@@ -335,7 +337,7 @@ module Rubinius
           g.add_nodes(label)
           node = g.get_node(label)
           node.shape = 'rect'
-          if previous
+          if previous and previous.op_code != :goto
             previous_label = previous.instruction.to_s
             g.add_edges(previous_label, label)
           end
@@ -346,7 +348,7 @@ module Rubinius
         end
 
 
-        g.output(:pdf => "hello_world2.pdf")
+        g.output(:pdf => "cfg.pdf")
       end
     end
 
@@ -363,7 +365,7 @@ module Rubinius
   end
 end
 
-code = "".method(:[]).executable
+code = String.instance_method(:+).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::CFGPrinter)
