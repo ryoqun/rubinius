@@ -1,6 +1,7 @@
 #include "builtin/optimized_code.hpp"
 #include "builtin/symbol.hpp"
 #include "builtin/string.hpp"
+#include "builtin/guard.hpp"
 #include "arguments.hpp"
 #include "object_utils.hpp"
 
@@ -32,11 +33,15 @@ namespace rubinius {
       return false;
     }
     if(guards() != cNil && guards()->num_fields() > 0) {
-      for(native_int i = 0; i <= guards()->num_fields(); i += 2) {
-        Symbol* label = reinterpret_cast<Symbol*>(guards()->at(i));
-        Class* current_class = reinterpret_cast<Class*>(guards()->at(i + 1));
+      for(native_int i = 0; i < guards()->num_fields(); ++i) {
+        Guard* guard = try_as<Guard>(guards()->at(i));
 
-        if(!guard_label_p(state, label, current_class, frame, mod, args)) {
+        if(!guard) {
+          printf("is n'%ldt guard%p!!!!!\n", guards()->num_fields(), guards()->at(0));
+          return false;
+        }
+
+        if(!guard_label_p(state, guard, frame, mod, args)) {
           return false;
         }
       }
@@ -45,11 +50,11 @@ namespace rubinius {
     return true;
   }
 
-  bool OptimizedCode::guard_label_p(STATE, Symbol* label, Class* current_class, CallFrame *frame, Module* mod, Arguments& args) {
-    if(label == state->symbol("self")) {
+  bool OptimizedCode::guard_label_p(STATE, Guard* guard, CallFrame *frame, Module* mod, Arguments& args) {
+    if(guard->reference() == state->symbol("self")) {
       Class* const recv_class = args.recv()->direct_class(state);
 
-      if(recv_class->data_raw() != current_class->data_raw()) {
+      if(recv_class->data().raw != guard->class_data().raw) {
         return false;
       }
     } else {

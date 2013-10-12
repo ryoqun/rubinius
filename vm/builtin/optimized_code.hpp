@@ -3,6 +3,8 @@
 
 #include "builtin/compiled_code.hpp"
 #include "builtin/class.hpp"
+#include "builtin/guard.hpp"
+
 #include "ontology.hpp"
 
 namespace rubinius {
@@ -13,7 +15,7 @@ namespace rubinius {
     Tuple* guards_;               // slot
 
     bool guard_p(STATE, CallFrame*, Executable* resolved_code, Module*, Arguments& args);
-    bool guard_label_p(STATE, Symbol* label, Class* current_class, CallFrame* frame, Module* mod, Arguments& args);
+    bool guard_label_p(STATE, Guard* guard, CallFrame* frame, Module* mod, Arguments& args);
 
     static void init(STATE);
 
