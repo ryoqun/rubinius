@@ -959,11 +959,15 @@ module Rubinius
       end
 
       def reset
-        @state = PushRemover.new(optimizer, self)
+        @states = [
+          PushRemover.new(optimizer, self),
+        ]
       end
 
       def feed(event)
-        @state.feed(*event)
+        @states.each do |state|
+          state.feed(*event)
+        end
       end
 
       def remove(previous, inst)
