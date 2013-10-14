@@ -66,12 +66,12 @@ namespace jit {
       if(indy) ctx_->llvm_state()->gc_independent();
       if(ctx_->llvm_state()->jit_dump_code() & cSimple) {
         std::string err;
-        const char *filename = (function_->getName().str() + ".simple.ll").c_str();
+        std::string filename(function_->getName().str() + "simple.ll");
         llvm::outs() << "[[[ Writing IR: " << filename <<
           " (" << file_name_ <<
           ":" << line_ <<
           ") (simple) ]]]\n";
-        raw_fd_ostream dump_file(filename, err);
+        raw_fd_ostream dump_file(filename.c_str(), err);
         dump_file << *ctx_->module();
       }
 
@@ -118,12 +118,12 @@ namespace jit {
 
       if(ctx_->llvm_state()->jit_dump_code() & cOptimized) {
         std::string err;
-        const char *filename = (function_->getName().str() + ".opt.ll").c_str();
+        std::string filename(function_->getName().str() + "opt.ll");
         llvm::outs() << "[[[ Writing IR: " << filename <<
           " (" << file_name_ <<
           ":" << line_ <<
           ") (optimized) ]]]\n";
-        raw_fd_ostream dump_file(filename, err);
+        raw_fd_ostream dump_file(filename.c_str(), err);
         dump_file << *ctx_->module();
       }
 
