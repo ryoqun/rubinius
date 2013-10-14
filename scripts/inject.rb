@@ -130,10 +130,11 @@ module Rubinius
     class JumpTarget
     end
 
-    attr_reader :compiled_code, :instructions, :data_flows
+    attr_reader :compiled_code, :instructions, :control_flows, :data_flows
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
+      @control_flows = []
       @data_flows = []
       decode
     end
@@ -479,7 +480,7 @@ module Rubinius
               end
               #p exports.size
               exports.size.times.to_a.reverse.each do |index|
-                instruction.exports.unshift DataFlow::Shuffle.new(index, instruction)
+                instruction.exports.unshift DataFlow::Shuffle.new(index, instruction) if stack_index.zero?
                 #instruction.exports.unshift(export)
               end
             else
@@ -582,43 +583,64 @@ module Rubinius
       end
     end
 
+    class ControlFlow
+      attr_reader :from, :to
+      def initialize(from, to)
+        @from = from
+        @to = to
+      end
+    end
+
+    class NextControlFlow < ControlFlow
+    end
+
+    class BranchControlFlow < ControlFlow
+    end
+
+    class CFGAnalysis < Analysis
+      def optimize
+        previous = nil
+        optimizer.instructions.each do |instruction|
+          if previous and
+             previous.op_code != :goto and
+             previous.op_code != :ret and
+             previous.op_code != :reraise
+            optimizer.control_flows.push(NextControlFlow.new(previous, instruction))
+          end
+          if instruction.control_flow == :branch or
+             instruction.control_flow == :handler
+            optimizer.control_flows.push(BranchControlFlow.new(instruction, instruction.jump_target))
+          end
+          previous = instruction
+        end
+      end
+    end
+
     class CFGPrinter < Analysis
       def optimize
         g = GraphViz.new(:G, :type => :digraph)
         g[:fontname] = "M+ 1mn"
 
-        previous = nil
         entry_node = g.add_nodes(optimizer.compiled_code.inspect);
         label = optimizer.instructions.first.instruction.to_s
         first_instruction_node = g.add_nodes(label)
         g.add_edges(entry_node, first_instruction_node)
 
-        optimizer.instructions.each do |instruction|
-          label = instruction.instruction.to_s
-
-          instruction.jump_targets.each do |jump_target|
-            #node = g.add_nodes(jump_target.to_label(optimizer))
-            #g.add_edges(node, label)
-          end
-
-          g.add_nodes(label)
-          node = g.get_node(label)
-          node.shape = 'rect'
-          node.fontname = 'M+ 1mn'
-          if previous and previous.op_code != :goto and previous.op_code != :ret and previous.op_code != :reraise
-            previous_label = previous.instruction.to_s
-            g.add_edges(previous_label, label)
-          end
-          if instruction.control_flow == :branch or
-             instruction.control_flow == :handler
-            g.add_edges(label, instruction.jump_target.instruction.to_s)
-          end
-          previous = instruction
+        optimizer.control_flows.each do |control_flow|
+          node1 = g.add_nodes(control_flow.from.to_label(optimizer))
+          node1.shape = 'rect'
+          node1.fontname = 'M+ 1mn'
+          node2 = g.add_nodes(control_flow.to.to_label(optimizer))
+          node2.shape = 'rect'
+          node2.fontname = 'M+ 1mn'
+          g.add_edges(node1, node2)
         end
-
 
         g.output(:pdf => "cfg.pdf")
       end
+    end
+
+    class Scalar < Optimization
     end
 
     class Inliner < Optimization
@@ -637,14 +659,18 @@ end
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
 def loo
-  ( 3 + 3 ? 232 : 23) * 3
+  i = 0
+  while i < 100000
+    i += 1
+  end
 end
-code = Array.instance_method(:set_index).executable
-#code = method(:loo).executable
+#code = Array.instance_method(:set_index).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 opt = Rubinius::Optimizer.new(code)
+opt.add_pass(Rubinius::Optimizer::CFGAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::CFGPrinter)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
