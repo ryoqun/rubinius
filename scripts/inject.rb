@@ -914,6 +914,26 @@ module Rubinius
       ]
     end
 
+    class NilRemover < Matcher
+      before [
+        [:push_nil],
+        [:pop],
+      ]
+
+      after [
+      ]
+    end
+
+    class InfiniteLoop < Matcher
+      before [
+        [:push_true],
+        [:goto_if_false],
+      ]
+
+      after [
+      ]
+    end
+
     class Prune < Optimization
       def optimize
         incoming_flows = {
@@ -961,6 +981,8 @@ module Rubinius
       def reset
         @states = [
           PushRemover.new(optimizer, self),
+          NilRemover.new(optimizer, self),
+          InfiniteLoop.new(optimizer, self),
         ]
       end
 
@@ -968,6 +990,8 @@ module Rubinius
         @states.each do |state|
           state.feed(*event)
         end
+
+        false
       end
 
       def remove(previous, inst)
@@ -1001,6 +1025,7 @@ module Rubinius
                   yield Save.new
                   stack.push([current, current.next])
                   stack.push([current, current.jump_target])
+                  yield [previous, current]
                   current = nil
                 else
                   previous = current
