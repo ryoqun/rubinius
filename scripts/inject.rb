@@ -1028,7 +1028,7 @@ end
 #code = File.method(:absolute_path).executable
 def loo
   i = 0
-  while i < 10_000_000
+  while i < 40_000_000
     i += 1
   end
 end
@@ -1049,6 +1049,7 @@ optimized_code = opt.run
 
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
@@ -1063,11 +1064,13 @@ def measure
 end
 # invoke(@name, @defined_in, obj, args, block)
 10.times do
-  measure do
-    un_code.invoke(:loo, self.class, self, [], nil)
-  end
+  puts optimized_code.decode.size
   measure do
     optimized_code.invoke(:loo_optimized, self.class, self, [], nil)
+  end
+  puts un_code.decode.size
+  measure do
+    un_code.invoke(:loo, self.class, self, [], nil)
   end
 end
 #puts code.decode
