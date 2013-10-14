@@ -811,18 +811,9 @@ module Rubinius
         end
 
         def after(translator)
-          @translatro = translator
+          @translator = translator
         end
       end
-    end
-
-    class PushRemover < Matcher
-      before([
-        [:set_local, :local0],
-        [:pop],
-        :no_stack_changes,
-        [:push_local, :local0],
-      ])
 
       def initialize(optimizer, scalar)
         @optimizer= optimizer
@@ -865,8 +856,9 @@ module Rubinius
           meta_matcher = matcher
           case meta_matcher
           when :no_stack_changes
-            if inst.op_code == :check_interrupts
-              1
+            if inst.op_code == :check_interrupts or
+               inst.op_code == :goto
+              0
             else
               nil
             end
@@ -897,12 +889,29 @@ module Rubinius
       end
 
       def translate
-        _set_local, pop, *_other, push_local = @results
-        @scalar.remove(pop[0], pop[1])
-        @scalar.remove(push_local[0], push_local[1])
+        p @results.map(&:last)
+        @results.each do |prev, cur, match|
+          unless self.class.translator.include?(match)
+            @scalar.remove(prev, cur)
+          end
+        end
 
         false
       end
+    end
+
+    class PushRemover < Matcher
+      before [
+        [:set_local, :local0],
+        [:pop],
+        :no_stack_changes,
+        [:push_local, :local0],
+      ]
+
+      after [
+        [:set_local, :local0],
+        :no_stack_changes,
+      ]
     end
 
     class Prune < Optimization
@@ -1032,10 +1041,11 @@ def loo
   end
 end
 #code = Array.instance_method(:set_index).executable
-code = method(:loo).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
+code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
