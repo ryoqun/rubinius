@@ -143,6 +143,10 @@ module Rubinius
       @data_flows.push(data_flow)
     end
 
+    def add_control_flow(control_flow)
+      @control_flows.push(control_flow)
+    end
+
     def add_pass(pass, *args)
       @passes << pass.new(self, *args)
     end
@@ -609,11 +613,11 @@ module Rubinius
              previous.op_code != :goto and
              previous.op_code != :ret and
              previous.op_code != :reraise
-            optimizer.control_flows.push(NextControlFlow.new(previous, instruction))
+            optimizer.add_control_flow(NextControlFlow.new(previous, instruction))
           end
           if instruction.control_flow == :branch or
              instruction.control_flow == :handler
-            optimizer.control_flows.push(BranchControlFlow.new(instruction, instruction.jump_target))
+            optimizer.add_control_flow(BranchControlFlow.new(instruction, instruction.jump_target))
           end
           previous = instruction
         end
