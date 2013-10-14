@@ -34,6 +34,7 @@
 #include <llvm/Target/TargetOptions.h>
 
 #include <sstream>
+#include <fstream>
 
 #include <sys/time.h>
 
@@ -55,7 +56,7 @@ namespace rubinius {
 namespace jit {
   void Compiler::show_machine_code() {
     llvm::outs() << "[[[ JIT Machine Code: " << function_->getName() << " ]]]\n";
-    LLVMState::show_machine_code(mci_->address(), mci_->size());
+    LLVMState::show_machine_code(function_->getName(), mci_->address(), mci_->size());
   }
 
   void* Compiler::generate_function(bool indy) {
@@ -64,8 +65,14 @@ namespace jit {
 
       if(indy) ctx_->llvm_state()->gc_independent();
       if(ctx_->llvm_state()->jit_dump_code() & cSimple) {
-        llvm::outs() << "[[[ LLVM Simple IR ]]]\n";
-        llvm::outs() << *function_ << "\n";
+        std::string err;
+        const char *filename = (function_->getName().str() + ".simple.ll").c_str();
+        llvm::outs() << "[[[ Writing IR: " << filename <<
+          " (" << file_name_ <<
+          ":" << line_ <<
+          ") (simple) ]]]\n";
+        raw_fd_ostream dump_file(filename, err);
+        dump_file << *ctx_->module();
       }
 
       std::vector<BasicBlock*> to_remove;
@@ -110,8 +117,14 @@ namespace jit {
       ctx_->passes()->run(*function_);
 
       if(ctx_->llvm_state()->jit_dump_code() & cOptimized) {
-        llvm::outs() << "[[[ LLVM Optimized IR: ]]]\n";
-        llvm::outs() << *function_ << "\n";
+        std::string err;
+        const char *filename = (function_->getName().str() + ".opt.ll").c_str();
+        llvm::outs() << "[[[ Writing IR: " << filename <<
+          " (" << file_name_ <<
+          ":" << line_ <<
+          ") (optimized) ]]]\n";
+        raw_fd_ostream dump_file(filename, err);
+        dump_file << *ctx_->module();
       }
 
       mci_ = new llvm::MachineCodeInfo();
@@ -260,6 +273,8 @@ namespace jit {
                                  jit::Builder& work)
   {
     function_ = info.function();
+    file_name_ = ctx_->llvm_state()->symbol_debug_str(info.method()->file());
+    line_ = info.method()->start_line();
 
     if(!work.generate_body()) {
       function_ = NULL;

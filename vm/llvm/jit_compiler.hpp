@@ -23,12 +23,15 @@ namespace jit {
 
   class Compiler {
     Context* ctx_;
+    std::string file_name_;
+    int line_;
     llvm::Function* function_;
     llvm::MachineCodeInfo* mci_;
 
   public:
     Compiler(Context* ctx)
       : ctx_(ctx)
+      , line_(0)
       , function_(0)
       , mci_(0)
     {}

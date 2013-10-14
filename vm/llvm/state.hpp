@@ -293,7 +293,7 @@ namespace rubinius {
 
     void gc_scan(GarbageCollector* gc);
 
-    static void show_machine_code(void* impl, size_t bytes);
+    static void show_machine_code(const llvm::StringRef&, void* impl, size_t bytes);
   };
 
 }
