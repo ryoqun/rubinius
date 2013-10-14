@@ -11,10 +11,14 @@ module Rubinius
       def initialize(bytecode)
         @bytecode = bytecode
       end
+
+      def ==(other)
+        other.is_a?(self.class) and other.bytecode == bytecode
+      end
     end
 
     class JumpLabel < OpRand
-      attr_reader :target
+      attr_accessor :target
       def initialize(bytecode, inst)
         super(bytecode)
         @target = inst
@@ -82,6 +86,18 @@ module Rubinius
         @exports = []
       end
 
+      def remove
+        self.previous.next = self.next
+        self.jump_targets.each do |jump_target|
+          jump_target.op_rands.each do |op_rand|
+            if op_rand.is_a?(JumpLabel)
+              op_rand.target = self.next
+            end
+          end
+        end
+        self.next.jump_targets.concat(self.jump_targets)
+      end
+
       def op_code
         @instruction.instruction.opcode
       end
@@ -95,7 +111,7 @@ module Rubinius
       end
 
       def jump_target
-        raise "no" unless control_flow_type == :branch or control_flow_type == :handler
+        raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
         @op_rands.first.target
       end
 
@@ -142,6 +158,32 @@ module Rubinius
       decode
     end
 
+    def remove(removed_inst)
+      removed_inst.remove
+      @instructions.reject! {|inst| inst.equal?(removed_inst)}
+    end
+
+    def unlink(from, to)
+      #removed_inst.remove
+      #@instructions.reject! {|inst| inst.equal?(removed_inst)}
+      #if from.next == to
+      #  from.next = to.next
+      #elsif from.jump_target == to
+      #  from.jump_target = to.next
+      #else
+      #  raise "aa"
+      #end
+      @control_flows.each do |control_flow|
+        if control_flow.from.equal?(from) and
+           control_flow.to.equal?(to)
+          #p :fffound
+          #p from.to_label(self)
+          #p to.to_label(self)
+          control_flow.remove
+        end
+      end
+    end
+
     def add_data_flow(data_flow)
       data_flow.install
       @data_flows.push(data_flow)
@@ -167,7 +209,7 @@ module Rubinius
 
         inst = ip_to_inst[ip] = Inst.new(instruction)
         ip += instruction.size
-        ap inst.to_label(self)
+       # ap inst.to_label(self)
         inst
       end
       #ap ip_to_inst
@@ -216,6 +258,15 @@ module Rubinius
 
     def run
       @passes.each(&:optimize)
+    end
+
+    def rerun(klass) 
+      @passes.each do |pass|
+        if pass.is_a?(klass)
+          pass.reset
+          pass.optimize
+        end
+      end
     end
 
     def encode
@@ -362,20 +413,10 @@ module Rubinius
               next
             end
           end
-          puts
-          puts :begin
-          ap stacks.map(&:count), raw: true
-          puts :end
-          #stacks = stacks.reject(&:empty?)
 
           stacks.last(stacks.size - 1).each do |other_stack|
             stacks.delete(other_stack) if other_stack.empty?
           end
-
-          puts
-          puts :begin2
-          ap stacks.map(&:count), raw: true
-          puts :end2
 
           if stacks.empty?
             main_stack = []
@@ -601,6 +642,15 @@ module Rubinius
       def initialize(from, to)
         @from = from
         @to = to
+        @remove = false
+      end
+
+      def remove
+        @remove = true
+      end
+
+      def removed?
+        @remove
       end
     end
 
@@ -625,6 +675,10 @@ module Rubinius
     end
 
     class ControlFlowAnalysis < Analysis
+      def reset
+        optimizer.control_flows.clear
+      end
+
       def optimize
         previous = nil
         optimizer.instructions.each do |instruction|
@@ -660,14 +714,247 @@ module Rubinius
           node2 = g.add_nodes(control_flow.to.to_label(optimizer))
           node2.shape = 'rect'
           node2.fontname = 'M+ 1mn'
-          g.add_edges(node1, node2)
+          edge = g.add_edges(node1, node2)
+          edge.style = 'dotted' if control_flow.removed?
         end
 
         g.output(:pdf => "cfg.pdf")
       end
     end
 
-    class Scalar < Optimization
+    class Entry
+      def to_label(optimizer)
+        :entry
+      end
+    end
+
+    class Terminate
+      def to_label(optimizer)
+        :terminate
+      end
+    end
+
+    class Save
+      def to_label(optimizer)
+        :save
+      end
+    end
+
+    class Restore
+      def to_label(optimizer)
+        :restore
+      end
+    end
+
+    class TransformState
+    end
+
+    class Matcher
+      class << self
+        attr_reader :selector, :translator
+        def before(selector)
+          @selector = selector
+        end
+
+        def after(translator)
+          @translatro = translator
+        end
+      end
+    end
+
+    class PushRemover < Matcher
+      before([
+        [:set_local, :local0],
+        [:pop],
+        :no_stack_changes,
+        [:push_local, :local0],
+      ])
+
+      def initialize(optimizer, scalar)
+        @optimizer= optimizer
+        @scalar = scalar
+        @cursor = nil
+      end
+
+      def feed(previous, inst)
+        if @cursor.nil?
+          @cursor = 0
+          @selector = self.class.selector.dup
+          @place_holders = {}
+          @results = []
+        end
+        matcher = @selector[@cursor]
+        advance = match(inst, matcher)
+        if advance.nil? and matcher.is_a?(Symbol)
+          @cursor += 1
+          matcher = @selector[@cursor]
+          advance = match(inst, matcher)
+        end
+
+        if advance.nil?
+          @cursor = nil
+        else
+          @cursor += advance
+          @results << [previous, inst, matcher]
+
+          if @selector[@cursor].nil?
+            @cursor = nil
+            return translate
+          end
+        end
+
+        false
+      end
+
+      def match(inst, matcher)
+        if matcher.is_a?(Symbol)
+          meta_matcher = matcher
+          case meta_matcher
+          when :no_stack_changes
+            if inst.op_code == :check_interrupts
+              1
+            else
+              nil
+            end
+          else
+            raise
+          end
+        else
+          op_code, *args = matcher
+          if inst.op_code == op_code
+            ok = true
+            args.each.with_index do |arg, index|
+              op_rand = inst.op_rands[index]
+              if arg.is_a?(Symbol)
+                if not @place_holders.has_key?(arg)
+                  @place_holders[arg] = op_rand
+                else
+                  ok = (@place_holders[arg] == op_rand)
+                end
+              else
+                raise "aaaa"
+              end
+            end
+            1 if ok
+          else
+            nil
+          end
+        end
+      end
+
+      def translate
+        _set_local, pop, *_other, push_local = @results
+        @scalar.remove(pop[0], pop[1])
+        @scalar.remove(push_local[0], push_local[1])
+
+        false
+      end
+    end
+
+    class ScalarTransform < Optimization
+      def optimize
+        count = 0
+        transformed = true
+
+        while transformed
+          puts "pass: #{count}"
+          transformed = false
+          scalar_each do |event|
+            case event
+            when Entry, Restore
+              reset
+            when Save, Terminate
+            else
+              transformed ||= feed(event)
+            end
+          end
+          count += 1
+        end
+        prune_unused
+        optimizer.rerun(ControlFlowAnalysis) if count > 0
+      end
+
+      def prune_unused
+        incoming_flows = {
+          optimizer.instructions.first => [],
+        }
+        optimizer.control_flows.each do |control_flow|
+          incoming_flows[control_flow.to] ||= []
+          incoming_flows[control_flow.to] << control_flow
+        end
+        unused_insts = []
+        optimizer.instructions.each do |inst|
+          if not incoming_flows[inst].empty? and incoming_flows[inst].all?(&:removed?)
+            p :remove
+            p inst.to_label(optimizer)
+            p :remove_done
+            unused_insts << inst
+          end
+        end
+        unused_insts.each do |inst|
+          optimizer.remove(inst)
+        end
+        puts
+      end
+
+      def reset
+        @state = PushRemover.new(optimizer, self)
+      end
+
+      def feed(event)
+        @state.feed(*event)
+      end
+
+      def remove(previous, inst)
+        #puts
+        #puts "aaaa"
+        #p previous.to_label(optimizer)
+        #p inst.to_label(optimizer)
+        #puts "zzzzz"
+        optimizer.unlink(previous, inst)
+      end
+
+      def scalar_each
+        entry = optimizer.instructions.first
+        stack = [[nil, entry]]
+        loop_marks = {}
+
+        yield Entry.new
+        first = true
+        until stack.empty?
+          previous, current = stack.pop
+          if first
+            first = false
+          else
+            yield Restore.new
+          end
+          while current
+            if current.control_flow_type == :branch
+              if loop_marks[current].nil?
+                loop_marks[current] = true
+                if current.next
+                  yield Save.new
+                  stack.push([current, current.next])
+                  stack.push([current, current.jump_target])
+                  current = nil
+                else
+                  previous = current
+                  current = current.jump_target
+                end
+              else
+                current = nil
+              end
+            elsif current.control_flow_type == :return
+              break
+            else
+              yield [previous, current]
+              previous = current
+              current = current.next
+            end
+          end
+        end
+        yield Terminate.new
+      end
     end
 
     class Inliner < Optimization
@@ -698,9 +985,12 @@ code = method(:loo).executable
 #code = "".method(:start_with?).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+
 opt.run
 puts code.decode
 
