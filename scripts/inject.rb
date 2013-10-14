@@ -27,12 +27,17 @@ module Rubinius
       def to_label(_optimizer)
         @target.to_label(_optimizer)
       end
+
+      def to_bytecode
+        @target.ip
+      end
     end
 
     class Count < OpRand
       def to_i
         bytecode
       end
+      alias_method :to_bytecode, :to_i
     end
 
     module Endpoint
@@ -43,38 +48,45 @@ module Rubinius
       def to_label(optimizer)
         "<literal: #{(optimizer.compiled_code.literals[bytecode] || bytecode).inspect.to_s[0, 20]}>"
       end
+
+      alias_method :to_bytecode, :bytecode
     end
 
     class Serial < OpRand
+      alias_method :to_bytecode, :bytecode
     end
 
     class Local < OpRand
       def to_label(optimizer)
         "<local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
+      alias_method :to_bytecode, :bytecode
     end
 
     class Parameter < OpRand
       def to_label(optimizer)
         "<param: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
+      alias_method :to_bytecode, :bytecode
     end
 
     class StackLocal < OpRand
       def to_label(optimizer)
         "<stk_local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
+      alias_method :to_bytecode, :bytecode
     end
 
     class Type < OpRand
       def to_label(optimizer)
         "type"
       end
+      alias_method :to_bytecode, :bytecode
     end
 
     class Inst
       attr_reader :instruction, :imports, :exports, :jump_targets
-      attr_accessor :op_rands, :previous, :next
+      attr_accessor :op_rands, :previous, :next, :ip
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
@@ -84,6 +96,8 @@ module Rubinius
 
         @imports = []
         @exports = []
+
+        @ip = 0
       end
 
       def remove
@@ -100,6 +114,14 @@ module Rubinius
 
       def op_code
         @instruction.instruction.opcode
+      end
+
+      def bytecode
+        @instruction.instruction.bytecode
+      end
+
+      def instruction_width
+        @instruction.instruction.width
       end
 
       def control_flow_type
@@ -258,6 +280,7 @@ module Rubinius
 
     def run
       @passes.each(&:optimize)
+      encode
     end
 
     def rerun(klass) 
@@ -270,6 +293,37 @@ module Rubinius
     end
 
     def encode
+      ip = 0
+      @instructions.each do |inst|
+        inst.ip = ip
+        ip += inst.instruction_width
+      end
+
+      bytecodes = []
+      @instructions.each do |inst|
+        bytecodes << inst.bytecode  
+        inst.op_rands.each do |op_rand|
+          bytecodes << op_rand.to_bytecode
+        end
+      end
+
+      p bytecodes
+
+      opted = OptimizedCode.new
+      opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
+      opted.literals = @compiled_code.literals
+      opted.lines = [-1, 999, 0, 999, 9999].to_tuple
+      opted.required_args = @compiled_code.required_args
+      opted.post_args = @compiled_code.post_args
+      opted.total_args = @compiled_code.total_args
+      opted.splat = @compiled_code.splat
+      opted.block_index = @compiled_code.block_index
+      opted.stack_size = @compiled_code.stack_size
+      opted.local_count = @compiled_code.local_count
+      opted.name = @compiled_code.name
+      opted.local_names = @compiled_code.local_names
+      opted.original_code = @compiled_code
+      opted
     end
 
     class Optimization
@@ -396,7 +450,7 @@ module Rubinius
         stacks = [main_stack]
         previous = nil
         optimizer.instructions.each do |instruction|
-          p instruction.to_label(optimizer)
+          #p instruction.to_label(optimizer)
           jump_target_found = false
           instruction.jump_targets.each do |goto|
             if goto.op_code == :goto or
@@ -857,7 +911,7 @@ module Rubinius
         transformed = true
 
         while transformed
-          puts "pass: #{count}"
+          #puts "pass: #{count}"
           transformed = false
           scalar_each do |event|
             case event
@@ -885,16 +939,16 @@ module Rubinius
         unused_insts = []
         optimizer.instructions.each do |inst|
           if not incoming_flows[inst].empty? and incoming_flows[inst].all?(&:removed?)
-            p :remove
-            p inst.to_label(optimizer)
-            p :remove_done
+            #p :remove
+            #p inst.to_label(optimizer)
+            #p :remove_done
             unused_insts << inst
           end
         end
         unused_insts.each do |inst|
           optimizer.remove(inst)
         end
-        puts
+        #puts
       end
 
       def reset
@@ -985,14 +1039,17 @@ code = method(:loo).executable
 #code = "".method(:start_with?).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
-opt.run
+optimized_code = opt.run
 puts code.decode
+puts
+puts optimized_code.decode
+#puts code.decode
 
 return
 def foo
