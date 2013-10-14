@@ -31,7 +31,11 @@ module Rubinius
       end
     end
 
+    module Endpoint
+    end
+
     class Literal < OpRand
+      include Endpoint
       def to_label(optimizer)
         "<literal: #{(optimizer.compiled_code.literals[bytecode] || bytecode).inspect.to_s[0, 20]}>"
       end
@@ -43,6 +47,12 @@ module Rubinius
     class Local < OpRand
       def to_label(optimizer)
         "<local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
+      end
+    end
+
+    class Parameter < OpRand
+      def to_label(optimizer)
+        "<param: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
     end
 
@@ -158,7 +168,11 @@ module Rubinius
           bytecode = bytecodes[index]
           case op_code.args[index]
           when :count, :positions, :index
-            Count.new(bytecode)
+            if inst.op_code == :passed_arg
+              Parameter.new(bytecode)
+            else
+              Count.new(bytecode)
+            end
           when :local
             Local.new(bytecode)
           when :which
@@ -290,14 +304,13 @@ module Rubinius
 
       class Shuffle
         attr_reader :instruction
-        def initialize(index, instruction, type)
+        def initialize(index, instruction)
           @index = index
           @instruction = instruction
-          @type = type
         end
 
         def to_label(_optimizer)
-          "#{@type}#{@index}"
+          "port#{@index}"
         end
       end
 
@@ -370,7 +383,7 @@ module Rubinius
               goto_to_stack[instruction] = stk unless stk.empty?
             when :push_self
               optimizer.data_flows.push(DataFlow.new(DataFlow::Self.new, instruction))
-            when :push_local, :push_literal, :push_const_fast, :push_ivar
+            when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
               instruction.op_rands.each do |op_rand|
                 optimizer.data_flows.push(DataFlow.new(op_rand, instruction))
               end
@@ -401,11 +414,11 @@ module Rubinius
               end
             when :swap_stack
               source = stack.pop
-              shuffle1 = DataFlow::Shuffle.new(1, instruction, :in)
+              shuffle1 = DataFlow::Shuffle.new(1, instruction)
               optimizer.data_flows.push(DataFlow.new(source, shuffle1))
 
               source = stack.pop
-              shuffle2 = DataFlow::Shuffle.new(0, instruction, :in)
+              shuffle2 = DataFlow::Shuffle.new(0, instruction)
               optimizer.data_flows.push(DataFlow.new(source, shuffle2))
 
               instruction.imports.unshift(shuffle1) if stack_index.zero?
@@ -423,7 +436,7 @@ module Rubinius
             when :move_down
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 source = stack.pop
-                shuffle = DataFlow::Shuffle.new(index, instruction, :in)
+                shuffle = DataFlow::Shuffle.new(index, instruction)
                 instruction.imports.unshift(shuffle) if stack_index.zero?
                 optimizer.data_flows.push(DataFlow.new(source, shuffle))
               end
@@ -460,20 +473,20 @@ module Rubinius
             if instruction.op_code == :move_down
               exports = []
               instruction.stack_produced.times.to_a.rotate(-1).each do |index|
-                shuffle = DataFlow::Shuffle.new(index, instruction, :out)
+                shuffle = DataFlow::Shuffle.new(index, instruction)
                 exports[index] = shuffle
                 stack.push(shuffle)
               end
               #p exports.size
               exports.size.times.to_a.reverse.each do |index|
-                instruction.exports.unshift DataFlow::Shuffle.new(index, instruction, :out)
+                instruction.exports.unshift DataFlow::Shuffle.new(index, instruction)
                 #instruction.exports.unshift(export)
               end
             else
               instruction.stack_produced.times.to_a.reverse.each do |index|
                 if instruction.op_code == :swap_stack
-                  shuffle = DataFlow::Shuffle.new(index, instruction, :out)
-                  instruction.exports.unshift(shuffle)
+                  shuffle = DataFlow::Shuffle.new(index, instruction)
+                  instruction.exports.unshift(shuffle) if stack_index.zero?
                   stack.push(shuffle)
                 else
                   stack.push(instruction)
@@ -490,9 +503,9 @@ module Rubinius
       def optimize
         @g = GraphViz.new(:G, :type => :digraph)
         @g[:rankdir] = "LR"
+        flags = {}
 
         optimizer.data_flows.each do |data_flow|
-
           if data_flow.sink.is_a?(DataFlow::Argument) or
              data_flow.sink.is_a?(DataFlow::Receiver) or
              data_flow.sink.is_a?(DataFlow::Block) or
@@ -512,7 +525,9 @@ module Rubinius
             source_node = decorate_node(data_flow.source)
           end
 
-          edge = @g.add_edges(source_node, sink_node)
+          flag_key = [source_node, sink_node]
+          flags[flag_key] || @g.add_edges(source_node, sink_node)
+          flags[flag_key] = true
         end
 
         @g.output(:pdf => "data_flow.pdf")
@@ -525,22 +540,42 @@ module Rubinius
       def decorate_node(data)
         suffix = nil #"(jump_target)" if data.respond_to?(:jump_targets) and not data.jump_targets.empty?
         if data.is_a?(Inst) and (not data.imports.empty? or not data.exports.empty?)
-          node = @g.add_nodes(data.to_label(optimizer))
+          node = @g.get_node(data.to_label(optimizer)) || @g.add_nodes(data.to_label(optimizer))
           label = escape(data.to_label(optimizer))
 
-          imports = data.imports.collect { |import| "<#{import.to_label(optimizer)}>#{escape(import.to_label(optimizer))}" }.join("|")
+          imports = data.imports.collect do |import|
+             if import.is_a?(DataFlow::Shuffle)
+               port = "#{import.to_label(optimizer)}i"
+             else
+               port = import.to_label(optimizer)
+            end
+            "<#{port}>#{escape(import.to_label(optimizer))}"
+          end.join("|")
           imports = "{#{imports}}|" unless imports.empty?
 
-          exports = data.exports.collect { |export| "<#{export.to_label(optimizer)}>#{escape(export.to_label(optimizer))}" }.join("|")
+          exports = data.exports.collect do |export|
+            if export.is_a?(DataFlow::Shuffle)
+              port = "#{export.to_label(optimizer)}o"
+            else
+              port = export.to_label(optimizer)
+            end
+            "<#{port}>#{escape(export.to_label(optimizer))}"
+          end.join("|")
           exports = "|{#{exports}}" unless exports.empty?
 
           node.label = "{#{imports}#{label}#{suffix}#{exports}}"
           node.shape = 'record'
           node.fontname = 'M+ 1mn'
         else
-          node = @g.add_nodes(label = data.to_label(optimizer))
+          node = @g.get_node(label = data.to_label(optimizer)) || @g.add_nodes(label = data.to_label(optimizer))
           node.label = "#{label}#{suffix}"
-          node.shape = 'rect'
+
+          if data.is_a?(Endpoint)
+            node.shape = 'rect'
+          else
+            node.shape = 'round'
+          end
+
           node.fontname = 'M+ 1mn'
         end
         node
@@ -604,9 +639,11 @@ end
 def loo
   ( 3 + 3 ? 232 : 23) * 3
 end
-#code = Array.instance_method(:cycle).executable
+code = Array.instance_method(:set_index).executable
 #code = method(:loo).executable
-code = "".method(:dump).executable
+#code = "".method(:dump).executable
+#code = "".method(:[]).executable
+#code = "".method(:start_with?).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::CFGPrinter)
