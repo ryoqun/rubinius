@@ -320,7 +320,7 @@ module Rubinius
       opted.block_index = @compiled_code.block_index
       opted.stack_size = @compiled_code.stack_size
       opted.local_count = @compiled_code.local_count
-      opted.name = @compiled_code.name
+      opted.name = :"_Z_#{@compiled_code.name}"
       opted.local_names = @compiled_code.local_names
       opted.original_code = @compiled_code
       opted
@@ -1028,7 +1028,7 @@ end
 #code = File.method(:absolute_path).executable
 def loo
   i = 0
-  while i < 100000
+  while i < 10_000_000
     i += 1
   end
 end
@@ -1046,9 +1046,33 @@ opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
-puts code.decode
-puts
-puts optimized_code.decode
+
+opt = Rubinius::Optimizer.new(code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+
+un_code = opt.run
+
+def measure
+  started_at = Time.now
+  yield
+  puts Time.now - started_at
+end
+# invoke(@name, @defined_in, obj, args, block)
+10.times do
+  measure do
+    un_code.invoke(:loo, self.class, self, [], nil)
+  end
+  measure do
+    optimized_code.invoke(:loo_optimized, self.class, self, [], nil)
+  end
+end
+#puts code.decode
+#puts
+#puts optimized_code.decode
 #puts code.decode
 
 return
