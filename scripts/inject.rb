@@ -1,5 +1,4 @@
 require 'awesome_print'
-gem 'ruby-graphviz'
 require 'graphviz'
 
 require 'graphviz'
@@ -320,7 +319,7 @@ module Rubinius
       opted.block_index = @compiled_code.block_index
       opted.stack_size = @compiled_code.stack_size
       opted.local_count = @compiled_code.local_count
-      opted.name = :"_Z_#{@compiled_code.name}"
+      opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
       opted.local_names = @compiled_code.local_names
       opted.original_code = @compiled_code
       opted
@@ -734,6 +733,7 @@ module Rubinius
       end
 
       def optimize
+        reset
         previous = nil
         optimizer.instructions.each do |instruction|
           if previous and
@@ -905,30 +905,8 @@ module Rubinius
       end
     end
 
-    class ScalarTransform < Optimization
+    class Prune < Optimization
       def optimize
-        count = 0
-        transformed = true
-
-        while transformed
-          #puts "pass: #{count}"
-          transformed = false
-          scalar_each do |event|
-            case event
-            when Entry, Restore
-              reset
-            when Save, Terminate
-            else
-              transformed ||= feed(event)
-            end
-          end
-          count += 1
-        end
-        prune_unused
-        optimizer.rerun(ControlFlowAnalysis) if count > 0
-      end
-
-      def prune_unused
         incoming_flows = {
           optimizer.instructions.first => [],
         }
@@ -949,6 +927,26 @@ module Rubinius
           optimizer.remove(inst)
         end
         #puts
+      end
+    end
+
+    class ScalarTransform < Optimization
+      def optimize
+        transformed = true
+
+        while transformed
+          #puts "pass: #{count}"
+          transformed = false
+          scalar_each do |event|
+            case event
+            when Entry, Restore
+              reset
+            when Save, Terminate
+            else
+              transformed ||= feed(event)
+            end
+          end
+        end
       end
 
       def reset
@@ -1029,6 +1027,7 @@ end
 def loo
   i = 0
   while i < 40_000_000
+    "aaa" + "bbbb"
     i += 1
   end
 end
@@ -1040,6 +1039,8 @@ code = method(:loo).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
@@ -1047,16 +1048,20 @@ opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
 
-opt = Rubinius::Optimizer.new(code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt = Rubinius::Optimizer.new(code)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#
+#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+#
+#un_code = opt.run
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+#puts un_code.decode
+puts optimized_code.decode
 
-un_code = opt.run
-
+return
 def measure
   started_at = Time.now
   yield
@@ -1075,10 +1080,8 @@ end
 end
 #puts code.decode
 #puts
-#puts optimized_code.decode
 #puts code.decode
 
-return
 def foo
   "aaa" + "bbbb"
 end
