@@ -139,6 +139,10 @@ module Rubinius
       decode
     end
 
+    def add_data_flow(data_flow)
+      @data_flows.push(data_flow)
+    end
+
     def add_pass(pass, *args)
       @passes << pass.new(self, *args)
     end
@@ -383,19 +387,19 @@ module Rubinius
               end
               goto_to_stack[instruction] = stk unless stk.empty?
             when :push_self
-              optimizer.data_flows.push(DataFlow.new(DataFlow::Self.new, instruction))
+              optimizer.add_data_flows(DataFlow.new(DataFlow::Self.new, instruction))
             when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
               instruction.op_rands.each do |op_rand|
-                optimizer.data_flows.push(DataFlow.new(op_rand, instruction))
+                optimizer.add_data_flows(DataFlow.new(op_rand, instruction))
               end
             when :set_local, :set_literal, :set_const_fast, :set_ivar
               instruction.op_rands.each do |op_rand|
-                optimizer.data_flows.push(DataFlow.new(instruction, op_rand))
+                optimizer.add_data_flows(DataFlow.new(instruction, op_rand))
               end
             when :pop
-              #optimizer.data_flows.push(DataFlow.new(instruction, DataFlow::Void.new))
+              #optimizer.add_data_flows(DataFlow.new(instruction, DataFlow::Void.new))
             when :ret
-              #optimizer.data_flows.push(DataFlow.new(instruction, DataFlow::Exit.new))
+              #optimizer.add_data_flows(DataFlow.new(instruction, DataFlow::Exit.new))
             end
 
             case instruction.op_code
@@ -405,22 +409,22 @@ module Rubinius
                   source = stack.pop
                   receiver = DataFlow::Receiver.new(instruction)
                   instruction.imports.unshift(receiver) if stack_index.zero?
-                  optimizer.data_flows.push(DataFlow.new(source, receiver))
+                  optimizer.add_data_flows(DataFlow.new(source, receiver))
                 else
                   source = stack.pop
                   arg = DataFlow::Argument.new(index, instruction)
                   instruction.imports.unshift(arg) if stack_index.zero?
-                  optimizer.data_flows.push(DataFlow.new(source, arg))
+                  optimizer.add_data_flows(DataFlow.new(source, arg))
                 end
               end
             when :swap_stack
               source = stack.pop
               shuffle1 = DataFlow::Shuffle.new(1, instruction)
-              optimizer.data_flows.push(DataFlow.new(source, shuffle1))
+              optimizer.add_data_flows(DataFlow.new(source, shuffle1))
 
               source = stack.pop
               shuffle2 = DataFlow::Shuffle.new(0, instruction)
-              optimizer.data_flows.push(DataFlow.new(source, shuffle2))
+              optimizer.add_data_flows(DataFlow.new(source, shuffle2))
 
               instruction.imports.unshift(shuffle1) if stack_index.zero?
               instruction.imports.unshift(shuffle2) if stack_index.zero?
@@ -428,18 +432,18 @@ module Rubinius
               source = stack.pop
               shuffle = DataFlow::Class.new(instruction)
               instruction.imports.unshift(shuffle) if stack_index.zero?
-              optimizer.data_flows.push(DataFlow.new(source, shuffle))
+              optimizer.add_data_flows(DataFlow.new(source, shuffle))
 
               source = stack.pop
               shuffle = DataFlow::Object.new(instruction)
               instruction.imports.unshift(shuffle) if stack_index.zero?
-              optimizer.data_flows.push(DataFlow.new(source, shuffle))
+              optimizer.add_data_flows(DataFlow.new(source, shuffle))
             when :move_down
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 source = stack.pop
                 shuffle = DataFlow::Shuffle.new(index, instruction)
                 instruction.imports.unshift(shuffle) if stack_index.zero?
-                optimizer.data_flows.push(DataFlow.new(source, shuffle))
+                optimizer.add_data_flows(DataFlow.new(source, shuffle))
               end
             when :send_stack_with_block
               instruction.stack_consumed.times.to_a.reverse.each do |index|
@@ -447,24 +451,24 @@ module Rubinius
                   source = stack.pop
                   receiver = DataFlow::Receiver.new(instruction)
                   instruction.imports.unshift(receiver) if stack_index.zero?
-                  optimizer.data_flows.push(DataFlow.new(source, receiver))
+                  optimizer.add_data_flows(DataFlow.new(source, receiver))
                 elsif index == 1
                   source = stack.pop
                   receiver = DataFlow::Block.new(instruction)
                   instruction.imports.unshift(receiver) if stack_index.zero?
-                  optimizer.data_flows.push(DataFlow.new(source, receiver))
+                  optimizer.add_data_flows(DataFlow.new(source, receiver))
                 else
                   source = stack.pop
                   arg = DataFlow::Argument.new(index, instruction)
                   instruction.imports.unshift(arg) if stack_index.zero?
-                  optimizer.data_flows.push(DataFlow.new(source, arg))
+                  optimizer.add_data_flows(DataFlow.new(source, arg))
                 end
               end
             else
               #puts
               #p instruction
               instruction.stack_consumed.times do
-                optimizer.data_flows.push(DataFlow.new(stack.pop, instruction))
+                optimizer.add_data_flows(DataFlow.new(stack.pop, instruction))
               end
             end
             #puts
