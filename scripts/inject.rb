@@ -605,7 +605,7 @@ module Rubinius
     class BranchControlFlow < ControlFlow
     end
 
-    class CFGAnalysis < Analysis
+    class ControlFlowAnalysis < Analysis
       def optimize
         previous = nil
         optimizer.instructions.each do |instruction|
@@ -624,7 +624,7 @@ module Rubinius
       end
     end
 
-    class CFGPrinter < Analysis
+    class ControlFlowPrinter < Analysis
       def optimize
         g = GraphViz.new(:G, :type => :digraph)
         g[:fontname] = "M+ 1mn"
@@ -678,9 +678,9 @@ code = method(:loo).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 opt = Rubinius::Optimizer.new(code)
-opt.add_pass(Rubinius::Optimizer::CFGAnalysis)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::CFGPrinter)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 opt.run
 puts code.decode
