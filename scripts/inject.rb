@@ -70,11 +70,14 @@ module Rubinius
 
     class Inst
       attr_reader :instruction, :imports, :exports, :jump_targets
-      attr_accessor :op_rands
+      attr_accessor :op_rands, :previous, :next
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
+
+        @previous = @next = nil
         @jump_targets = []
+
         @imports = []
         @exports = []
       end
@@ -140,10 +143,12 @@ module Rubinius
     end
 
     def add_data_flow(data_flow)
+      data_flow.install
       @data_flows.push(data_flow)
     end
 
     def add_control_flow(control_flow)
+      control_flow.install
       @control_flows.push(control_flow)
     end
 
@@ -327,6 +332,9 @@ module Rubinius
       def initialize(source, sink)
         @source = source
         @sink = sink
+      end
+
+      def install
       end
     end
 
@@ -597,9 +605,23 @@ module Rubinius
     end
 
     class NextControlFlow < ControlFlow
+      def type
+        :next
+      end
+
+      def install
+        @from.next = @to
+        @to.previous = @from
+      end
     end
 
     class BranchControlFlow < ControlFlow
+      def type
+        :branch
+      end
+
+      def install
+      end
     end
 
     class ControlFlowAnalysis < Analysis
