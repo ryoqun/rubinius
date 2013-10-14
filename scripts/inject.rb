@@ -83,7 +83,7 @@ module Rubinius
         @instruction.instruction.opcode
       end
 
-      def control_flow
+      def control_flow_type
         @instruction.instruction.control_flow
       end
 
@@ -92,7 +92,7 @@ module Rubinius
       end
 
       def jump_target
-        raise "no" unless control_flow == :branch or control_flow == :handler
+        raise "no" unless control_flow_type == :branch or control_flow_type == :handler
         @op_rands.first.target
       end
 
@@ -328,9 +328,6 @@ module Rubinius
         @source = source
         @sink = sink
       end
-    end
-
-    class ::Array
     end
 
     class DataFlowAnalyzer < Analysis
@@ -615,8 +612,8 @@ module Rubinius
              previous.op_code != :reraise
             optimizer.add_control_flow(NextControlFlow.new(previous, instruction))
           end
-          if instruction.control_flow == :branch or
-             instruction.control_flow == :handler
+          if instruction.control_flow_type == :branch or
+             instruction.control_flow_type == :handler
             optimizer.add_control_flow(BranchControlFlow.new(instruction, instruction.jump_target))
           end
           previous = instruction
