@@ -500,6 +500,7 @@ namespace rubinius {
         llvm::outs() << "<MachineCode>\n";
 
         LLVMState::show_machine_code(
+            llvm::StringRef(),
             v->specializations[i].jit_data->native_func(),
             v->specializations[i].jit_data->native_size());
         llvm::outs() << "</MachineCode>\n";

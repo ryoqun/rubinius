@@ -1,5 +1,7 @@
 #ifdef ENABLE_LLVM
 
+#include <fstream>
+#include <sstream>
 #include "llvm/state.hpp"
 
 #include "llvm/jit_compiler.hpp"
@@ -899,7 +901,7 @@ halt:
     return callee;
   }
 
-  void LLVMState::show_machine_code(void* buffer, size_t size) {
+  void LLVMState::show_machine_code(const llvm::StringRef &name, void* buffer, size_t size) {
 
 #if defined(IS_X86) || defined(IS_X8664)
 #ifndef RBX_WINDOWS
@@ -911,6 +913,10 @@ halt:
 #else
     ud_set_mode(&ud, 32);
 #endif
+    std::ofstream file;
+    const char *filename = (name.str() + ".asm").c_str();
+    file.open(filename);
+
     ud_set_syntax(&ud, UD_SYN_ATT);
     ud_set_input_buffer(&ud, reinterpret_cast<uint8_t*>(buffer), size);
 
@@ -918,15 +924,15 @@ halt:
       void* address = reinterpret_cast<void*>(
           reinterpret_cast<uintptr_t>(buffer) + ud_insn_off(&ud));
 
-      std::cout << std::setw(10) << std::right
+      file << std::setw(10) << std::right
                 << address
                 << "  ";
 
-      std::cout << std::setw(24) << std::left << ud_insn_asm(&ud);
+      file << std::setw(24) << std::left << ud_insn_asm(&ud);
 
       if(ud.operand[0].type == UD_OP_JIMM) {
         const void* addr = (const void*)((uintptr_t)buffer + ud.pc + (int)ud.operand[0].lval.udword);
-        std::cout << " ; " << addr;
+        file << " ; " << addr;
         if(ud.mnemonic == UD_Icall) {
           Dl_info info;
           if(dladdr((void*)addr, &info)) {
@@ -936,10 +942,10 @@ halt:
               // Chop off the arg info from the signature output
               char *paren = strstr(cpp_name, "(");
               *paren = 0;
-              std::cout << " " << cpp_name;
+              file << " " << cpp_name;
               free(cpp_name);
             } else {
-              std::cout << " " << info.dli_sname;
+              file << " " << info.dli_sname;
             }
           }
         }
@@ -949,20 +955,20 @@ halt:
         if(ud.operand[i].type == UD_OP_IMM) {
           Dl_info info;
           if(dladdr((void*)ud.operand[i].lval.uqword, &info)) {
-            std::cout << " ; " << info.dli_sname;
+            file << " ; " << info.dli_sname;
             break; // only do one
           }
         }
       }
 
-      std::cout << "\n";
+      file << "\n";
     }
 #endif  // !RBX_WINDOWS
 
 #else
     JITDisassembler disassembler(buffer, size);
     std::string output = disassembler.print_machine_code();
-    std::cout << output;
+    file << output;
 #endif // !IS_X86
 
   }
