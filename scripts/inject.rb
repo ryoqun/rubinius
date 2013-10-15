@@ -721,8 +721,8 @@ module Rubinius
       end
 
       def install
-        @from.next = self
-        @to.previous = self
+        @src.next = self
+        @dst.previous = self
       end
     end
 
@@ -770,10 +770,10 @@ module Rubinius
         g.add_edges(entry_node, first_instruction_node)
 
         optimizer.control_flows.each do |control_flow|
-          node1 = g.add_nodes(control_flow.from.to_label(optimizer))
+          node1 = g.add_nodes(control_flow.src.to_label(optimizer))
           node1.shape = 'rect'
           node1.fontname = 'M+ 1mn'
-          node2 = g.add_nodes(control_flow.to.to_label(optimizer))
+          node2 = g.add_nodes(control_flow.dst.to_label(optimizer))
           node2.shape = 'rect'
           node2.fontname = 'M+ 1mn'
           edge = g.add_edges(node1, node2)
