@@ -900,7 +900,7 @@ module Rubinius
       end
     end
 
-    class PushRemover < Matcher
+    class PushLocalRemover < Matcher
       before [
         [:set_local, :local0],
         [:pop],
@@ -910,6 +910,20 @@ module Rubinius
 
       after [
         [:set_local, :local0],
+        :no_stack_changes,
+      ]
+    end
+
+    class PushIVarRemover < Matcher
+      before [
+        [:set_ivar, :ivar0],
+        [:pop],
+        :no_stack_changes,
+        [:push_ivar, :ivar0],
+      ]
+
+      after [
+        [:set_ivar, :ivar0],
         :no_stack_changes,
       ]
     end
@@ -980,7 +994,8 @@ module Rubinius
 
       def reset
         @states = [
-          PushRemover.new(optimizer, self),
+          PushLocalRemover.new(optimizer, self),
+          PushIVarRemover.new(optimizer, self),
           NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
         ]
@@ -1069,12 +1084,12 @@ def loo
     i += 1
   end
 end
-#code = Array.instance_method(:set_index).executable
+code = Array.instance_method(:set_index).executable
 #code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
-code = [].method(:cycle).executable
+#code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
