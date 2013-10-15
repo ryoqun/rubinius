@@ -100,7 +100,7 @@ module Rubinius
       end
 
       def remove
-        self.previous.next = self.next
+        self.previous.next = self.next if self.previous
         self.jump_targets.each do |jump_target|
           jump_target.op_rands.each do |op_rand|
             if op_rand.is_a?(JumpLabel)
@@ -108,7 +108,7 @@ module Rubinius
             end
           end
         end
-        self.next.jump_targets.concat(self.jump_targets)
+        self.next.jump_targets.concat(self.jump_targets) if self.next
       end
 
       def op_code
@@ -490,15 +490,15 @@ module Rubinius
               end
               goto_to_stack[instruction] = stk unless stk.empty?
             when :push_self
-              optimizer.add_data_flow(DataFlow.new(DataFlow::Self.new, instruction))
+              #optimizer.add_data_flow(DataFlow.new(DataFlow::Self.new, instruction))
             when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
-              instruction.op_rands.each do |op_rand|
-                optimizer.add_data_flow(DataFlow.new(op_rand, instruction))
-              end
+              #instruction.op_rands.each do |op_rand|
+              #  optimizer.add_data_flow(DataFlow.new(op_rand, instruction))
+              #end
             when :set_local, :set_literal, :set_const_fast, :set_ivar
-              instruction.op_rands.each do |op_rand|
-                optimizer.add_data_flow(DataFlow.new(instruction, op_rand))
-              end
+              #instruction.op_rands.each do |op_rand|
+              #  optimizer.add_data_flow(DataFlow.new(instruction, op_rand))
+              #end
             when :pop
               #optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Void.new))
             when :ret
@@ -958,16 +958,42 @@ module Rubinius
           incoming_flows[control_flow.to] << control_flow
         end
         unused_insts = []
+        moved_flows = []
         optimizer.instructions.each do |inst|
-          if not incoming_flows[inst].empty? and incoming_flows[inst].all?(&:removed?)
+          if incoming_flows[inst].nil?
+            unused_insts << inst
+          elsif not incoming_flows[inst].empty? and incoming_flows[inst].all?(&:removed?)
             #p :remove
             #p inst.to_label(optimizer)
             #p :remove_done
             unused_insts << inst
+          elsif incoming_flows[inst].any?(&:removed?)
+            moved_flows << incoming_flows[inst]
           end
         end
         unused_insts.each do |inst|
           optimizer.remove(inst)
+        end
+        moved_flows.each do |flows|
+          #raise "give up #{flows.first.to.instruction.ip}" if flows.size > 2
+          next_flow = flows.detect{|f| f.is_a?(NextControlFlow) }
+          next_removed = next_flow.removed?
+          if not next_removed
+            (flows - [next_flow]).each do |flow|
+              next_jump = flow.to.next
+              while unused_insts.include?(next_jump)
+                next_jump = next_jump.next
+              end
+              flow.from.op_rands.first.target = next_jump
+            end
+          else
+            inst = next_flow.to
+            (flows - [next_flow]).each do |flow|
+              index = optimizer.instructions.index(flow.from)
+              #flow.from.op_rands.first.target = inst
+              #optimizer.instructions.insert(index, inst)
+            end
+          end
         end
         #puts
       end
@@ -1093,8 +1119,8 @@ code = Array.instance_method(:set_index).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
