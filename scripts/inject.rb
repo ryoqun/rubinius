@@ -99,16 +99,24 @@ module Rubinius
         @ip = 0
       end
 
+      def next_flow
+        @next
+      end
+
+      def prev_flow
+        @previous
+      end
+
       def remove
-        self.previous.next = self.next if self.previous
+        self.prev_flow.dest = self.next_flow.dest if self.prev_flow
         self.jump_targets.each do |jump_target|
           jump_target.op_rands.each do |op_rand|
             if op_rand.is_a?(JumpLabel)
-              op_rand.target = self.next
+              op_rand.target = self.next_flow.dest
             end
           end
         end
-        self.next.jump_targets.concat(self.jump_targets) if self.next
+        self.next_flow.dest.jump_targets.concat(self.jump_targets) if self.next
       end
 
       def op_code
@@ -698,6 +706,22 @@ module Rubinius
         @remove = false
       end
 
+      def dest
+        @to
+      end
+
+      def dest=(inst)
+        @to = inst
+      end
+
+      def source
+        @from
+      end
+
+      def source=(inst)
+        @from = inst
+      end
+
       def remove
         @remove = true
       end
@@ -713,8 +737,8 @@ module Rubinius
       end
 
       def install
-        @from.next = @to
-        @to.previous = @from
+        @from.next = self
+        @to.previous = self
       end
     end
 
@@ -1064,7 +1088,7 @@ module Rubinius
                 loop_marks[current] = true
                 if current.next
                   yield Save.new
-                  stack.push([current, current.next])
+                  stack.push([current, current.next_flow.dest])
                   stack.push([current, current.jump_target])
                   yield [previous, current]
                   current = nil
@@ -1080,7 +1104,7 @@ module Rubinius
             else
               yield [previous, current]
               previous = current
-              current = current.next
+              current = current.next_flow.dest
             end
           end
         end
@@ -1118,8 +1142,8 @@ code = Array.instance_method(:set_index).executable
 #code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
