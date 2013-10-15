@@ -699,27 +699,11 @@ module Rubinius
     end
 
     class ControlFlow
-      attr_reader :from, :to
-      def initialize(from, to)
-        @from = from
-        @to = to
+      attr_accessor :src, :dst
+      def initialize(src, dst)
+        @src = src
+        @dst = dst
         @remove = false
-      end
-
-      def dest
-        @to
-      end
-
-      def dest=(inst)
-        @to = inst
-      end
-
-      def source
-        @from
-      end
-
-      def source=(inst)
-        @from = inst
       end
 
       def remove
