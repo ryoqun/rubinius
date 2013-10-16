@@ -16,22 +16,6 @@ module Rubinius
       end
     end
 
-    class JumpLabel < OpRand
-      attr_accessor :target
-      def initialize(bytecode, inst)
-        super(bytecode)
-        @target = inst
-      end
-
-      def to_label(_optimizer)
-        @target.to_label(_optimizer)
-      end
-
-      def to_bytecode
-        @target.ip
-      end
-    end
-
     class Count < OpRand
       def to_i
         bytecode
@@ -111,8 +95,8 @@ module Rubinius
         self.prev_flow.dest = self.next_flow.dest if self.prev_flow
         self.jump_targets.each do |jump_target|
           jump_target.op_rands.each do |op_rand|
-            if op_rand.is_a?(JumpLabel)
-              op_rand.target = self.next_flow.dest
+            if op_rand.is_a?(NextControlFlow)
+              op_rand.dst = self.next_flow.dest
             end
           end
         end
