@@ -95,6 +95,9 @@ module Rubinius
       end
 
       def remove
+        self.following_instruction.preceeding_instruction = self.preceeding_instruction
+        self.preceeding_instruction.following_instruction = self.following_instruction
+
         self.prev_flow.dest = self.next_flow.dest if self.prev_flow
         self.jump_flows.each do |jump_flow|
           jump_flow.dst = self.next_flow.dest
@@ -174,10 +177,6 @@ module Rubinius
       decode
     end
 
-    def remove(removed_inst)
-      removed_inst.remove
-      @instructions.reject! {|inst| inst.equal?(removed_inst)}
-    end
 
     def unlink(from, to)
       #removed_inst.remove
@@ -972,11 +971,11 @@ module Rubinius
     class Prune < Optimization
       def optimize
         incoming_flows = {
-          optimizer.instructions.first => [],
+          optimizer.first_instruction => [],
         }
         optimizer.control_flows.each do |control_flow|
-          incoming_flows[control_flow.to] ||= []
-          incoming_flows[control_flow.to] << control_flow
+          incoming_flows[control_flow.dst] ||= []
+          incoming_flows[control_flow.dst] << control_flow
         end
         unused_insts = []
         moved_flows = []
@@ -993,7 +992,7 @@ module Rubinius
           end
         end
         unused_insts.each do |inst|
-          optimizer.remove(inst)
+          inst.remove
         end
         moved_flows.each do |flows|
           #raise "give up #{flows.first.to.instruction.ip}" if flows.size > 2
@@ -1140,7 +1139,7 @@ code = Array.instance_method(:set_index).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
