@@ -95,14 +95,14 @@ module Rubinius
       end
 
       def remove
-        self.following_instruction.preceeding_instruction = self.preceeding_instruction
-        self.preceeding_instruction.following_instruction = self.following_instruction
+        following_instruction.preceeding_instruction = preceeding_instruction
+        preceeding_instruction.following_instruction = following_instruction
 
-        self.prev_flow.dst = self.next_flow.dst if self.prev_flow
-        self.branch_flows.each do |branch_flow|
-          branch_flow.dst = self.next_flow.dst
+        prev_flow.dst = next_flow.dst if prev_flow
+        branch_flows.each do |branch_flow|
+          branch_flow.dst = next_flow.dst
         end
-        self.next_flow.dst.branch_flows.concat(self.branch_flows) if self.next
+        next_flow.dst.branch_flows.concat(branch_flows) if self.next
       end
 
       def op_code
@@ -285,7 +285,7 @@ module Rubinius
       encode
     end
 
-    def rerun(klass) 
+    def rerun(klass)
       @passes.each do |pass|
         if pass.is_a?(klass)
           pass.reset
