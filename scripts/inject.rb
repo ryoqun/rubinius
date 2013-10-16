@@ -217,8 +217,7 @@ module Rubinius
     def decode
       ip_to_inst = {}
       ip = 0
-      previous = nil
-      inst = nil
+      inst = previous = nil
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                        decode.
                                        collect do |stream|
