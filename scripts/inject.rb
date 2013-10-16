@@ -912,7 +912,7 @@ module Rubinius
         p @results.map(&:last)
         @results.each do |prev, cur, match|
           unless self.class.translator.include?(match)
-            @scalar.remove(prev, cur)
+            @scalar.optimizer.unlink(prev, cur)
           end
         end
 
@@ -1053,15 +1053,6 @@ module Rubinius
         end
 
         false
-      end
-
-      def remove(previous, inst)
-        #puts
-        #puts "aaaa"
-        #p previous.to_label(optimizer)
-        #p inst.to_label(optimizer)
-        #puts "zzzzz"
-        optimizer.unlink(previous, inst)
       end
 
       def scalar_each
