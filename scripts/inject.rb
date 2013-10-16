@@ -69,7 +69,8 @@ module Rubinius
 
     class Inst
       attr_reader :instruction, :imports, :exports, :jump_flows
-      attr_accessor :op_rands, :previous, :next, :ip, :following_instruction
+      attr_accessor :op_rands, :previous, :next, :ip,
+                    :following_instruction, :preceeding_instruction
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
@@ -80,7 +81,7 @@ module Rubinius
         @imports = []
         @exports = []
 
-        @following_instruction = nil
+        @following_instruction = @preceeding_instruction = nil
 
         @ip = 0
       end
@@ -164,7 +165,7 @@ module Rubinius
     class JumpTarget
     end
 
-    attr_reader :compiled_code, :instructions, :control_flows, :data_flows, :entry_instruction
+    attr_reader :compiled_code, :instructions, :control_flows, :data_flows, :first_instruction, :last_instruction
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
@@ -217,6 +218,7 @@ module Rubinius
       ip_to_inst = {}
       ip = 0
       previous = nil
+      inst = nil
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                        decode.
                                        collect do |stream|
@@ -226,15 +228,16 @@ module Rubinius
         inst = ip_to_inst[ip] = Inst.new(instruction)
         if previous
           previous.following_instruction = inst
+          inst.preceeding_instruction = previous
         else
-          @entry_instruction = inst
+          @first_instruction = inst
         end
 
         ip += instruction.size
         # ap inst.to_label(self)
         previous = inst
-        inst
       end
+      @last_instruction = inst
       #ap ip_to_inst
 
       ip = 0
@@ -294,7 +297,7 @@ module Rubinius
     end
 
     def each_instruction
-      instruction = @entry_instruction
+      instruction = @first_instruction
       while instruction
         yield instruction
         instruction = instruction.following_instruction
@@ -776,7 +779,7 @@ module Rubinius
         g[:fontname] = "M+ 1mn"
 
         entry_node = g.add_nodes(optimizer.compiled_code.inspect);
-        label = optimizer.entry_instruction.instruction.to_s
+        label = optimizer.first_instruction.instruction.to_s
         first_instruction_node = g.add_nodes(label)
         g.add_edges(entry_node, first_instruction_node)
 
