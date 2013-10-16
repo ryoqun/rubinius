@@ -94,11 +94,7 @@ module Rubinius
       def remove
         self.prev_flow.dest = self.next_flow.dest if self.prev_flow
         self.jump_flows.each do |jump_flow|
-          jump_flow.op_rands.each do |op_rand|
-            if op_rand.is_a?(BranchControlFlow)
-              op_rand.dst = self.next_flow.dest
-            end
-          end
+          jump_flow.dst = self.next_flow.dest
         end
         self.next_flow.dest.jump_flows.concat(self.jump_flows) if self.next
       end
