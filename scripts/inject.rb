@@ -141,7 +141,11 @@ module Rubinius
 
       def jump_target
         raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
-        @op_rands.first.target
+        @op_rands.first.dst
+      end
+
+      def jump_flow
+        @op_rands.first
       end
 
       def stack_produced
@@ -744,6 +748,10 @@ module Rubinius
 
       def install
       end
+
+      def to_bytecode
+        @bytecode
+      end
     end
 
     class ControlFlowAnalysis < Analysis
@@ -763,7 +771,7 @@ module Rubinius
           end
           if instruction.control_flow_type == :branch or
              instruction.control_flow_type == :handler
-            optimizer.add_control_flow(instruction.jump_target))
+            optimizer.add_control_flow(instruction.jump_flow)
           end
           previous = instruction
         end
