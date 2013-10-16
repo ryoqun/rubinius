@@ -779,7 +779,7 @@ module Rubinius
           edge.style = 'dotted' if control_flow.removed?
         end
 
-        g.output(:pdf => "cfg.pdf")
+        g.output(:pdf => "control_flow.pdf")
       end
     end
 
