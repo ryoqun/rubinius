@@ -191,7 +191,7 @@ module Rubinius
       @control_flows.each do |control_flow|
         if control_flow.src.equal?(src) and
            control_flow.dst.equal?(dst)
-          #p :fffound
+          p :fffound
           #p src.to_label(self)
           #p dst.to_label(self)
           control_flow.remove
@@ -1131,7 +1131,7 @@ opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::Prune)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
