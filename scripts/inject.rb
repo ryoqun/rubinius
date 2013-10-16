@@ -93,8 +93,8 @@ module Rubinius
 
       def remove
         self.prev_flow.dest = self.next_flow.dest if self.prev_flow
-        self.jump_flows.each do |jump_target|
-          jump_target.op_rands.each do |op_rand|
+        self.jump_flows.each do |jump_flow|
+          jump_flow.op_rands.each do |op_rand|
             if op_rand.is_a?(NextControlFlow)
               op_rand.dst = self.next_flow.dest
             end
@@ -123,7 +123,7 @@ module Rubinius
         instruction.to_s
       end
 
-      def jump_target
+      def jump_flow
         raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
         @op_rands.first.dst
       end
@@ -185,8 +185,8 @@ module Rubinius
       #@instructions.reject! {|inst| inst.equal?(removed_inst)}
       #if from.next == to
       #  from.next = to.next
-      #elsif from.jump_target == to
-      #  from.jump_target = to.next
+      #elsif from.jump_flow == to
+      #  from.jump_flow = to.next
       #else
       #  raise "aa"
       #end
@@ -648,7 +648,7 @@ module Rubinius
       end
 
       def decorate_node(data)
-        suffix = nil #"(jump_target)" if data.respond_to?(:jump_flows) and not data.jump_flows.empty?
+        suffix = nil #"(jump_flow)" if data.respond_to?(:jump_flows) and not data.jump_flows.empty?
         if data.is_a?(Inst) and (not data.imports.empty? or not data.exports.empty?)
           node = @g.get_node(data.to_label(optimizer)) || @g.add_nodes(data.to_label(optimizer))
           label = escape(data.to_label(optimizer))
@@ -1076,12 +1076,12 @@ module Rubinius
                 if current.next
                   yield Save.new
                   stack.push([current, current.next_flow.dest])
-                  stack.push([current, current.jump_target])
+                  stack.push([current, current.jump_flow])
                   yield [previous, current]
                   current = nil
                 else
                   previous = current
-                  current = current.jump_target
+                  current = current.jump_flow
                 end
               else
                 current = nil
