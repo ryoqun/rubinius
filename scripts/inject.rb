@@ -253,9 +253,9 @@ module Rubinius
           when :type
             Type.new(bytecode)
           when :location, :ip
-            label = BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
-            ip_to_inst[bytecode].jump_targets.push(inst)
-            label
+            flow = BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
+            ip_to_inst[bytecode].jump_targets.push(flow)
+            flow
           when :literal, :number
             Literal.new(bytecode)
           when :serial
@@ -454,11 +454,11 @@ module Rubinius
           #p instruction.to_label(optimizer)
           jump_target_found = false
           instruction.jump_targets.each do |goto|
-            if goto.op_code == :goto or
-               goto.op_code == :goto_if_true or
-               goto.op_code == :goto_if_false
+            if goto.src.op_code == :goto or
+               goto.src.op_code == :goto_if_true or
+               goto.src.op_code == :goto_if_false
               jump_target_found = true
-              stacks << goto_to_stack[goto] if goto_to_stack.has_key?(goto)
+              stacks << goto_to_stack[goto.src] if goto_to_stack.has_key?(goto.src)
             end
           end
           if not previous.nil? and (previous.op_code == :goto or previous.op_code == :ret)
