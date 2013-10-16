@@ -98,11 +98,11 @@ module Rubinius
         self.following_instruction.preceeding_instruction = self.preceeding_instruction
         self.preceeding_instruction.following_instruction = self.following_instruction
 
-        self.prev_flow.dest = self.next_flow.dest if self.prev_flow
+        self.prev_flow.dst = self.next_flow.dst if self.prev_flow
         self.jump_flows.each do |jump_flow|
-          jump_flow.dst = self.next_flow.dest
+          jump_flow.dst = self.next_flow.dst
         end
-        self.next_flow.dest.jump_flows.concat(self.jump_flows) if self.next
+        self.next_flow.dst.jump_flows.concat(self.jump_flows) if self.next
       end
 
       def op_code
@@ -178,22 +178,22 @@ module Rubinius
     end
 
 
-    def unlink(from, to)
+    def unlink(src, dst)
       #removed_inst.remove
       #@instructions.reject! {|inst| inst.equal?(removed_inst)}
-      #if from.next == to
-      #  from.next = to.next
-      #elsif from.jump_flow == to
-      #  from.jump_flow = to.next
+      #if src.next == dst
+      #  src.next = dst.next
+      #elsif src.jump_flow == dst
+      #  src.jump_flow = dst.next
       #else
       #  raise "aa"
       #end
       @control_flows.each do |control_flow|
-        if control_flow.from.equal?(from) and
-           control_flow.to.equal?(to)
+        if control_flow.src.equal?(src) and
+           control_flow.dst.equal?(dst)
           #p :fffound
-          #p from.to_label(self)
-          #p to.to_label(self)
+          #p src.to_label(self)
+          #p dst.to_label(self)
           control_flow.remove
         end
       end
@@ -995,22 +995,22 @@ module Rubinius
           inst.remove
         end
         moved_flows.each do |flows|
-          #raise "give up #{flows.first.to.instruction.ip}" if flows.size > 2
+          #raise "give up #{flows.first.dst.instruction.ip}" if flows.size > 2
           next_flow = flows.detect{|f| f.is_a?(NextControlFlow) }
           next_removed = next_flow.removed?
           if not next_removed
             (flows - [next_flow]).each do |flow|
-              next_jump = flow.to.next
+              next_jump = flow.dst.next
               while unused_insts.include?(next_jump)
                 next_jump = next_jump.next
               end
-              flow.from.op_rands.first.target = next_jump
+              #flow.dst.jump_flow.dst = next_jump
             end
           else
-            inst = next_flow.to
+            inst = next_flow.dst
             (flows - [next_flow]).each do |flow|
-              index = optimizer.instructions.index(flow.from)
-              #flow.from.op_rands.first.target = inst
+              #index = optimizer.instructions.index(flow.src)
+              #flow.src.op_rands.first.target = inst
               #optimizer.instructions.insert(index, inst)
             end
           end
@@ -1065,7 +1065,7 @@ module Rubinius
       end
 
       def scalar_each
-        entry = optimizer.instructions.first
+        entry = optimizer.first_instruction
         stack = [[nil, entry]]
         loop_marks = {}
 
@@ -1084,13 +1084,13 @@ module Rubinius
                 loop_marks[current] = true
                 if current.next
                   yield Save.new
-                  stack.push([current, current.next_flow.dest])
-                  stack.push([current, current.jump_flow])
+                  stack.push([current, current.next_flow.dst])
+                  stack.push([current, current.jump_flow.dst])
                   yield [previous, current]
                   current = nil
                 else
                   previous = current
-                  current = current.jump_flow
+                  current = current.jump_flow.dst
                 end
               else
                 current = nil
@@ -1100,7 +1100,7 @@ module Rubinius
             else
               yield [previous, current]
               previous = current
-              current = current.next_flow.dest
+              current = current.next_flow.dst
             end
           end
         end
@@ -1138,7 +1138,7 @@ code = Array.instance_method(:set_index).executable
 #code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
