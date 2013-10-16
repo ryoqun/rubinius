@@ -68,7 +68,7 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :jump_flows
+      attr_reader :instruction, :imports, :exports, :branch_flows
       attr_accessor :op_rands, :previous, :next, :ip,
                     :following_instruction, :preceeding_instruction
       def initialize(instruction)
@@ -76,7 +76,7 @@ module Rubinius
         @op_rands = nil
 
         @previous = @next = nil
-        @jump_flows = []
+        @branch_flows = []
 
         @imports = []
         @exports = []
@@ -99,10 +99,10 @@ module Rubinius
         self.preceeding_instruction.following_instruction = self.following_instruction
 
         self.prev_flow.dst = self.next_flow.dst if self.prev_flow
-        self.jump_flows.each do |jump_flow|
-          jump_flow.dst = self.next_flow.dst
+        self.branch_flows.each do |branch_flow|
+          branch_flow.dst = self.next_flow.dst
         end
-        self.next_flow.dst.jump_flows.concat(self.jump_flows) if self.next
+        self.next_flow.dst.branch_flows.concat(self.branch_flows) if self.next
       end
 
       def op_code
@@ -125,12 +125,12 @@ module Rubinius
         instruction.to_s
       end
 
-      def jump_flow
+      def branch_flow
         raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
         @op_rands.first.dst
       end
 
-      def jump_flow
+      def branch_flow
         @op_rands.first
       end
 
@@ -183,8 +183,8 @@ module Rubinius
       #@instructions.reject! {|inst| inst.equal?(removed_inst)}
       #if src.next == dst
       #  src.next = dst.next
-      #elsif src.jump_flow == dst
-      #  src.jump_flow = dst.next
+      #elsif src.branch_flow == dst
+      #  src.branch_flow = dst.next
       #else
       #  raise "aa"
       #end
@@ -261,7 +261,7 @@ module Rubinius
             Type.new(bytecode)
           when :location, :ip
             flow = BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
-            ip_to_inst[bytecode].jump_flows.push(flow)
+            ip_to_inst[bytecode].branch_flows.push(flow)
             flow
           when :literal, :number
             Literal.new(bytecode)
@@ -461,18 +461,18 @@ module Rubinius
         previous = nil
         optimizer.each_instruction do |instruction|
           #p instruction.to_label(optimizer)
-          jump_target_found = false
-          instruction.jump_flows.each do |goto|
+          branch_target_found = false
+          instruction.branch_flows.each do |goto|
             if goto.src.op_code == :goto or
                goto.src.op_code == :goto_if_true or
                goto.src.op_code == :goto_if_false
-              jump_target_found = true
+              branch_target_found = true
               stacks << goto_to_stack[goto.src] if goto_to_stack.has_key?(goto.src)
             end
           end
           if not previous.nil? and (previous.op_code == :goto or previous.op_code == :ret)
             stacks.reject!{|s| s.equal?(main_stack)}
-            if not jump_target_found and stacks.all?(&:empty?)
+            if not branch_target_found and stacks.all?(&:empty?)
               previous = instruction
               next
             end
@@ -657,7 +657,7 @@ module Rubinius
       end
 
       def decorate_node(data)
-        suffix = nil #"(jump_flow)" if data.respond_to?(:jump_flows) and not data.jump_flows.empty?
+        suffix = nil #"(branch_flow)" if data.respond_to?(:branch_flows) and not data.branch_flows.empty?
         if data.is_a?(Inst) and (not data.imports.empty? or not data.exports.empty?)
           node = @g.get_node(data.to_label(optimizer)) || @g.add_nodes(data.to_label(optimizer))
           label = escape(data.to_label(optimizer))
@@ -764,7 +764,7 @@ module Rubinius
           end
           if instruction.control_flow_type == :branch or
              instruction.control_flow_type == :handler
-            optimizer.add_control_flow(instruction.jump_flow)
+            optimizer.add_control_flow(instruction.branch_flow)
           end
           previous = instruction
         end
@@ -1000,11 +1000,11 @@ module Rubinius
           next_removed = next_flow.removed?
           if not next_removed
             (flows - [next_flow]).each do |flow|
-              next_jump = flow.dst.next
-              while unused_insts.include?(next_jump)
-                next_jump = next_jump.next
+              next_branch = flow.dst.next
+              while unused_insts.include?(next_branch)
+                next_branch = next_branch.next
               end
-              #flow.dst.jump_flow.dst = next_jump
+              #flow.dst.branch_flow.dst = next_branch
             end
           else
             inst = next_flow.dst
@@ -1076,12 +1076,12 @@ module Rubinius
                 if current.next
                   yield Save.new
                   stack.push([current, current.next_flow.dst])
-                  stack.push([current, current.jump_flow.dst])
+                  stack.push([current, current.branch_flow.dst])
                   yield [previous, current]
                   current = nil
                 else
                   previous = current
-                  current = current.jump_flow.dst
+                  current = current.branch_flow.dst
                 end
               else
                 current = nil
@@ -1130,7 +1130,7 @@ code = Array.instance_method(:set_index).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
