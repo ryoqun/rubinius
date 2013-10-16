@@ -68,14 +68,14 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :jump_targets
+      attr_reader :instruction, :imports, :exports, :jump_flows
       attr_accessor :op_rands, :previous, :next, :ip
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
 
         @previous = @next = nil
-        @jump_targets = []
+        @jump_flows = []
 
         @imports = []
         @exports = []
@@ -93,14 +93,14 @@ module Rubinius
 
       def remove
         self.prev_flow.dest = self.next_flow.dest if self.prev_flow
-        self.jump_targets.each do |jump_target|
+        self.jump_flows.each do |jump_target|
           jump_target.op_rands.each do |op_rand|
             if op_rand.is_a?(NextControlFlow)
               op_rand.dst = self.next_flow.dest
             end
           end
         end
-        self.next_flow.dest.jump_targets.concat(self.jump_targets) if self.next
+        self.next_flow.dest.jump_flows.concat(self.jump_flows) if self.next
       end
 
       def op_code
@@ -254,7 +254,7 @@ module Rubinius
             Type.new(bytecode)
           when :location, :ip
             flow = BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
-            ip_to_inst[bytecode].jump_targets.push(flow)
+            ip_to_inst[bytecode].jump_flows.push(flow)
             flow
           when :literal, :number
             Literal.new(bytecode)
@@ -453,7 +453,7 @@ module Rubinius
         optimizer.each_instruction do |instruction|
           #p instruction.to_label(optimizer)
           jump_target_found = false
-          instruction.jump_targets.each do |goto|
+          instruction.jump_flows.each do |goto|
             if goto.src.op_code == :goto or
                goto.src.op_code == :goto_if_true or
                goto.src.op_code == :goto_if_false
@@ -648,7 +648,7 @@ module Rubinius
       end
 
       def decorate_node(data)
-        suffix = nil #"(jump_target)" if data.respond_to?(:jump_targets) and not data.jump_targets.empty?
+        suffix = nil #"(jump_target)" if data.respond_to?(:jump_flows) and not data.jump_flows.empty?
         if data.is_a?(Inst) and (not data.imports.empty? or not data.exports.empty?)
           node = @g.get_node(data.to_label(optimizer)) || @g.add_nodes(data.to_label(optimizer))
           label = escape(data.to_label(optimizer))
