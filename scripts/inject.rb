@@ -299,15 +299,21 @@ module Rubinius
       end
     end
 
+    def each_instruction
+      @instructions.each do |instruction|
+        yield instruction
+      end
+    end
+
     def encode
       ip = 0
-      @instructions.each do |inst|
+      each_instruction do |inst|
         inst.ip = ip
         ip += inst.instruction_width
       end
 
       bytecodes = []
-      @instructions.each do |inst|
+      each_instruction do |inst|
         bytecodes << inst.bytecode  
         inst.op_rands.each do |op_rand|
           bytecodes << op_rand.to_bytecode
@@ -456,7 +462,7 @@ module Rubinius
         main_stack = []
         stacks = [main_stack]
         previous = nil
-        optimizer.instructions.each do |instruction|
+        optimizer.each_instruction do |instruction|
           #p instruction.to_label(optimizer)
           jump_target_found = false
           instruction.jump_targets.each do |goto|
@@ -743,7 +749,7 @@ module Rubinius
       def optimize
         reset
         previous = nil
-        optimizer.instructions.each do |instruction|
+        optimizer.each_instruction do |instruction|
           if previous and
              previous.op_code != :goto and
              previous.op_code != :ret and
@@ -967,7 +973,7 @@ module Rubinius
         end
         unused_insts = []
         moved_flows = []
-        optimizer.instructions.each do |inst|
+        optimizer.each_instruction do |inst|
           if incoming_flows[inst].nil?
             unused_insts << inst
           elsif not incoming_flows[inst].empty? and incoming_flows[inst].all?(&:removed?)
