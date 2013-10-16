@@ -95,7 +95,7 @@ module Rubinius
         self.prev_flow.dest = self.next_flow.dest if self.prev_flow
         self.jump_flows.each do |jump_flow|
           jump_flow.op_rands.each do |op_rand|
-            if op_rand.is_a?(NextControlFlow)
+            if op_rand.is_a?(BranchControlFlow)
               op_rand.dst = self.next_flow.dest
             end
           end
