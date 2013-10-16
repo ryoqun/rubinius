@@ -265,7 +265,7 @@ module Rubinius
           when :type
             Type.new(bytecode)
           when :location, :ip
-            label = JumpLabel.new(bytecode, ip_to_inst[bytecode])
+            label = BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
             ip_to_inst[bytecode].jump_targets.push(inst)
             label
           when :literal, :number
@@ -314,7 +314,7 @@ module Rubinius
 
       bytecodes = []
       each_instruction do |inst|
-        bytecodes << inst.bytecode  
+        bytecodes << inst.bytecode
         inst.op_rands.each do |op_rand|
           bytecodes << op_rand.to_bytecode
         end
@@ -733,6 +733,11 @@ module Rubinius
     end
 
     class BranchControlFlow < ControlFlow
+      def initialize(src, dst, bytecode)
+        super(src, dst)
+        @bytecode = bytecode
+      end
+
       def type
         :branch
       end
@@ -758,7 +763,7 @@ module Rubinius
           end
           if instruction.control_flow_type == :branch or
              instruction.control_flow_type == :handler
-            optimizer.add_control_flow(BranchControlFlow.new(instruction, instruction.jump_target))
+            optimizer.add_control_flow(instruction.jump_target))
           end
           previous = instruction
         end
