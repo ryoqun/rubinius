@@ -68,8 +68,8 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :branch_flows
-      attr_accessor :op_rands, :previous, :next, :ip,
+      attr_reader :instruction, :imports, :exports, :branch_flows, :previous, :incoming_flows
+      attr_accessor :op_rands, :next, :ip,
                     :following_instruction, :preceeding_instruction
       def initialize(instruction)
         @instruction = instruction
@@ -77,6 +77,7 @@ module Rubinius
 
         @previous = @next = nil
         @branch_flows = []
+        @incoming_flows = []
 
         @imports = []
         @exports = []
@@ -88,8 +89,20 @@ module Rubinius
         @generation = 0
       end
 
+      def previous=(prev)
+        if prev
+          @incoming_flows.delete(@previous) if @previous
+          @incoming_flows.push(prev)
+          @previous = prev
+        else
+          @incoming_flows.delete(@previous) if @previous
+          @previous = nil
+        end
+      end
+
       def as_entry_inst
         @entry_flow = EntryControlFlow.new(self)
+        @incoming_flows.push(@entry_flow)
         self
       end
 
@@ -113,10 +126,6 @@ module Rubinius
 
       def branch_flows
         @branch_flows
-      end
-
-      def incoming_flows
-        (entry_inst? ? [@entry_flow] : (prev_flow ? [prev_flow] : [])) + branch_flows
       end
 
       def remove
@@ -896,12 +905,14 @@ module Rubinius
       def install
         super.tap do
           @dst.branch_flows.push(self)
+          @dst.incoming_flows.push(self)
         end
       end
 
       def uninstall
         super.tap do
           @dst.branch_flows.delete(self)
+          @dst.incoming_flows.delete(self)
         end
       end
 
@@ -1148,10 +1159,22 @@ module Rubinius
             #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
             #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
             #p inst.incoming_flows.size
-            inst.incoming_flows.each do |flow|
+            inst.incoming_flows.dup.each do |flow|
               if forwarded[flow].nil?
                 forwarded[flow] = true
+                optimizer.control_flows.delete(flow.next_flow)
+                puts :b
+                #p flow.dst.to_label(nil)
+                #p flow.removed?
+                #p flow.next_flow.dst.to_label(nil)
+                next_flow = flow.next_flow
                 flow.point_to_next_instruction
+                if next_flow.removed?
+                  optimizer.control_flows.delete(next_flow.dst.next)
+                  flow.point_to_next_instruction
+                end
+                #p flow.next_flow.dst.to_label(nil)
+                puts :a
                 #while flow.next_flow.removed?
                 #  flow.point_to_next_instruction
                 #end
@@ -1162,7 +1185,7 @@ module Rubinius
             #optimizer.control_flows.delete(inst.next) if inst.next
           #  unused_insts << inst
           elsif inst.incoming_flows.any?(&:removed?)
-            moved_flows << inst.incoming_flows.dup
+            moved_flows << inst.incoming_flows
           end
         end
         moved_flows.each do |flows|
@@ -1170,7 +1193,7 @@ module Rubinius
           next_flow = flows.detect(&:static_dst?)
           next_removed = next_flow.removed?
           if not next_removed
-            flows.select(&:dynamic_dst?).each do |branch_flow|
+            flows.dup.select(&:dynamic_dst?).each do |branch_flow|
               next unless branch_flow.removed?
              # p :bbbb
              # p branch_flow.src.to_label(optimizer)
@@ -1193,7 +1216,7 @@ module Rubinius
             end
           else
             inst = next_flow.dst
-            flows.select(&:dynamic_dst?).each do |branch_flow|
+            flows.dup.select(&:dynamic_dst?).each do |branch_flow|
               if branch_flow.removed?
                 branch_flow.point_to_next_instruction
                 #while branch_flow.next_flow.removed?
@@ -1215,7 +1238,7 @@ module Rubinius
               #optimizer.instructions.insert(index, inst)
             end
             #next_flow.unremove
-            #optimizer.control_flows.delete(inst.next)
+            optimizer.control_flows.delete(inst.next)
             #inst.remove if next_removed
           end
         end
