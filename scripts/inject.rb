@@ -803,21 +803,14 @@ module Rubinius
       def point_to_next_instruction
         reinstall do
           if @dst.op_code == :goto
-            #@dst.branch_flow.src = self
-            puts
-            p self.src.to_label(self)
-            p self.dst.to_label(self)
             @dst = @dst.branch_flow.dst
-            p self.dst.to_label(self)
             raise "dst is nil" if @dst.nil?
-          else
-            puts
-            p self.src.to_label(self)
-            p self.dst.to_label(self)
-            #@dst.next_flow.src = self
+          elsif @dst.control_flow_type == :next
             @dst = @dst.next_flow.dst
             p self.dst.to_label(self)
             raise "dst is nil" if @dst.nil?
+          else
+            raise "can't point to next"
           end
         end
       end
@@ -1156,24 +1149,22 @@ module Rubinius
             #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
             #p inst.incoming_flows.size
             inst.incoming_flows.each do |flow|
-             # p :aaa
-             # p flow.src.to_label(optimizer)
-             # p flow.dst.to_label(optimizer)
-             # p :bbbb
               if forwarded[flow].nil?
                 forwarded[flow] = true
                 flow.point_to_next_instruction
+                #while flow.next_flow.removed?
+                #  flow.point_to_next_instruction
+                #end
               end
             end
           #  inst.previous.unremove if inst.previous
           #  inst.previous.point_to_next_instruction if inst.previous
             #optimizer.control_flows.delete(inst.next) if inst.next
           #  unused_insts << inst
-          #elsif inst.incoming_flows.any?(&:removed?)
-          #  moved_flows << inst.incoming_flows
+          elsif inst.incoming_flows.any?(&:removed?)
+            moved_flows << inst.incoming_flows.dup
           end
         end
-        return
         moved_flows.each do |flows|
           #raise "give up #{flows.first.dst.instruction.ip}" if flows.size > 2
           next_flow = flows.detect(&:static_dst?)
@@ -1195,32 +1186,28 @@ module Rubinius
               #branch_flow.remove
               #optimizer.add_control_flow(branch_flow.dup.uninstall)
               branch_flow.point_to_next_instruction
-              while branch_flow.next_flow.removed? or unused_insts.include?(branch_flow.next_flow.dst)
-                branch_flow.point_to_next_instruction
-              end
+              #while branch_flow.next_flow.removed?
+              #  branch_flow.point_to_next_instruction
+              #end
               branch_flow.unremove
             end
           else
             inst = next_flow.dst
             flows.select(&:dynamic_dst?).each do |branch_flow|
               if branch_flow.removed?
-                #optimizer.add_control_flow(branch_flow.dup)
                 branch_flow.point_to_next_instruction
-                while branch_flow.next_flow.removed? or unused_insts.include?(branch_flow.next_flow.dst)
-                  branch_flow.point_to_next_instruction
-                end
+                #while branch_flow.next_flow.removed?
+                #  branch_flow.point_to_next_instruction
+                #end
                 branch_flow.unremove
               else
                # p "aaaa", inst.to_label(optimizer)
                 new_inst = inst.dup
-                branch_flow.src.previous.src.insert_after(new_inst)
+                after_inst = branch_flow.src
+                after_inst.previous.src.insert_after(new_inst)
+                after_inst.previous.dst = new_inst
 
                 branch_flow.point_to_next_instruction
-                after_inst = branch_flow.src
-                branch_flow.src.previous.dst = new_inst
-                #inst.next.dst = new_inst
-                #new_inst.previous.src = inst
-                #branch_flow.prev_flow.unremove
                 optimizer.add_control_flow(NextControlFlow.new(new_inst, after_inst))
               end
               #index = optimizer.instructions.index(flow.src)
