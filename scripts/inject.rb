@@ -763,6 +763,10 @@ module Rubinius
         @installed = false
       end
 
+      def to_label(optimizer)
+        "#{@src.to_label(optimizer).strip}=#{removed? ? "x" : "="}>#{@dst.to_label(optimizer).strip}"
+      end
+
       def static_dst?
         !dynamic_dst?
       end
@@ -1168,10 +1172,15 @@ module Rubinius
                 #p flow.removed?
                 #p flow.next_flow.dst.to_label(nil)
                 next_flow = flow.next_flow
+                puts "old #{flow.to_label(optimizer)}"
                 flow.point_to_next_instruction
+                puts "new #{flow.to_label(optimizer)}"
                 if next_flow.removed?
-                  optimizer.control_flows.delete(next_flow.dst.next)
+                  puts "aaaaa #{next_flow.to_label(optimizer)}"
+                  #optimizer.control_flows.delete(next_flow.dst.next)
                   flow.point_to_next_instruction
+                  flow.unremove
+                  puts "fin #{flow.to_label(optimizer)}"
                 end
                 #p flow.next_flow.dst.to_label(nil)
                 puts :a
