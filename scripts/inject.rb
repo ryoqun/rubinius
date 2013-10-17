@@ -1177,11 +1177,11 @@ module Rubinius
                 puts "new #{flow.to_label(optimizer)}"
                 if next_flow.removed?
                   puts "aaaaa #{next_flow.to_label(optimizer)}"
-                  #optimizer.control_flows.delete(next_flow.dst.next)
+                  optimizer.control_flows.delete(next_flow.dst.next)
                   flow.point_to_next_instruction
-                  flow.unremove
                   puts "fin #{flow.to_label(optimizer)}"
                 end
+                  flow.unremove
                 #p flow.next_flow.dst.to_label(nil)
                 puts :a
                 #while flow.next_flow.removed?
