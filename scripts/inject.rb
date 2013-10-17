@@ -82,8 +82,25 @@ module Rubinius
         @exports = []
 
         @following_instruction = @preceeding_instruction = nil
+        @entry_control_flow = nil
 
         @ip = 0
+        @generation = 0
+      end
+
+      def as_entry_inst
+        @entry_flow = EntryControlFlow.new(self)
+        self
+      end
+
+      def dup
+        super.tap do |new|
+          new.instance_variable_set(:@generation, @generation + 1)
+        end
+      end
+
+      def entry_inst?
+        !!@entry_flow
       end
 
       def next_flow
@@ -94,15 +111,37 @@ module Rubinius
         @previous
       end
 
+      def branch_flows
+        @branch_flows
+      end
+
+      def incoming_flows
+        (entry_inst? ? [@entry_flow] : (prev_flow ? [prev_flow] : [])) + branch_flows
+      end
+
       def remove
         following_instruction.preceeding_instruction = preceeding_instruction
-        preceeding_instruction.following_instruction = following_instruction
-
-        prev_flow.dst = next_flow.dst if prev_flow
-        branch_flows.each do |branch_flow|
-          branch_flow.dst = next_flow.dst
+        if preceeding_instruction
+          preceeding_instruction.following_instruction = following_instruction
         end
-        next_flow.dst.branch_flows.concat(branch_flows) if self.next
+
+        if prev_flow
+          prev_flow.unremove
+          prev_flow.point_to_next_instruction
+        end
+        p branch_flows.map(&:class)
+        branch_flows.dup.each do |f|
+          while f.next_flow.removed?
+            f.point_to_next_instruction if f
+          end
+        end
+      end
+
+      def insert_after(inst)
+        following_instruction.preceeding_instruction = inst
+        inst.following_instruction = following_instruction
+        self.following_instruction = inst
+        inst.preceeding_instruction = self
       end
 
       def op_code
@@ -122,7 +161,11 @@ module Rubinius
       end
 
       def to_label(optimizer)
-        instruction.to_s
+        if @generation.zero?
+          instruction.to_s
+        else
+          "#{instruction.to_s} (#{@generation})"
+        end
       end
 
       def branch_flow
@@ -207,6 +250,7 @@ module Rubinius
     def add_control_flow(control_flow)
       control_flow.install
       @control_flows.push(control_flow)
+      control_flow
     end
 
     def add_pass(pass, *args)
@@ -228,7 +272,7 @@ module Rubinius
           previous.following_instruction = inst
           inst.preceeding_instruction = previous
         else
-          @first_instruction = inst
+          @first_instruction = inst.as_entry_inst
         end
 
         ip += instruction.size
@@ -260,9 +304,7 @@ module Rubinius
           when :type
             Type.new(bytecode)
           when :location, :ip
-            flow = BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
-            ip_to_inst[bytecode].branch_flows.push(flow)
-            flow
+            BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
           when :literal, :number
             Literal.new(bytecode)
           when :serial
@@ -705,16 +747,85 @@ module Rubinius
       attr_accessor :src, :dst
       def initialize(src, dst)
         @src = src
+        raise "src is nil" if @src.nil?
         @dst = dst
+        raise "dst is nil" if @dst.nil?
         @remove = false
+        @installed = false
+      end
+
+      def static_dst?
+        !dynamic_dst?
+      end
+
+      def install
+        raise "double installation" if @installed
+        @installed = true
+        self
+      end
+
+      def uninstall
+        raise "double uninstallation" if not @installed
+        @installed = false
+        self
+      end
+
+      def reinstall
+        uninstall
+
+        begin
+          yield if block_given?
+        ensure
+          install
+        end
       end
 
       def remove
         @remove = true
       end
 
+      def unremove
+        @remove = false
+      end
+
       def removed?
         @remove
+      end
+
+      def next_flow
+        if @dst.op_code == :goto
+          @dst.branch_flow
+        else
+          @dst.next_flow
+        end
+      end
+
+      def point_to_next_instruction
+        reinstall do
+          if @dst.op_code == :goto
+            #@dst.branch_flow.src = self
+            puts
+            p self.src.to_label(self)
+            p self.dst.to_label(self)
+            @dst = @dst.branch_flow.dst
+            p self.dst.to_label(self)
+            raise "dst is nil" if @dst.nil?
+          else
+            puts
+            p self.src.to_label(self)
+            p self.dst.to_label(self)
+            #@dst.next_flow.src = self
+            @dst = @dst.next_flow.dst
+            p self.dst.to_label(self)
+            raise "dst is nil" if @dst.nil?
+          end
+        end
+      end
+
+      def src_flow=(src_flow)
+        raise
+        #@src = src_flow.src
+        #src_flow.src.next = self
       end
     end
 
@@ -723,16 +834,66 @@ module Rubinius
         :next
       end
 
+      def dynamic_dst?
+        false
+      end
+
       def install
-        @src.next = self
-        @dst.previous = self
+        super.tap do
+          @src.next = self
+          @dst.previous = self
+        end
+      end
+
+      def uninstall
+        super.tap do
+          @src.next = nil
+          @dst.previous = nil
+        end
+      end
+    end
+
+    class EntryInst < Inst
+      def initialize
+        super(nil)
+      end
+    end
+
+    class EntryControlFlow < ControlFlow
+      def initialize(dst)
+        super(EntryInst.new, dst)
+      end
+
+      def incoming_flows
+        [self]
+      end
+
+      def dynamic_dst?
+        false
+      end
+
+      def install
+        super.tap do
+          @dst.previous = self
+        end
+      end
+
+      def uninstall
+        super.tap do
+          @dst.previous = nil
+        end
       end
     end
 
     class BranchControlFlow < ControlFlow
       def initialize(src, dst, bytecode)
+        raise "not branch instruction" if src.control_flow_type == :next
         super(src, dst)
         @bytecode = bytecode
+      end
+
+      def dynamic_dst?
+        true
       end
 
       def type
@@ -740,6 +901,15 @@ module Rubinius
       end
 
       def install
+        super.tap do
+          @dst.branch_flows.push(self)
+        end
+      end
+
+      def uninstall
+        super.tap do
+          @dst.branch_flows.delete(self)
+        end
       end
 
       def to_bytecode
@@ -970,50 +1140,114 @@ module Rubinius
 
     class Prune < Optimization
       def optimize
-        incoming_flows = {
-          optimizer.first_instruction => [],
-        }
-        optimizer.control_flows.each do |control_flow|
-          incoming_flows[control_flow.dst] ||= []
-          incoming_flows[control_flow.dst] << control_flow
-        end
         unused_insts = []
         moved_flows = []
+
+        forwarded = {}
         optimizer.each_instruction do |inst|
-          if incoming_flows[inst].nil?
-            unused_insts << inst
-          elsif not incoming_flows[inst].empty? and incoming_flows[inst].all?(&:removed?)
-            #p :remove
-            #p inst.to_label(optimizer)
-            #p :remove_done
-            unused_insts << inst
-          elsif incoming_flows[inst].any?(&:removed?)
-            moved_flows << incoming_flows[inst]
+          #p "inst: #{inst.to_label(optimizer)}"
+          #p "inst: #{inst.incoming_flows.collect(&:src).collect{|f| f.to_label(optimizer)}}"
+          #p "inst: #{inst.branch_flows.size}"
+          #p "inst: #{inst.branch_flows.collect(&:src).collect{|f| f.to_label(optimizer)}}"
+          #if inst.incoming_flows.empty? or inst.incoming_flows.all?(&:removed?)
+          if inst.incoming_flows.all?(&:removed?)
+            #inst.incoming_flows.compact.select(&:dst).each(&:point_to_next_instruction)
+            #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
+            #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
+            #p inst.incoming_flows.size
+            inst.incoming_flows.each do |flow|
+             # p :aaa
+             # p flow.src.to_label(optimizer)
+             # p flow.dst.to_label(optimizer)
+             # p :bbbb
+              if forwarded[flow].nil?
+                forwarded[flow] = true
+                flow.point_to_next_instruction
+              end
+            end
+          #  inst.previous.unremove if inst.previous
+          #  inst.previous.point_to_next_instruction if inst.previous
+            #optimizer.control_flows.delete(inst.next) if inst.next
+          #  unused_insts << inst
+          #elsif inst.incoming_flows.any?(&:removed?)
+          #  moved_flows << inst.incoming_flows
           end
         end
-        unused_insts.each do |inst|
-          inst.remove
-        end
+        return
         moved_flows.each do |flows|
           #raise "give up #{flows.first.dst.instruction.ip}" if flows.size > 2
-          next_flow = flows.detect{|f| f.is_a?(NextControlFlow) }
+          next_flow = flows.detect(&:static_dst?)
           next_removed = next_flow.removed?
           if not next_removed
-            (flows - [next_flow]).each do |flow|
-              next_branch = flow.dst.next
-              while unused_insts.include?(next_branch)
-                next_branch = next_branch.next
+            flows.select(&:dynamic_dst?).each do |branch_flow|
+              next unless branch_flow.removed?
+             # p :bbbb
+             # p branch_flow.src.to_label(optimizer)
+             # p branch_flow.dst.to_label(optimizer)
+             # p :ccc
+
+              #next_flow = branch_flow.dst.next_flow || branch_flow.dst.branch_flow
+              #until not next_flow.removed? and not unused_insts.include?(next_flow.dst)
+              #  next_flow = next_flow.dst.next_flow
+              #end
+              #next_flow.src = branch_flow.src.next_flow || branch_flow.src.branch_flow
+              #branch_flow.dst.next = next_flow
+              #branch_flow.remove
+              #optimizer.add_control_flow(branch_flow.dup.uninstall)
+              branch_flow.point_to_next_instruction
+              while branch_flow.next_flow.removed? or unused_insts.include?(branch_flow.next_flow.dst)
+                branch_flow.point_to_next_instruction
               end
-              #flow.dst.branch_flow.dst = next_branch
+              branch_flow.unremove
             end
           else
             inst = next_flow.dst
-            (flows - [next_flow]).each do |flow|
+            flows.select(&:dynamic_dst?).each do |branch_flow|
+              if branch_flow.removed?
+                #optimizer.add_control_flow(branch_flow.dup)
+                branch_flow.point_to_next_instruction
+                while branch_flow.next_flow.removed? or unused_insts.include?(branch_flow.next_flow.dst)
+                  branch_flow.point_to_next_instruction
+                end
+                branch_flow.unremove
+              else
+               # p "aaaa", inst.to_label(optimizer)
+                new_inst = inst.dup
+                branch_flow.src.previous.src.insert_after(new_inst)
+
+                branch_flow.point_to_next_instruction
+                after_inst = branch_flow.src
+                branch_flow.src.previous.dst = new_inst
+                #inst.next.dst = new_inst
+                #new_inst.previous.src = inst
+                #branch_flow.prev_flow.unremove
+                optimizer.add_control_flow(NextControlFlow.new(new_inst, after_inst))
+              end
               #index = optimizer.instructions.index(flow.src)
               #flow.src.op_rands.first.target = inst
               #optimizer.instructions.insert(index, inst)
             end
+            #next_flow.unremove
+            #optimizer.control_flows.delete(inst.next)
+            #inst.remove if next_removed
           end
+        end
+        #optimizer.control_flows.reject!(&:removed?)
+        #optimizer.each_instruction do |inst|
+        #  if inst.incoming_flows.empty? or inst.incoming_flows.all?(&:removed?)
+        #    next if inst.entry_inst?
+        #    inst.remove
+        #  end
+        #end
+        unused_insts.each do |inst|
+          # p inst.to_label(optimizer)
+          #   p inst.next.remove if inst.next
+          #inst.incoming_flows(&:unremove)
+          #inst.next.unremove if inst.next
+          #optimizer.control_flows.delete(inst.next)
+          #inst.prev_flow.unremove if inst.prev_flow
+          #inst.remove
+          #inst.prev_flow.unremove if inst.prev_flow
         end
         #puts
       end
