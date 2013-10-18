@@ -359,7 +359,7 @@ module Rubinius
     def encode
       ip = 0
       each_instruction do |inst|
-        p inst.to_label(self)
+        #p inst.to_label(self)
         inst.ip = ip
         ip += inst.instruction_width
       end
@@ -372,7 +372,7 @@ module Rubinius
         end
       end
 
-      p bytecodes
+      #p bytecodes
 
       opted = OptimizedCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
@@ -1108,7 +1108,7 @@ module Rubinius
       end
 
       def translate
-        p @results.map(&:last)
+        #p @results.map(&:last)
         @results.each do |prev, cur, match|
           unless self.class.translator.include?(match)
             @scalar.optimizer.unlink(prev, cur)
@@ -1216,7 +1216,7 @@ module Rubinius
                   #forwarded[next_flow] = true
                 end
                 #puts "aa"
-                puts
+                #puts
                 flow.unremove
                 #p flow.next_flow.dst.to_label(nil)
                 #puts :a
@@ -1438,8 +1438,8 @@ opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
 
@@ -1453,8 +1453,8 @@ optimized_code = opt.run
 #
 #un_code = opt.run
 
-puts code
-puts optimized_code.decode.size
+#puts code
+#puts optimized_code.decode.size
 
 def measure
   started_at = Time.now
@@ -1464,22 +1464,35 @@ end
 # invoke(@name, @defined_in, obj, args, block)
 hello = [:world, :invoke, :name, :obj, :args, :block, :sat, :odct]
 result = nil
+arg = [3...5, ["world", "haa"]]
 
-10.times do
-  #puts optimized_code.decode.size
-  #measure do
-  #  optimized_code.invoke(:loo_optimized, self.class, self, [], nil)
-  #end
+5.times do
+5.times do
+      p optimized_code.decode.size
   measure do
-    10000.times do
-      #result = optimized_code.invoke(:loo, Array, hello.dup, [3...5, ["world", "haa"]], nil)
+    100000.times do
+      result = optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
     end
   end
 end
+#p result
+puts
 
-opt = Rubinius::Optimizer.new(optimized_code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+5.times do
+      p code.decode.size
+  measure do
+    100000.times do
+      result = code.invoke(:loo, Array, hello.dup, arg, nil)
+    end
+  end
+end
+#p result
+puts
+end
+
+#opt = Rubinius::Optimizer.new(optimized_code)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 #opt.run
 
 p result
