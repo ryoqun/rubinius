@@ -326,7 +326,7 @@ namespace jit {
         }
         return &jbb;
       } else {
-        assert(i->second.sp == sp_);
+        //assert(i->second.sp == sp_);
         return &(i->second);
       }
     }
