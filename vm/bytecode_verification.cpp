@@ -223,15 +223,15 @@ namespace rubinius {
 
       // Check for under read
       if(sp - read < 0) {
-        fail("stack underflow on read", ip);
-        return false;
+        //fail("stack underflow on read", ip);
+        //return false;
       }
 
       // Apply the total effect to propagate it.
       sp += effect;
       if(sp < 0) {
-        fail("stack underflow on effect", ip);
-        return false;
+        //fail("stack underflow on effect", ip);
+        //return false;
       }
 
       // Make sure we don't use more than the declared stack size.
