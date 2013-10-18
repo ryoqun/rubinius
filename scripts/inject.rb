@@ -128,11 +128,15 @@ module Rubinius
         @branch_flows
       end
 
-      def remove
+      def raw_remove
         following_instruction.preceeding_instruction = preceeding_instruction
         if preceeding_instruction
           preceeding_instruction.following_instruction = following_instruction
         end
+      end
+
+      def remove
+        raw_remove
 
         if prev_flow
           prev_flow.unremove
@@ -961,6 +965,12 @@ module Rubinius
         first_instruction_node = g.add_nodes(label)
         g.add_edges(entry_node, first_instruction_node)
 
+        optimizer.each_instruction do |instruction|
+          node = g.add_nodes(instruction.to_label(optimizer))
+          node.shape = 'rect'
+          node.fontname = 'M+ 1mn'
+        end
+
         optimizer.control_flows.each do |control_flow|
           node1 = g.add_nodes(control_flow.src.to_label(optimizer))
           node1.shape = 'rect'
@@ -1179,6 +1189,7 @@ module Rubinius
                 #puts "new #{flow.to_label(optimizer)}"
                 #p next_flow.src.incoming_flows
                 if next_flow.src.incoming_flows.all?(&:removed?)
+                  next_flow.src.remove
                   optimizer.control_flows.delete(next_flow)
                 end
                 #forwarded[next_flow] = true
@@ -1186,6 +1197,7 @@ module Rubinius
                   next_flow = flow.next_flow
                   flow.point_to_next_instruction
                   if next_flow.src.incoming_flows.all?(&:removed?)
+                    next_flow.src.remove
                     optimizer.control_flows.delete(next_flow)
                   end
                   #forwarded[next_flow] = true
@@ -1258,6 +1270,7 @@ module Rubinius
               #optimizer.instructions.insert(index, inst)
             end
             #next_flow.unremove
+            inst.remove
             optimizer.control_flows.delete(inst.next)
             #inst.remove if next_removed
           end
