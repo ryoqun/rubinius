@@ -129,7 +129,9 @@ module Rubinius
       end
 
       def raw_remove
-        following_instruction.preceeding_instruction = preceeding_instruction
+        if following_instruction
+          following_instruction.preceeding_instruction = preceeding_instruction
+        end
         if preceeding_instruction
           preceeding_instruction.following_instruction = following_instruction
         end
@@ -183,10 +185,6 @@ module Rubinius
 
       def branch_flow
         raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
-        @op_rands.first.dst
-      end
-
-      def branch_flow
         @op_rands.first
       end
 
@@ -1163,14 +1161,18 @@ module Rubinius
         unused_insts = []
         moved_flows = []
 
+        optimizer.each_instruction do |inst|
+          if inst.incoming_flows.empty?
+            unused_insts << inst
+          end
+        end
+
         forwarded = {}
         optimizer.each_instruction do |inst|
           #p "inst: #{inst.to_label(optimizer)}"
           #p "inst: #{inst.incoming_flows.collect(&:src).collect{|f| f.to_label(optimizer)}}"
           #p "inst: #{inst.branch_flows.size}"
           #p "inst: #{inst.branch_flows.collect(&:src).collect{|f| f.to_label(optimizer)}}"
-          #if inst.incoming_flows.empty? or inst.incoming_flows.all?(&:removed?)
-            p inst.instruction.ip
           if inst.incoming_flows.all?(&:removed?)
             #inst.incoming_flows.compact.select(&:dst).each(&:point_to_next_instruction)
             #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
@@ -1289,7 +1291,21 @@ module Rubinius
           #inst.next.unremove if inst.next
           #optimizer.control_flows.delete(inst.next)
           #inst.prev_flow.unremove if inst.prev_flow
-          #inst.remove
+          #p inst.to_label(nil)
+          if inst.incoming_flows.empty?
+            inst.raw_remove
+            next_flow = (inst.next_flow || inst.branch_flow)
+            next_inst = next_flow.dst
+            next_flow.uninstall
+            optimizer.control_flows.delete(next_flow)
+
+            if next_inst.incoming_flows.empty?
+              next_inst.raw_remove
+            end
+
+            #break unless inst.next
+            #inst = inst.next.dst
+          end
           #inst.prev_flow.unremove if inst.prev_flow
         end
         #puts
@@ -1406,7 +1422,7 @@ code = Array.instance_method(:set_index).executable
 #code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
