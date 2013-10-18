@@ -11,6 +11,10 @@ module Rubinius
         @bytecode = bytecode
       end
 
+      def to_bytecode(instruction)
+        @bytecode
+      end
+
       def ==(other)
         other.is_a?(self.class) and other.bytecode == bytecode
       end
@@ -20,7 +24,6 @@ module Rubinius
       def to_i
         bytecode
       end
-      alias_method :to_bytecode, :to_i
     end
 
     module Endpoint
@@ -31,40 +34,33 @@ module Rubinius
       def to_label(optimizer)
         "<literal: #{(optimizer.compiled_code.literals[bytecode] || bytecode).inspect.to_s[0, 20]}>"
       end
-
-      alias_method :to_bytecode, :bytecode
     end
 
     class Serial < OpRand
-      alias_method :to_bytecode, :bytecode
     end
 
     class Local < OpRand
       def to_label(optimizer)
         "<local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
-      alias_method :to_bytecode, :bytecode
     end
 
     class Parameter < OpRand
       def to_label(optimizer)
         "<param: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
-      alias_method :to_bytecode, :bytecode
     end
 
     class StackLocal < OpRand
       def to_label(optimizer)
         "<stk_local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
       end
-      alias_method :to_bytecode, :bytecode
     end
 
     class Type < OpRand
       def to_label(optimizer)
         "type"
       end
-      alias_method :to_bytecode, :bytecode
     end
 
     class Inst
@@ -358,6 +354,7 @@ module Rubinius
     def encode
       ip = 0
       each_instruction do |inst|
+        p inst.to_label(self)
         inst.ip = ip
         ip += inst.instruction_width
       end
@@ -366,7 +363,7 @@ module Rubinius
       each_instruction do |inst|
         bytecodes << inst.bytecode
         inst.op_rands.each do |op_rand|
-          bytecodes << op_rand.to_bytecode
+          bytecodes << op_rand.to_bytecode(inst)
         end
       end
 
@@ -924,8 +921,8 @@ module Rubinius
         end
       end
 
-      def to_bytecode
-        @bytecode
+      def to_bytecode(instruction)
+        instruction.branch_flow.dst.ip
       end
     end
 
@@ -1432,7 +1429,7 @@ code = Array.instance_method(:set_index).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
@@ -1451,26 +1448,38 @@ optimized_code = opt.run
 #
 #un_code = opt.run
 
-puts code.decode.size
+puts code
 puts optimized_code.decode.size
 
-return
 def measure
   started_at = Time.now
   yield
   puts Time.now - started_at
 end
 # invoke(@name, @defined_in, obj, args, block)
+hello = [:world, :invoke, :name, :obj, :args, :block, :sat, :odct]
+result = nil
+
 10.times do
-  puts optimized_code.decode.size
+  #puts optimized_code.decode.size
+  #measure do
+  #  optimized_code.invoke(:loo_optimized, self.class, self, [], nil)
+  #end
   measure do
-    optimized_code.invoke(:loo_optimized, self.class, self, [], nil)
-  end
-  puts un_code.decode.size
-  measure do
-    un_code.invoke(:loo, self.class, self, [], nil)
+    10000.times do
+      #result = optimized_code.invoke(:loo, Array, hello.dup, [3...5, ["world", "haa"]], nil)
+    end
   end
 end
+
+opt = Rubinius::Optimizer.new(optimized_code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.run
+
+p result
+
+return
 #puts code.decode
 #puts
 #puts code.decode
