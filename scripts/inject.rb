@@ -956,7 +956,9 @@ module Rubinius
     class ControlFlowPrinter < Analysis
       def optimize
         g = GraphViz.new(:G, :type => :digraph)
-        g[:fontname] = "M+ 1mn"
+        g[:fontname] = "monospace"
+        #g[:page] = "82,117"
+        #g.fontsize = '5'
 
         entry_node = g.add_nodes(optimizer.compiled_code.inspect);
         label = optimizer.first_instruction.instruction.to_s
@@ -966,21 +968,28 @@ module Rubinius
         optimizer.each_instruction do |instruction|
           node = g.add_nodes(instruction.to_label(optimizer))
           node.shape = 'rect'
-          node.fontname = 'M+ 1mn'
+          node.fontname = 'monospace'
+          #node.fontsize = '18'
         end
 
         optimizer.control_flows.each do |control_flow|
           node1 = g.add_nodes(control_flow.src.to_label(optimizer))
           node1.shape = 'rect'
-          node1.fontname = 'M+ 1mn'
+          node1.fontname = 'monospace'
+          #node1.fontsize = '18'
           node2 = g.add_nodes(control_flow.dst.to_label(optimizer))
           node2.shape = 'rect'
-          node2.fontname = 'M+ 1mn'
+          node2.fontname = 'monospace'
+          #node2.fontsize = '18'
           edge = g.add_edges(node1, node2)
+          edge.arrowhead = 'empty' if control_flow.static_dst?
+          edge.arrowsize = '1.7'
           edge.style = 'dotted' if control_flow.removed?
         end
 
         g.output(:pdf => "control_flow.pdf")
+        g.output(:ps => "control_flow.ps")
+        g.output(:svg => "control_flow.svg")
       end
     end
 
@@ -1422,8 +1431,8 @@ code = Array.instance_method(:set_index).executable
 #code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
@@ -1442,8 +1451,8 @@ optimized_code = opt.run
 #
 #un_code = opt.run
 
-#puts un_code.decode
-puts optimized_code.decode
+puts code.decode.size
+puts optimized_code.decode.size
 
 return
 def measure
