@@ -227,6 +227,11 @@ module Rubinius
       decode
     end
 
+    def remove_control_flow(flow)
+      raise "baaad" if flow.nil?
+      @control_flows.delete(flow)
+    end
+
 
     def unlink(src, dst)
       #removed_inst.remove
@@ -1198,7 +1203,7 @@ module Rubinius
                 #p next_flow.src.incoming_flows
                 if next_flow.src.incoming_flows.all?(&:removed?)
                   next_flow.src.remove
-                  optimizer.control_flows.delete(next_flow)
+                  optimizer.remove_control_flow(next_flow)
                 end
                 #forwarded[next_flow] = true
                 if next_flow.removed?
@@ -1206,7 +1211,7 @@ module Rubinius
                   flow.point_to_next_instruction
                   if next_flow.src.incoming_flows.all?(&:removed?)
                     next_flow.src.remove
-                    optimizer.control_flows.delete(next_flow)
+                    optimizer.remove_control_flow(next_flow)
                   end
                   #forwarded[next_flow] = true
                 end
@@ -1222,7 +1227,7 @@ module Rubinius
             end
           #  inst.previous.unremove if inst.previous
           #  inst.previous.point_to_next_instruction if inst.previous
-            #optimizer.control_flows.delete(inst.next) if inst.next
+            #optimizer.remove_control_flow(inst.next) if inst.next
           #  unused_insts << inst
           elsif inst.incoming_flows.any?(&:removed?)
             moved_flows << inst.incoming_flows
@@ -1279,7 +1284,7 @@ module Rubinius
             end
             #next_flow.unremove
             inst.remove
-            optimizer.control_flows.delete(inst.next)
+            optimizer.remove_control_flow(inst.next)
             #inst.remove if next_removed
           end
         end
@@ -1295,7 +1300,7 @@ module Rubinius
           #   p inst.next.remove if inst.next
           #inst.incoming_flows(&:unremove)
           #inst.next.unremove if inst.next
-          #optimizer.control_flows.delete(inst.next)
+          #optimizer.remove_control_flow(inst.next)
           #inst.prev_flow.unremove if inst.prev_flow
           #p inst.to_label(nil)
           if inst.incoming_flows.empty?
@@ -1303,7 +1308,7 @@ module Rubinius
             next_flow = (inst.next_flow || inst.branch_flow)
             next_inst = next_flow.dst
             next_flow.uninstall
-            optimizer.control_flows.delete(next_flow)
+            optimizer.remove_control_flow(next_flow)
 
             if next_inst.incoming_flows.empty?
               next_inst.raw_remove
