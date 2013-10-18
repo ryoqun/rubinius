@@ -138,7 +138,7 @@ module Rubinius
           prev_flow.unremove
           prev_flow.point_to_next_instruction
         end
-        p branch_flows.map(&:class)
+        #p branch_flows.map(&:class)
         branch_flows.dup.each do |f|
           while f.next_flow.removed?
             f.point_to_next_instruction if f
@@ -243,7 +243,7 @@ module Rubinius
       @control_flows.each do |control_flow|
         if control_flow.src.equal?(src) and
            control_flow.dst.equal?(dst)
-          p :fffound
+          #p :fffound
           #p src.to_label(self)
           #p dst.to_label(self)
           control_flow.remove
@@ -808,8 +808,10 @@ module Rubinius
       def next_flow
         if @dst.op_code == :goto
           @dst.branch_flow
-        else
+        elsif @dst.control_flow_type == :next
           @dst.next_flow
+        else
+          raise "can't point to next: #{to_label(nil)}"
         end
       end
 
@@ -820,10 +822,10 @@ module Rubinius
             raise "dst is nil" if @dst.nil?
           elsif @dst.control_flow_type == :next
             @dst = @dst.next_flow.dst
-            p self.dst.to_label(self)
+            #p self.dst.to_label(self)
             raise "dst is nil" if @dst.nil?
           else
-            raise "can't point to next"
+            raise "can't point to next: #{to_label(nil)}"
           end
         end
       end
@@ -1158,6 +1160,7 @@ module Rubinius
           #p "inst: #{inst.branch_flows.size}"
           #p "inst: #{inst.branch_flows.collect(&:src).collect{|f| f.to_label(optimizer)}}"
           #if inst.incoming_flows.empty? or inst.incoming_flows.all?(&:removed?)
+            p inst.instruction.ip
           if inst.incoming_flows.all?(&:removed?)
             #inst.incoming_flows.compact.select(&:dst).each(&:point_to_next_instruction)
             #inst.next_flow.point_to_next_instruction if inst.next and inst.next.dst
@@ -1166,24 +1169,32 @@ module Rubinius
             inst.incoming_flows.dup.each do |flow|
               if forwarded[flow].nil?
                 forwarded[flow] = true
-                optimizer.control_flows.delete(flow.next_flow)
-                puts :b
+                #puts :b
                 #p flow.dst.to_label(nil)
                 #p flow.removed?
                 #p flow.next_flow.dst.to_label(nil)
                 next_flow = flow.next_flow
-                puts "old #{flow.to_label(optimizer)}"
+                #puts "old #{flow.to_label(optimizer)}"
                 flow.point_to_next_instruction
-                puts "new #{flow.to_label(optimizer)}"
-                if next_flow.removed?
-                  puts "aaaaa #{next_flow.to_label(optimizer)}"
-                  optimizer.control_flows.delete(next_flow.dst.next)
-                  flow.point_to_next_instruction
-                  puts "fin #{flow.to_label(optimizer)}"
+                #puts "new #{flow.to_label(optimizer)}"
+                #p next_flow.src.incoming_flows
+                if next_flow.src.incoming_flows.all?(&:removed?)
+                  optimizer.control_flows.delete(next_flow)
                 end
-                  flow.unremove
+                #forwarded[next_flow] = true
+                if next_flow.removed?
+                  next_flow = flow.next_flow
+                  flow.point_to_next_instruction
+                  if next_flow.src.incoming_flows.all?(&:removed?)
+                    optimizer.control_flows.delete(next_flow)
+                  end
+                  #forwarded[next_flow] = true
+                end
+                #puts "aa"
+                puts
+                flow.unremove
                 #p flow.next_flow.dst.to_label(nil)
-                puts :a
+                #puts :a
                 #while flow.next_flow.removed?
                 #  flow.point_to_next_instruction
                 #end
