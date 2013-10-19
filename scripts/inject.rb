@@ -157,6 +157,8 @@ module Rubinius
         if preceeding_instruction
           preceeding_instruction.following_instruction = following_instruction
         end
+
+        self
       end
 
       def remove
@@ -256,7 +258,7 @@ module Rubinius
     class JumpTarget
     end
 
-    attr_reader :compiled_code, :instructions, :control_flows, :data_flows
+    attr_reader :compiled_code, :control_flows, :data_flows
     attr_accessor :entry_flow
     def initialize(compiled_code)
       @compiled_code = compiled_code
@@ -1304,35 +1306,22 @@ module Rubinius
 
     class Prune < Optimization
       def prune_unused_insts
-        optimizer.each_instruction do |inst|
-          # p inst.to_label(optimizer)
-          #   p inst.next.remove if inst.next
-          #inst.incoming_flows(&:unremove)
-          #inst.next.unremove if inst.next
-          #optimizer.remove_control_flow(inst.next)
-          #inst.prev_flow.unremove if inst.prev_flow
-          #p inst.to_label(nil)
-          #p inst.incoming_flows.map{|f| f.to_label(nil)}
-          if inst.incoming_flows.empty? or inst.incoming_flows.all?(&:removed?)
-            #inst.next.point_to_next_instruction i
-            #inst.raw_remove
-            next_flow = inst.static_next_flow
-
-            next if next_flow.dst.op_code == :ret
-            next_flow.point_to_next_instruction
-            #next_inst = next_flow.dst
-            #next_flow.uninstall
-            #optimizer.remove_control_flow(next_flow)
-
-            #if next_inst.incoming_flows.empty?
-            #  next_inst.raw_remove
-            #end
-
-            #break unless inst.next
-            #inst = inst.next.dst
+        begin
+          found = false
+          optimizer.each_instruction do |inst|
+            p inst
+            p inst.incoming_flows
+            if inst.incoming_flows.empty?
+              #p :found
+              found = true
+              #p inst
+              #inst.static_next_flow.remove
+              optimizer.remove_control_flow(inst.static_next_flow)
+              #p inst
+              inst.raw_remove
+            end
           end
-          #inst.prev_flow.unremove if inst.prev_flow
-        end
+        end while found
       end
 
       def optimize
@@ -1341,29 +1330,21 @@ module Rubinius
         optimizer.each_instruction do |inst|
           if inst.incoming_flows.all?(&:removed?)
             inst.incoming_flows.dup.each do |flow|
-              next_flow = flow.next_flow
-              flow.point_to_next_instruction
               initial_spots = flow.spots.dup
-              flow.add_spots(next_flow.spots)
-              if next_flow.src.incoming_flows.all?(&:removed?)
-                next_flow.src.remove
-                optimizer.remove_control_flow(next_flow)
-              end
 
-              if next_flow.removed?
+              begin
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
                 flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
-                  next_flow.src.remove
-                  optimizer.remove_control_flow(next_flow)
+                  #optimizer.remove_control_flow(next_flow)
                 end
-              end
-              if (next_flow.spots - initial_spots).empty?
+              end while next_flow.removed?
+
+              #if (next_flow.spots - initial_spots).empty?
                 flow.unremove
-              end
+              #end
             end
-            inst.raw_remove
           elsif inst.incoming_flows.any?(&:removed?)
             p "partial #{inst.to_label(optimizer)}"
 
@@ -1372,9 +1353,11 @@ module Rubinius
             if next_flow.nil? or not next_flow.removed?
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
                 next if not branch_flow.removed?
+                next if not branch_flow.next_flow?
                 branch_flow.point_to_next_instruction
+                branch_flow.unremove
               end
-            elsif false
+            else
               inst = next_flow.dst
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
                 if branch_flow.removed?
@@ -1382,19 +1365,20 @@ module Rubinius
                   branch_flow.unremove
                 else
                   new_inst = inst.dup
+                  inst.raw_remove
                   after_inst = branch_flow.src
-                  after_inst.previous.src.insert_after(new_inst)
                   after_inst.previous.dst = new_inst
 
                   branch_flow.point_to_next_instruction
+                  branch_flow.unremove
                   optimizer.add_control_flow(NextControlFlow.new(new_inst, after_inst))
                 end
               end
-              inst.remove
-              optimizer.remove_control_flow(inst.next)
+              #optimizer.remove_control_flow(next_flow)
             end
           end
         end
+        prune_unused_insts
       end
     end
 
@@ -1517,8 +1501,8 @@ def loo
     hello
   end
 end
-#code = Array.instance_method(:set_index).executable
-code = method(:loo).executable
+code = Array.instance_method(:set_index).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
