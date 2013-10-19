@@ -1338,36 +1338,32 @@ module Rubinius
       def optimize
         moved_flows = []
 
-        forwarded = {}
         optimizer.each_instruction do |inst|
           if inst.incoming_flows.all?(&:removed?)
             inst.incoming_flows.dup.each do |flow|
-              if forwarded[flow].nil?
-                next unless flow.next_flow?
+              next_flow = flow.next_flow
+              flow.point_to_next_instruction
+              initial_spots = flow.spots.dup
+              flow.add_spots(next_flow.spots)
+              if next_flow.src.incoming_flows.all?(&:removed?)
+                next_flow.src.remove
+                optimizer.remove_control_flow(next_flow)
+              end
 
+              if next_flow.removed?
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
-                initial_spots = flow.spots.dup
                 flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
                   next_flow.src.remove
                   optimizer.remove_control_flow(next_flow)
                 end
-
-                if next_flow.removed?
-                  next_flow = flow.next_flow
-                  flow.point_to_next_instruction
-                  flow.add_spots(next_flow.spots)
-                  if next_flow.src.incoming_flows.all?(&:removed?)
-                    next_flow.src.remove
-                    optimizer.remove_control_flow(next_flow)
-                  end
-                end
-                if (next_flow.spots - initial_spots).empty?
-                  flow.unremove
-                end
+              end
+              if (next_flow.spots - initial_spots).empty?
+                flow.unremove
               end
             end
+            inst.raw_remove
           elsif inst.incoming_flows.any?(&:removed?)
             p "partial #{inst.to_label(optimizer)}"
 
