@@ -1237,6 +1237,10 @@ module Rubinius
         [:set_local, :local0],
         :no_stack_changes,
       ]
+
+      def type
+        :push_local
+      end
     end
 
     class PushIVarRemover < Matcher
@@ -1251,6 +1255,10 @@ module Rubinius
         [:set_ivar, :ivar0],
         :no_stack_changes,
       ]
+
+      def type
+        :push_ivar
+      end
     end
 
     class NilRemover < Matcher
@@ -1332,14 +1340,20 @@ module Rubinius
             inst.incoming_flows.dup.each do |flow|
               initial_spots = flow.spots.dup
 
-              begin
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
                 flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
                   #optimizer.remove_control_flow(next_flow)
                 end
-              end while next_flow.removed?
+              if next_flow.removed?
+                next_flow = flow.next_flow
+                flow.point_to_next_instruction
+                flow.add_spots(next_flow.spots)
+                if next_flow.src.incoming_flows.all?(&:removed?)
+                  #optimizer.remove_control_flow(next_flow)
+                end
+              end
 
               #if (next_flow.spots - initial_spots).empty?
                 flow.unremove
@@ -1353,7 +1367,6 @@ module Rubinius
             if next_flow.nil? or not next_flow.removed?
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
                 next if not branch_flow.removed?
-                next if not branch_flow.next_flow?
                 branch_flow.point_to_next_instruction
                 branch_flow.unremove
               end
@@ -1396,11 +1409,12 @@ module Rubinius
               #p event
               reset
             when Restore
-              pop
+              #pop
               #p event
+              reset
             when Save, Terminate
               #ap @states.collect(&:take_snapshot)
-              push
+              #push
               #p event
             else
               #p event.compact.map{|i| i.to_label(optimizer)}
@@ -1412,8 +1426,8 @@ module Rubinius
 
       def reset
         @states = [
-          #PushLocalRemover.new(optimizer, self),
-          #PushIVarRemover.new(optimizer, self),
+          PushLocalRemover.new(optimizer, self),
+          PushIVarRemover.new(optimizer, self),
           NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
         ]
@@ -1567,10 +1581,10 @@ end
 puts
 end
 
-#opt = Rubinius::Optimizer.new(optimized_code)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-#opt.run
+opt = Rubinius::Optimizer.new(optimized_code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.run
 
 p result
 
