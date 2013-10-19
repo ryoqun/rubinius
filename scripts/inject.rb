@@ -1312,15 +1312,36 @@ module Rubinius
       end
     end
 
-    class GoToRemover < Matcher
-      before [
-        [:goto],
-        [:goto],
-      ]
-
-      after [
-        [:goto],
-      ]
+    class GoToRemover < Optimization
+      def optimize
+        optimizer.each_instruction do |inst|
+          if inst.op_code == :goto
+            inst.incoming_flows.dup.each do |incoming_flow|
+              if incoming_flow.src.op_code == :goto_if_true
+                puts "goto goto if true"
+                #incoming_flow.point_to_next_instruction
+              elsif incoming_flow.src.op_code == :goto_if_false
+                #incoming_flow.point_to_next_instruction
+                #p inst.previous
+                if incoming_flow.src.next_flow == inst.previous
+                  puts "goto goto if false"
+                  #p incoming_flow.src.branch_flow
+                  #p incoming_flow.dst
+                  incoming_flow.reinstall do
+                    #incoming_flow.instance_variable_set(:@dst, inst.next)
+                  end
+                  incoming_flow.point_to_next_instruction
+                end
+              elsif incoming_flow.src.op_code == :goto
+                puts "goto goto"
+                #next = incoming_flow.next_flow.raw_remove
+                #incoming_flow.point_to_next_instruction
+              end
+            end
+            #inst.raw_remove if inst.incoming_flows.empty?
+          end
+        end
+      end
     end
 
     class Prune < Optimization
@@ -1441,7 +1462,6 @@ module Rubinius
           PushIVarRemover.new(optimizer, self),
           NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
-          GoToRemover.new(optimizer, self),
         ]
 
         @snap_shots = []
@@ -1537,7 +1557,8 @@ code = Array.instance_method(:set_index).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::GoToRemover)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
@@ -1581,15 +1602,14 @@ puts
     end
   end
 end
-return
 #p result
 puts
 end
 
-#opt = Rubinius::Optimizer.new(optimized_code)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-#opt.run
+opt = Rubinius::Optimizer.new(optimized_code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.run
 
 p result
 
