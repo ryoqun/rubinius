@@ -1408,9 +1408,9 @@ module Rubinius
 
       def reset
         @states = [
-          PushLocalRemover.new(optimizer, self),
-          PushIVarRemover.new(optimizer, self),
-          NilRemover.new(optimizer, self),
+          #PushLocalRemover.new(optimizer, self),
+          #PushIVarRemover.new(optimizer, self),
+          #NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
         ]
         @snap_shots = []
@@ -1435,7 +1435,7 @@ module Rubinius
 
       def scalar_each
         entry = optimizer.first_instruction
-        stack = [[nil, entry]]
+        stack = [[optimizer.first_flow.src, entry]]
         loop_marks = {}
 
         yield Entry.new
@@ -1504,8 +1504,8 @@ code = method(:loo).executable
 #code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
