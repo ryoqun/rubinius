@@ -164,9 +164,9 @@ module Rubinius
       def remove
         raw_remove
 
-        p self.to_label(nil)
+        #p self.to_label(nil)
         if prev_flow
-          p prev_flow.to_label(nil)
+          #p prev_flow.to_label(nil)
           prev_flow.unremove
           prev_flow.point_to_next_instruction
           #p prev_flow.to_label(nil)
@@ -174,7 +174,7 @@ module Rubinius
         #p branch_flows.map(&:class)
         branch_flows.dup.each do |f|
           while f.next_flow? and f.next_flow.removed?
-            p next_flow.to_label(nil)
+            #p next_flow.to_label(nil)
             f.point_to_next_instruction if f
           end
         end
@@ -1135,7 +1135,7 @@ module Rubinius
       end
 
       def feed(previous, inst)
-        p [self.object_id, self.class, @results.to_a.size, previous.to_s, inst.to_s]
+        #p [self.object_id, self.class, @results.to_a.size, previous.to_s, inst.to_s]
         if @cursor.nil?
           @cursor = 0
           @selector = self.class.selector.dup
@@ -1312,13 +1312,24 @@ module Rubinius
       end
     end
 
+    class GoToRemover < Matcher
+      before [
+        [:goto],
+        [:goto],
+      ]
+
+      after [
+        [:goto],
+      ]
+    end
+
     class Prune < Optimization
       def prune_unused_insts
         begin
           found = false
           optimizer.each_instruction do |inst|
-            p inst
-            p inst.incoming_flows
+            #p inst
+            #p inst.incoming_flows
             if inst.incoming_flows.empty?
               #p :found
               found = true
@@ -1360,7 +1371,7 @@ module Rubinius
               #end
             end
           elsif inst.incoming_flows.any?(&:removed?)
-            p "partial #{inst.to_label(optimizer)}"
+            #p "partial #{inst.to_label(optimizer)}"
 
             flows = inst.incoming_flows
             next_flow = flows.detect(&:static_dst?)
@@ -1430,6 +1441,7 @@ module Rubinius
           PushIVarRemover.new(optimizer, self),
           NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
+          GoToRemover.new(optimizer, self),
         ]
 
         @snap_shots = []
@@ -1525,11 +1537,11 @@ code = Array.instance_method(:set_index).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
+#opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
@@ -1558,33 +1570,26 @@ result = nil
 arg = [3...5, ["world", "haa"]]
 
 5.times do
-5.times do
+#p result
+puts
+
+10.times do
       p optimized_code.decode.size
   measure do
     100000.times do
-      result = optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
+      optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
     end
   end
 end
-#p result
-puts
-
-5.times do
-      p code.decode.size
-  measure do
-    100000.times do
-      result = code.invoke(:loo, Array, hello.dup, arg, nil)
-    end
-  end
-end
+return
 #p result
 puts
 end
 
-opt = Rubinius::Optimizer.new(optimized_code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-opt.run
+#opt = Rubinius::Optimizer.new(optimized_code)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.run
 
 p result
 
