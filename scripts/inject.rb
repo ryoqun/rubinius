@@ -1313,34 +1313,66 @@ module Rubinius
     end
 
     class GoToRemover < Optimization
+      def prune_unused_insts
+        begin
+          found = false
+          optimizer.each_instruction do |inst|
+            #p inst
+            #p inst.incoming_flows
+            if inst.incoming_flows.empty?
+              #p :found
+              found = true
+              #p inst
+              #inst.static_next_flow.remove
+              optimizer.remove_control_flow(inst.static_next_flow)
+              #p inst
+              inst.raw_remove
+            end
+          end
+        end while found
+      end
+
       def optimize
         optimizer.each_instruction do |inst|
           if inst.op_code == :goto
             inst.incoming_flows.dup.each do |incoming_flow|
               if incoming_flow.src.op_code == :goto_if_true
                 puts "goto goto if true"
+                puts incoming_flow.src.incoming_flows.size
                 #incoming_flow.point_to_next_instruction
               elsif incoming_flow.src.op_code == :goto_if_false
                 #incoming_flow.point_to_next_instruction
                 #p inst.previous
                 if incoming_flow.src.next_flow == inst.previous
-                  puts "goto goto if false"
+                  puts "goto goto if false next"
+                puts incoming_flow.src.incoming_flows.size
                   #p incoming_flow.src.branch_flow
                   #p incoming_flow.dst
-                  incoming_flow.reinstall do
+                  #incoming_flow.reinstall do
                     #incoming_flow.instance_variable_set(:@dst, inst.next)
-                  end
+                  #end
                   incoming_flow.point_to_next_instruction
+                  optimizer.remove_control_flow(inst.branch_flow)
+                else
+                  puts "goto goto if false branch"
+                puts incoming_flow.src.incoming_flows.size
+                  incoming_flow.src.branch_flow.reinstall do
+                    incoming_flow.src.branch_flow.instance_variable_set(:@dst, inst.branch_flow.dst)
+                  end
+                  optimizer.remove_control_flow(inst.branch_flow)
                 end
               elsif incoming_flow.src.op_code == :goto
                 puts "goto goto"
+                puts incoming_flow.src.incoming_flows.size
                 #next = incoming_flow.next_flow.raw_remove
-                #incoming_flow.point_to_next_instruction
+                incoming_flow.point_to_next_instruction
+                inst.raw_remove
               end
             end
             #inst.raw_remove if inst.incoming_flows.empty?
           end
         end
+        #prune_unused_insts
       end
     end
 
@@ -1562,7 +1594,7 @@ opt.add_pass(Rubinius::Optimizer::GoToRemover)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
@@ -1595,10 +1627,17 @@ arg = [3...5, ["world", "haa"]]
 puts
 
 10.times do
-      p optimized_code.decode.size
+  puts
+   p optimized_code.decode.size
   measure do
     100000.times do
       optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
+    end
+  end
+   p code.decode.size
+  measure do
+    100000.times do
+      code.invoke(:loo, Array, hello.dup, arg, nil)
     end
   end
 end
