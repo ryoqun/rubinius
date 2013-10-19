@@ -64,7 +64,7 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :branch_flows, :previous, :incoming_flows
+      attr_reader :instruction, :imports, :exports, :branch_flows, :previous, :incoming_flows, :entry_flow
       attr_accessor :op_rands, :next, :ip,
                     :following_instruction, :preceeding_instruction
       def initialize(instruction)
@@ -105,8 +105,7 @@ module Rubinius
       end
 
       def as_entry_inst
-        @entry_flow = EntryControlFlow.new(self)
-        @incoming_flows.push(@entry_flow)
+        @previous = @entry_flow = EntryControlFlow.new(self)
         self
       end
 
@@ -144,13 +143,17 @@ module Rubinius
       def remove
         raw_remove
 
+        p self.to_label(nil)
         if prev_flow
+          p prev_flow.to_label(nil)
           prev_flow.unremove
           prev_flow.point_to_next_instruction
+          #p prev_flow.to_label(nil)
         end
         #p branch_flows.map(&:class)
         branch_flows.dup.each do |f|
-          while f.next_flow.removed?
+          while f.next_flow? and f.next_flow.removed?
+            p next_flow.to_label(nil)
             f.point_to_next_instruction if f
           end
         end
@@ -226,7 +229,8 @@ module Rubinius
     class JumpTarget
     end
 
-    attr_reader :compiled_code, :instructions, :control_flows, :data_flows, :first_instruction, :last_instruction
+    attr_reader :compiled_code, :instructions, :control_flows, :data_flows
+    attr_accessor :entry_flow
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
@@ -240,6 +244,13 @@ module Rubinius
       @control_flows.delete(flow)
     end
 
+    def first_flow
+      @entry_flow
+    end
+
+    def first_instruction
+      @entry_flow.dst
+    end
 
     def unlink(src, dst)
       #removed_inst.remove
@@ -292,14 +303,14 @@ module Rubinius
           previous.following_instruction = inst
           inst.preceeding_instruction = previous
         else
-          @first_instruction = inst.as_entry_inst
+          inst.as_entry_inst
+          @entry_flow = inst.previous
         end
 
         ip += instruction.size
         # ap inst.to_label(self)
         previous = inst
       end
-      @last_instruction = inst
       #ap ip_to_inst
 
       ip = 0
@@ -357,7 +368,7 @@ module Rubinius
     end
 
     def each_instruction
-      instruction = @first_instruction
+      instruction = first_instruction
       while instruction
         yield instruction
         instruction = instruction.following_instruction
@@ -807,6 +818,7 @@ module Rubinius
 
       def remove
         @remove = true
+        self
       end
 
       def unremove
@@ -887,6 +899,10 @@ module Rubinius
       def initialize
         super(nil)
       end
+
+      def to_label(optimizer)
+        optimizer.compiled_code.inspect
+      end
     end
 
     class EntryControlFlow < ControlFlow
@@ -957,6 +973,7 @@ module Rubinius
       def optimize
         reset
         previous = nil
+        optimizer.add_control_flow(optimizer.entry_flow)
         optimizer.each_instruction do |instruction|
           if previous and
              previous.op_code != :goto and
@@ -980,11 +997,6 @@ module Rubinius
         #g[:page] = "82,117"
         #g.fontsize = '5'
 
-        entry_node = g.add_nodes(optimizer.compiled_code.inspect);
-        label = optimizer.first_instruction.instruction.to_s
-        first_instruction_node = g.add_nodes(label)
-        g.add_edges(entry_node, first_instruction_node)
-
         optimizer.each_instruction do |instruction|
           node = g.add_nodes(instruction.to_label(optimizer))
           node.shape = 'rect'
@@ -993,6 +1005,7 @@ module Rubinius
         end
 
         optimizer.control_flows.each do |control_flow|
+          p control_flow.class
           node1 = g.add_nodes(control_flow.src.to_label(optimizer))
           node1.shape = 'rect'
           node1.fontname = 'monospace'
@@ -1325,16 +1338,25 @@ module Rubinius
         #    inst.remove
         #  end
         #end
-        unused_insts.each do |inst|
+        #unused_insts.each do |inst|
+        first = true
+        optimizer.each_instruction do |inst|
+          if first
+            first = false
+            inst.incoming_flows.first.point_to_next_instruction
+            break
+          end
           # p inst.to_label(optimizer)
           #   p inst.next.remove if inst.next
           #inst.incoming_flows(&:unremove)
           #inst.next.unremove if inst.next
           #optimizer.remove_control_flow(inst.next)
           #inst.prev_flow.unremove if inst.prev_flow
-          #p inst.to_label(nil)
+          p inst.to_label(nil)
+          p inst.incoming_flows.map{|f| f.to_label(nil)}
           if inst.incoming_flows.empty?
             inst.raw_remove
+            next if inst.op_code == :ret
             next_flow = (inst.next_flow || inst.branch_flow)
             next_inst = next_flow.dst
             next_flow.uninstall
@@ -1382,9 +1404,9 @@ module Rubinius
 
       def reset
         @states = [
-          #PushLocalRemover.new(optimizer, self),
-          #PushIVarRemover.new(optimizer, self),
-          #NilRemover.new(optimizer, self),
+          PushLocalRemover.new(optimizer, self),
+          PushIVarRemover.new(optimizer, self),
+          NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
         ]
         @snap_shots = []
@@ -1478,10 +1500,10 @@ code = method(:loo).executable
 #code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
