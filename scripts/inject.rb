@@ -96,6 +96,14 @@ module Rubinius
         end
       end
 
+      def to_s
+        instruction.to_s
+      end
+
+      def inspect
+        instruction.to_s
+      end
+
       def as_entry_inst
         @entry_flow = EntryControlFlow.new(self)
         @incoming_flows.push(@entry_flow)
@@ -819,6 +827,16 @@ module Rubinius
         end
       end
 
+      def next_flow?
+        if @dst.op_code == :goto
+          true
+        elsif @dst.control_flow_type == :next
+          true
+        else
+          false
+        end
+      end
+
       def point_to_next_instruction
         reinstall do
           if @dst.op_code == :goto
@@ -1040,7 +1058,16 @@ module Rubinius
         @cursor = nil
       end
 
+      def take_snapshot
+        other = dup
+        other.instance_variable_set(:@selector, @selector.dup)
+        other.instance_variable_set(:@place_holders, @place_holders.dup)
+        other.instance_variable_set(:@results, @results.dup)
+        other
+      end
+
       def feed(previous, inst)
+        p [self.object_id, self.class, @results.to_a.size, previous.to_s, inst.to_s]
         if @cursor.nil?
           @cursor = 0
           @selector = self.class.selector.dup
@@ -1081,6 +1108,8 @@ module Rubinius
             else
               nil
             end
+          when :any
+            1
           else
             raise
           end
@@ -1192,6 +1221,7 @@ module Rubinius
             inst.incoming_flows.dup.each do |flow|
               if forwarded[flow].nil?
                 forwarded[flow] = true
+                next unless flow.next_flow?
                 #puts :b
                 #p flow.dst.to_label(nil)
                 #p flow.removed?
@@ -1332,10 +1362,18 @@ module Rubinius
           transformed = false
           scalar_each do |event|
             case event
-            when Entry, Restore
+            when Entry
+              p event
               reset
+            when Restore
+              pop
+              p event
             when Save, Terminate
+              #ap @states.collect(&:take_snapshot)
+              push
+              p event
             else
+              #p event.compact.map{|i| i.to_label(optimizer)}
               transformed ||= feed(event)
             end
           end
@@ -1344,14 +1382,24 @@ module Rubinius
 
       def reset
         @states = [
-          PushLocalRemover.new(optimizer, self),
-          PushIVarRemover.new(optimizer, self),
-          NilRemover.new(optimizer, self),
+          #PushLocalRemover.new(optimizer, self),
+          #PushIVarRemover.new(optimizer, self),
+          #NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
         ]
+        @snap_shots = []
+      end
+
+      def push
+        @snap_shots.push(@states)
+      end
+
+      def pop
+        @states = @snap_shots.last.collect(&:take_snapshot)
       end
 
       def feed(event)
+        raise "no state" if @states.nil?
         @states.each do |state|
           state.feed(*event)
         end
@@ -1419,14 +1467,11 @@ end
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
 def loo
-  i = 0
-  while i < 40_000_000
-    "aaa" + "bbbb"
-    i += 1
+  while true
   end
 end
-code = Array.instance_method(:set_index).executable
-#code = method(:loo).executable
+#code = Array.instance_method(:set_index).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -1438,7 +1483,7 @@ opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
