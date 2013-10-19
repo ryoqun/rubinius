@@ -1365,6 +1365,7 @@ module Rubinius
                   branch_flow.unremove
                 else
                   new_inst = inst.dup
+                  optimizer.remove_control_flow(inst.static_next_flow)
                   inst.raw_remove
                   after_inst = branch_flow.src
                   after_inst.previous.dst = new_inst
