@@ -901,7 +901,11 @@ module Rubinius
       end
 
       def to_label(optimizer)
-        optimizer.compiled_code.inspect
+        if optimizer.respond_to?(:compiled_code)
+          optimizer.compiled_code.inspect
+        else
+          "<compiled code>"
+        end
       end
     end
 
@@ -1343,7 +1347,7 @@ module Rubinius
         optimizer.each_instruction do |inst|
           if first
             first = false
-            inst.incoming_flows.first.point_to_next_instruction
+            inst.remove
             break
           end
           # p inst.to_label(optimizer)
@@ -1501,7 +1505,7 @@ code = method(:loo).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
