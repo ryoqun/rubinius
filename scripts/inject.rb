@@ -1148,7 +1148,7 @@ module Rubinius
         other
       end
 
-      def feed(previous, inst)
+      def feed(flow)
         #p [self.object_id, self.class, @results.to_a.size, previous.to_s, inst.to_s]
         if @cursor.nil?
           @cursor = 0
@@ -1157,18 +1157,18 @@ module Rubinius
           @results = []
         end
         matcher = @selector[@cursor]
-        advance = match(inst, matcher)
+        advance = match(flow.dst, matcher)
         if advance.nil? and matcher.is_a?(Symbol)
           @cursor += 1
           matcher = @selector[@cursor]
-          advance = match(inst, matcher)
+          advance = match(flow.dst, matcher)
         end
 
         if advance.nil?
           @cursor = nil
         else
           @cursor += advance
-          @results << [previous, inst, matcher]
+          @results << [flow.src, flow.dst, matcher]
 
           if @selector[@cursor].nil?
             @cursor = nil
@@ -1514,7 +1514,7 @@ module Rubinius
               #p event
             else
               #p event.compact.map{|i| i.to_label(optimizer)}
-              transformed ||= feed([event.src, event.dst])
+              transformed ||= feed(event)
             end
           end
         end
@@ -1542,13 +1542,14 @@ module Rubinius
       def feed(event)
         raise "no state" if @states.nil?
         @states.each do |state|
-          state.feed(*event)
+          state.feed(event)
         end
 
         false
       end
 
       def scalar_each
+        entry = optimizer.first_instruction.next
         stack = [optimizer.first_flow]
         loop_marks = {}
 
