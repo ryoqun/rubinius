@@ -286,7 +286,7 @@ module Rubinius
       @entry_flow.dst
     end
 
-    def unlink(spot, src, dst)
+    def unlink(spot, control_flow)
       #removed_inst.remove
       #@instructions.reject! {|inst| inst.equal?(removed_inst)}
       #if src.next == dst
@@ -296,16 +296,8 @@ module Rubinius
       #else
       #  raise "aa"
       #end
-      @control_flows.each do |control_flow|
-        if control_flow.src.equal?(src) and
-           control_flow.dst.equal?(dst)
-          #p :fffound
-          #p src.to_label(self)
-          #p dst.to_label(self)
-          control_flow.remove
-          control_flow.add_spot(spot)
-        end
-      end
+      control_flow.remove
+      control_flow.add_spot(spot)
     end
 
     def add_data_flow(data_flow)
@@ -1224,8 +1216,8 @@ module Rubinius
         @results.each do |flow, match|
           prev, cur = flow.src, flow.dst
           unless self.class.translator.include?(match)
-            on_translate(spot, prev, cur)
-            @scalar.optimizer.unlink(spot, prev, cur)
+            on_translate(spot, flow)
+            @scalar.optimizer.unlink(spot, flow)
           end
         end
 
@@ -1236,7 +1228,7 @@ module Rubinius
         Spot.new(type)
       end
 
-      def on_translate(spot, prev, cur)
+      def on_translate(spot, flow)
       end
     end
 
