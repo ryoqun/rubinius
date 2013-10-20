@@ -286,25 +286,6 @@ module Rubinius
       @entry_flow.dst
     end
 
-    def unlink(spot, control_flow)
-      #removed_inst.remove
-      #@instructions.reject! {|inst| inst.equal?(removed_inst)}
-      #if src.next == dst
-      #  src.next = dst.next
-      #elsif src.branch_flow == dst
-      #  src.branch_flow = dst.next
-      #else
-      #  raise "aa"
-      #end
-      control_flow.remove
-      if control_flow.src.previous
-        control_flow.src.previous.add_spot(spot)
-      else
-        p control_flow
-      end
-      control_flow.add_spot(spot)
-    end
-
     def add_data_flow(data_flow)
       data_flow.install
       @data_flows.push(data_flow)
@@ -1145,7 +1126,7 @@ module Rubinius
         other
       end
 
-      def feed(flow)
+      def feed(previous_flow, flow)
         #p [self.object_id, self.class, @results.to_a.size, previous.to_s, inst.to_s]
         if @cursor.nil?
           @cursor = 0
@@ -1219,10 +1200,10 @@ module Rubinius
         #p @results.map(&:last)
         spot = create_spot
         @results.each do |flow, match|
-          prev, cur = flow.src, flow.dst
           unless self.class.translator.include?(match)
             on_translate(spot, flow)
-            @scalar.optimizer.unlink(spot, flow)
+            flow.add_spot(spot)
+            flow.remove
           end
         end
 
@@ -1540,7 +1521,7 @@ module Rubinius
       def feed(event)
         raise "no state" if @states.nil?
         @states.each do |state|
-          state.feed(event)
+          state.feed(*event)
         end
 
         false
@@ -1548,13 +1529,14 @@ module Rubinius
 
       def scalar_each
         entry = optimizer.first_instruction.next
-        stack = [optimizer.first_flow]
         loop_marks = {}
+        previous = nil
+        stack = [[previous, optimizer.first_flow]]
 
         yield Entry.new
         first = true
         until stack.empty?
-          current = stack.pop
+          previous, current = stack.pop
           if first
             first = false
           else
@@ -1566,20 +1548,24 @@ module Rubinius
                 loop_marks[current] = true
                 if current.dst.next
                   yield Save.new
-                  stack.push(current.dst.next_flow)
-                  stack.push(current.dst.branch_flow)
-                  yield current
+                  stack.push([previous, current.dst.next_flow])
+                  stack.push([previous, current.dst.branch_flow])
+                  yield [previous, current]
+                  previous = current
                   current = nil
                 else
+                  previous = current
                   current = current.next_flow
                 end
               else
+                previous = current
                 current = nil
               end
             elsif current.dst.control_flow_type == :return
               break
             else
-              yield current
+              yield [previous, current]
+              previous = current
               current = current.dst.next
             end
           end
