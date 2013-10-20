@@ -1703,6 +1703,34 @@ module Rubinius
       def optimize
       end
     end
+
+    class PruneUnused < Optimizer
+      def optimize
+        #begin
+          found = false
+          optimizer.each_instruction do |inst|
+            p inst.incoming_flows if inst.instruction.ip == 1005
+            #p inst
+            #p inst.incoming_flows
+            if inst.incoming_flows.empty?
+              #p :found
+              found = true
+              #p inst
+              #inst.static_next_flow.remove
+              if inst.next_flow
+                optimizer.remove_control_flow(inst.next_flow)
+                #inst.next_flow.uninstall
+              end
+              if inst.branch_flow?
+                optimizer.remove_control_flow(inst.branch_flow)
+                inst.branch_flow.uninstall
+              end
+              inst.raw_remove
+            end
+          end
+        #end while found
+      end
+    end
   end
 end
 
@@ -1723,6 +1751,7 @@ if ENV["opt"] == "true"
   opt = Rubinius::Optimizer.new(code)
   opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
   opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+  opt.add_pass(Rubinius::Optimizer::PruneUnused)
   #opt.add_pass(Rubinius::Optimizer::Prune)
   #opt.add_pass(Rubinius::Optimizer::GoToRemover)
   #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
