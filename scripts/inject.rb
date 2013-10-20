@@ -391,7 +391,7 @@ module Rubinius
     def encode
       ip = 0
       each_instruction do |inst|
-        p inst.to_label(self)
+        #p inst.to_label(self)
         inst.ip = ip
         ip += inst.instruction_width
       end
@@ -789,7 +789,7 @@ module Rubinius
     end
 
     class ControlFlow
-      attr_accessor :src, :dst, :spots
+      attr_accessor :src, :dst, :spots, :previous_spots
       def initialize(src, dst)
         @src = src
         raise "src is nil" if @src.nil?
@@ -798,11 +798,15 @@ module Rubinius
         @remove = false
         @installed = false
         @spots = []
+        @previous_spots = []
       end
 
       def add_spot(spot)
         @spots.push(spot) unless @spots.include?(spot)
-        spot.add_flow(self)
+      end
+
+      def add_previous_spot(spot)
+        @previous_spots.push(spot) unless @spots.include?(spot) and @previous_spots.include?(spot)
       end
 
       def add_spots(spots)
@@ -1059,8 +1063,15 @@ module Rubinius
           edge = g.add_edges(node1, node2)
           edge.arrowhead = 'empty' if control_flow.static_dst?
           edge.arrowsize = '1.7'
+          labels = []
           if not control_flow.spots.empty?
-            edge.label = " #{control_flow.spots.collect {|s| "#{s.to_label(optimizer)}#{s.first_flow?(control_flow) ? " (first)" : ""}" }.join("\n")}"
+            labels += control_flow.spots.collect {|s| "#{s.to_label(optimizer)} #{s.position(control_flow)}" }
+          end
+          if not control_flow.previous_spots.empty?
+            labels += control_flow.previous_spots.collect {|s| "#{s.to_label(optimizer)} PREV" }
+          end
+          if not labels.empty?
+            edge.label = labels.join("\n")
             edge.fontname = 'monospace'
             edge.fontsize = '11'
           end
@@ -1146,7 +1157,7 @@ module Rubinius
           @cursor = nil
         else
           @cursor += advance
-          @results << [flow, matcher]
+          @results << [previous_flow, flow, matcher]
 
           if @selector[@cursor].nil?
             @cursor = nil
@@ -1199,10 +1210,16 @@ module Rubinius
       def translate
         #p @results.map(&:last)
         spot = create_spot
-        @results.each do |flow, match|
+        @results.each do |previous_flow, flow, match|
           unless self.class.translator.include?(match)
             on_translate(spot, flow)
+
+            previous_flow.add_previous_spot(spot)
+            spot.add_previous_flow(previous_flow)
+
             flow.add_spot(spot)
+            spot.add_flow(flow)
+
             flow.remove
           end
         end
@@ -1272,18 +1289,27 @@ module Rubinius
       def initialize(type)
         @type = type
         @flows = []
+        @previous_flows = []
       end
 
       def to_label(optimizer)
-        "#{@type}#{object_id}"
+        "#{@type}_#{object_id.to_s(0x10)}"
       end
 
       def first_flow?(flow)
         @flows.first == flow
       end
 
+      def position(flow)
+        "#{(@flows.index(flow) + 1)}/#{(@flows.size)}"
+      end
+
       def add_flow(flow)
-        @flows.push(flow)
+        @flows.push(flow) unless @flows.include?(flow)
+      end
+
+      def add_previous_flow(flow)
+        @previous_flows.push(flow) unless @flows.include?(flow) and @previous_flows.include?(flow)
       end
     end
 
@@ -1534,22 +1560,16 @@ module Rubinius
         stack = [[previous, optimizer.first_flow]]
 
         yield Entry.new
-        first = true
         until stack.empty?
           previous, current = stack.pop
-          if first
-            first = false
-          else
-            yield Restore.new
-          end
           while current
             if current.dst.control_flow_type == :branch
               if loop_marks[current].nil?
                 loop_marks[current] = true
                 if current.dst.next
                   yield Save.new
-                  stack.push([previous, current.dst.next_flow])
-                  stack.push([previous, current.dst.branch_flow])
+                  stack.push([current, current.dst.next_flow])
+                  stack.push([current, current.dst.branch_flow])
                   yield [previous, current]
                   previous = current
                   current = nil
@@ -1569,6 +1589,7 @@ module Rubinius
               current = current.dst.next
             end
           end
+          yield Restore.new
         end
         yield Terminate.new
       end
