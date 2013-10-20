@@ -1168,7 +1168,7 @@ module Rubinius
           @cursor = nil
         else
           @cursor += advance
-          @results << [flow.src, flow.dst, matcher]
+          @results << [flow, matcher]
 
           if @selector[@cursor].nil?
             @cursor = nil
@@ -1221,7 +1221,8 @@ module Rubinius
       def translate
         #p @results.map(&:last)
         spot = create_spot
-        @results.each do |prev, cur, match|
+        @results.each do |flow, match|
+          prev, cur = flow.src, flow.dst
           unless self.class.translator.include?(match)
             on_translate(spot, prev, cur)
             @scalar.optimizer.unlink(spot, prev, cur)
