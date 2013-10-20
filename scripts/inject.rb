@@ -1514,7 +1514,7 @@ module Rubinius
               #p event
             else
               p event.compact.map{|i| i.to_label(optimizer)}
-              transformed ||= feed(event)
+              transformed ||= feed([event.src, event.dst])
             end
           end
         end
@@ -1550,7 +1550,7 @@ module Rubinius
 
       def scalar_each
         entry = optimizer.first_instruction.next
-        stack = [[nil, optimizer.first_flow]]
+        stack = [[optimizer.first_flow]]
         loop_marks = {}
 
         yield Entry.new
@@ -1568,9 +1568,9 @@ module Rubinius
                 loop_marks[current] = true
                 if current.dst.next
                   yield Save.new
-                  stack.push([current, current.dst.next_flow])
-                  stack.push([current, current.dst.branch_flow])
-                  yield [previous.dst, current.dst]
+                  stack.push([current.dst.next_flow])
+                  stack.push([current.dst.branch_flow])
+                  yield [current]
                   current = nil
                 else
                   previous = current
@@ -1582,11 +1582,7 @@ module Rubinius
             elsif current.dst.control_flow_type == :return
               break
             else
-              if previous
-                yield [previous.dst, current.dst]
-              else
-                yield [current.src, current.dst]
-              end
+              yield [current]
               previous = current
               current = current.dst.next
             end
