@@ -220,12 +220,16 @@ module Rubinius
       end
 
       def branch_flow
-        raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
+        raise "no #{op_code} #{self.inspect}" unless branch_flow?
         @op_rands.first
       end
 
+      def branch_flow?
+        control_flow_type == :branch or control_flow_type == :handler
+      end
+
       def branch_flow=(branch)
-        raise "no #{op_code} #{self.inspect}" unless control_flow_type == :branch or control_flow_type == :handler
+        raise "no #{op_code} #{self.inspect}" unless branch_flow?
         @op_rands[0] = branch
       end
 
@@ -383,8 +387,9 @@ module Rubinius
     def each_instruction
       instruction = first_instruction
       while instruction
+        following_instruction = instruction.following_instruction
         yield instruction
-        instruction = instruction.following_instruction
+        instruction = following_instruction
       end
     end
 
@@ -789,7 +794,7 @@ module Rubinius
     end
 
     class ControlFlow
-      attr_accessor :src, :dst, :spots, :previous_spots
+      attr_accessor :src, :dst, :spots, :previous_spots, :metadata
       def initialize(src, dst)
         @src = src
         raise "src is nil" if @src.nil?
@@ -799,6 +804,7 @@ module Rubinius
         @installed = false
         @spots = []
         @previous_spots = []
+        @metadata = {}
       end
 
       def add_spot(spot)
@@ -1070,6 +1076,9 @@ module Rubinius
           if not control_flow.previous_spots.empty?
             labels += control_flow.previous_spots.collect {|s| "#{s.to_label(optimizer)} PREV" }
           end
+          if not control_flow.metadata.empty?
+            labels += [control_flow.metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
+          end
           if not labels.empty?
             edge.label = labels.join("\n")
             edge.fontname = 'monospace'
@@ -1207,20 +1216,88 @@ module Rubinius
         end
       end
 
+      def isolated?
+        @results.each do |previous_flow, flow, match|
+          unless self.class.translator.include?(match)
+            return false if flow.dst.incoming_flows.size > 1
+          end
+        end
+
+        true
+      end
+
+      def forwardable?(spot)
+        forwardable = false
+        @results.each do |previous_flow, flow, match|
+          unless self.class.translator.include?(match)
+            next_flow = flow
+            while next_flow = next_flow.dst.static_next_flow
+              if next_flow.spots == [spot]
+                forwardable = true
+              elsif not next_flow.spots.empty?
+                return false
+              end
+            end
+          end
+        end
+
+        forwardable
+      end
+
       def translate
         #p @results.map(&:last)
         spot = create_spot
+        #next if @results.first[1].spots.any?{|s| p s.type ;s.type == type }
+
         @results.each do |previous_flow, flow, match|
           unless self.class.translator.include?(match)
-            on_translate(spot, flow)
+            return if flow.spots.size > 0
 
-            previous_flow.add_previous_spot(spot)
-            spot.add_previous_flow(previous_flow)
+            #previous_flow.add_previous_spot(spot)
+            #spot.add_previous_flow(previous_flow)
 
             flow.add_spot(spot)
             spot.add_flow(flow)
 
-            flow.remove
+            if isolated?
+              on_translate(spot, flow)
+
+              flow.remove
+            end
+          end
+        end
+
+        return if isolated?
+
+
+        flows = []
+        @results.each do |previous_flow, flow, match|
+          unless self.class.translator.include?(match)
+            flows << flow
+            flow.metadata[spot] ||= {}
+          end
+        end
+
+        if forwardable?(spot)
+          flows.each.with_index do |flow, index|
+            next_flow = flow.next_flow
+            if next_flow == flows[index + 1]
+              p :cover
+              flow.metadata[spot][:cover] = true
+              @optimizer.remove_control_flow(flow.next_flow)
+              flow.point_to_next_instruction
+              flow.point_to_next_instruction
+            else
+              flow.metadata[spot][:iso_cover] = true
+              flow.point_to_next_instruction
+              flow.point_to_next_instruction
+              flow.point_to_next_instruction
+            end
+            return false
+          end
+        else
+          flows.each do |flow|
+            flow.metadata[spot][:cover] = false
           end
         end
 
@@ -1286,6 +1363,7 @@ module Rubinius
     end
 
     class Spot
+      attr_reader :type
       def initialize(type)
         @type = type
         @flows = []
@@ -1301,7 +1379,11 @@ module Rubinius
       end
 
       def position(flow)
-        "#{(@flows.index(flow) + 1)}/#{(@flows.size)}"
+        if @flows.index(flow)
+          "#{(@flows.index(flow) + 1)}/#{(@flows.size)}"
+        else
+          "REMOVED"
+        end
       end
 
       def add_flow(flow)
@@ -1345,7 +1427,8 @@ module Rubinius
         begin
           found = false
           optimizer.each_instruction do |inst|
-            #p inst
+            p inst.instruction.ip
+            p inst if inst.instruciton.ip == 0
             #p inst.incoming_flows
             if inst.incoming_flows.empty?
               #p :found
@@ -1415,6 +1498,7 @@ module Rubinius
         begin
           found = false
           optimizer.each_instruction do |inst|
+            p inst.incoming_flows if inst.instruction.ip == 1005
             #p inst
             #p inst.incoming_flows
             if inst.incoming_flows.empty?
@@ -1422,8 +1506,14 @@ module Rubinius
               found = true
               #p inst
               #inst.static_next_flow.remove
-              optimizer.remove_control_flow(inst.static_next_flow)
-              #p inst
+              if inst.next_flow
+                optimizer.remove_control_flow(inst.next_flow)
+                #inst.next_flow.uninstall
+              end
+              if inst.branch_flow?
+                optimizer.remove_control_flow(inst.branch_flow)
+                inst.branch_flow.uninstall
+              end
               inst.raw_remove
             end
           end
@@ -1438,21 +1528,21 @@ module Rubinius
             used_spots = []
 
             inst.incoming_flows.dup.each do |flow|
-              next unless flow.first_flow?
+              #next unless flow.first_flow?
               used_spots = flow.spots.dup
 
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
-                flow.add_spots(next_flow.spots)
+                #flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
-                  #optimizer.remove_control_flow(next_flow)
+                  optimizer.remove_control_flow(next_flow)
                 end
               if next_flow.removed?
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
-                flow.add_spots(next_flow.spots)
+                #flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
-                  #optimizer.remove_control_flow(next_flow)
+                  optimizer.remove_control_flow(next_flow)
                 end
               end
 
@@ -1553,7 +1643,7 @@ module Rubinius
         false
       end
 
-      def scalar_each
+      def scalar_each(&block)
         entry = optimizer.first_instruction.next
         loop_marks = {}
         previous = nil
@@ -1570,7 +1660,7 @@ module Rubinius
                   yield Save.new
                   stack.push([current, current.dst.next_flow])
                   stack.push([current, current.dst.branch_flow])
-                  yield [previous, current]
+                  yield_flow(previous, current, &block)
                   previous = current
                   current = nil
                 else
@@ -1584,7 +1674,11 @@ module Rubinius
             elsif current.dst.control_flow_type == :return
               break
             else
-              yield [previous, current]
+              #if current.dst.incoming_flows.size == 1
+                yield_flow(previous, current, &block)
+              #else
+              #  yield Entry.new
+              #end
               previous = current
               current = current.dst.next
             end
@@ -1592,6 +1686,10 @@ module Rubinius
           yield Restore.new
         end
         yield Terminate.new
+      end
+
+      def yield_flow(previous, current)
+        yield([previous, current])
       end
     end
 
@@ -1621,18 +1719,23 @@ code = Array.instance_method(:set_index).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = [].method(:cycle).executable
-opt = Rubinius::Optimizer.new(code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
-#opt.add_pass(Rubinius::Optimizer::GoToRemover)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+if ENV["opt"] == "true"
+  opt = Rubinius::Optimizer.new(code)
+  opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+  opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+  #opt.add_pass(Rubinius::Optimizer::Prune)
+  #opt.add_pass(Rubinius::Optimizer::GoToRemover)
+  #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+  #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+  opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+  #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
-optimized_code = opt.run
+  code = opt.run
+else
+  opt = Rubinius::Optimizer.new(code)
+  code = opt.run
+end
 
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
@@ -1657,28 +1760,21 @@ hello = [:world, :invoke, :name, :obj, :args, :block, :sat, :odct]
 result = nil
 arg = [3...5, ["world", "haa"]]
 
-5.times do
 #p result
 puts
 
-10.times do
-  puts
-   p optimized_code.decode.size
+1.times do
+  p code.decode.size
+  5.times do
   measure do
-    100000.times do
-      optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
-    end
-  end
-   p code.decode.size
-  measure do
-    100000.times do
+    1000000.times do
       code.invoke(:loo, Array, hello.dup, arg, nil)
     end
+  end
   end
 end
 #p result
 puts
-end
 
 #opt = Rubinius::Optimizer.new(optimized_code)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
