@@ -297,7 +297,11 @@ module Rubinius
       #  raise "aa"
       #end
       control_flow.remove
-      control_flow.add_spot(spot.src)
+      if control_flow.src.previous
+        control_flow.src.previous.add_spot(spot)
+      else
+        p control_flow
+      end
       control_flow.add_spot(spot)
     end
 
