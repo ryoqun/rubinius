@@ -1194,7 +1194,7 @@ module Rubinius
           meta_matcher = matcher
           case meta_matcher
           when :no_stack_changes
-            if inst.op_code == :goto
+            if inst.op_code == :goto or inst.op_code == :check_interrupts
               0
             else
               nil
@@ -1227,37 +1227,10 @@ module Rubinius
         end
       end
 
-      def isolated?
-        @results.each do |previous_flow, flow, match|
-          unless self.class.translator.include?(match)
-            return false if flow.dst.incoming_flows.size > 1
-          end
-        end
-
-        true
-      end
-
-      def forwardable?(spot)
-        forwardable = false
-        @results.each do |previous_flow, flow, match|
-          unless self.class.translator.include?(match)
-            next_flow = flow
-            while next_flow = next_flow.dst.static_next_flow
-              if next_flow.spots == [spot]
-                forwardable = true
-              elsif not next_flow.spots.empty?
-                return false
-              end
-            end
-          end
-        end
-
-        forwardable
-      end
-
       def translate
         #p @results.map(&:last)
-        spot = create_spot
+        spot = create_spot(@results)
+        @scalar.add_spot(spot)
         #next if @results.first[1].spots.any?{|s| p s.type ;s.type == type }
 
         @results.each do |previous_flow, flow, match|
@@ -1270,51 +1243,16 @@ module Rubinius
             flow.add_spot(spot)
             spot.add_flow(flow)
 
-            if isolated?
-              on_translate(spot, flow)
-
-              flow.remove
-            end
-          end
-        end
-
-        return if isolated?
-
-
-        flows = []
-        @results.each do |previous_flow, flow, match|
-          unless self.class.translator.include?(match)
-            flows << flow
             flow.metadata[spot] ||= {}
           end
         end
 
-        if forwardable?(spot)
-          raise "bad" if flows.size != 2
-          index = 0
-          flow = flows.first
-          return if flow.is_a?(NextControlFlow)
-          next_flow = flow.next_flow
-          puts
-          ap flow.to_label(nil)
-          ap flows.last.to_label(nil)
-          until next_flow == flows.last
-            flow.point_to_next_instruction
-            next_flow = flow.next_flow
-          end
-          flow.point_to_next_instruction
-          flow.point_to_next_instruction
-        else
-          flows.each do |flow|
-            flow.metadata[spot][:cover] = false
-          end
-        end
 
         false
       end
 
-      def create_spot
-        Spot.new(type)
+      def create_spot(results)
+        Spot.new(self, results)
       end
 
       def on_translate(spot, flow)
@@ -1373,8 +1311,10 @@ module Rubinius
 
     class Spot
       attr_reader :type
-      def initialize(type)
-        @type = type
+      def initialize(matcher, results)
+        @matcher = matcher
+        @type = matcher.type
+        @results = results
         @flows = []
         @previous_flows = []
       end
@@ -1401,6 +1341,86 @@ module Rubinius
 
       def add_previous_flow(flow)
         @previous_flows.push(flow) unless @flows.include?(flow) and @previous_flows.include?(flow)
+      end
+
+      def transform
+        if isolated?
+          @results.each do |previous_flow, flow, match|
+            unless @matcher.class.translator.include?(match)
+              #on_translate(spot, flow)
+              flow.remove
+            end
+          end
+        else
+          flows = []
+          @results.each do |previous_flow, flow, match|
+            unless @matcher.class.translator.include?(match)
+              flows << flow
+              flow.metadata[self] ||= {}
+              flow.metadata[self][:isolated] = false
+            end
+          end
+
+          if forwardable?(self)
+            raise "bad" if flows.size != 2
+            index = 0
+            flow = flows.first
+            return if flow.is_a?(NextControlFlow)
+            next_flow = flow.next_flow
+            #puts
+            #ap flow.to_label(nil)
+            #ap flows.last.to_label(nil)
+            until next_flow == flows.last
+              flow.point_to_next_instruction
+              next_flow = flow.next_flow
+            end
+            flow.point_to_next_instruction
+            flow.point_to_next_instruction
+          else
+            flows.each do |flow|
+              flow.metadata[self] ||= {}
+              flow.metadata[self][:cover] = false
+            end
+          end
+        end
+      end
+
+      def forwardable?(spot)
+        forwardable = false
+        @results.each do |previous_flow, flow, match|
+          unless @matcher.class.translator.include?(match)
+            next_flow = flow
+            while next_flow = next_flow.dst.static_next_flow
+              if next_flow.spots == [spot]
+                forwardable = true
+              elsif not next_flow.spots.empty?
+                return false
+              end
+            end
+          end
+        end
+
+        forwardable
+      end
+
+      def isolated?
+        @results.each do |previous_flow, flow, match|
+          unless @matcher.class.translator.include?(match)
+            if flow.dst.incoming_flows.size > 1
+              comparison = flow.dst.incoming_flows.collect do |flow|
+                [
+                flow.spots.map(&:type),
+                flow.spots.map{|s| s.position(flow) },
+                ]
+              end
+              if comparison.uniq.size > 1
+                return false
+              end
+            end
+          end
+        end
+
+        true
       end
     end
 
@@ -1597,7 +1617,12 @@ module Rubinius
     end
 
     class ScalarTransform < Optimization
+      def add_spot(spot)
+        @spots << spot
+      end
+
       def optimize
+        @spots = []
         transformed = true
 
         while transformed
@@ -1622,6 +1647,7 @@ module Rubinius
             end
           end
         end
+        @spots.each(&:transform)
       end
 
       def reset
@@ -1736,16 +1762,16 @@ end
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
 def loo(_aa, _bb)
-  if kind_of?(Class)
-    nil
-  else
-    nil
+  i = 0
+  while i < 1000
+    @foo = true
+    @bar = @foo
+    @baz = @bar
+    i += 1
   end
-
-  nil
 end
-code = Array.instance_method(:set_index).executable
-#code = method(:loo).executable
+#code = Array.instance_method(:set_index).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -1788,7 +1814,6 @@ optimized_code = opt.run
 #un_code = opt.run
 
 #puts code
-puts optimized_code.decode.size
 
 def measure
   started_at = Time.now
@@ -1804,25 +1829,27 @@ arg = [3...5, ["world", "haa"]]
 puts
 
 1.times do
-  time2 = 0
+  puts optimized_code.decode.size
+  optimized_time = 0
   5.times do
-    time2 += measure do
-      1000000.times do
+    optimized_time += measure do
+      1000.times do
         optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
       end
     end
   end
 
-  time = 0
+  puts un_code.decode.size
+  unoptimized_time = 0
   5.times do
-    time += measure do
-      1000000.times do
+    unoptimized_time += measure do
+      1000.times do
         un_code.invoke(:loo, Array, hello.dup, arg, nil)
       end
     end
   end
 
-  p time/time2
+  p unoptimized_time/optimized_time
 end
 #p result
 puts
