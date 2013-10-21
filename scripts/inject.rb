@@ -150,6 +150,14 @@ module Rubinius
         @branch_flows
       end
 
+      def mark_raw_remove
+        @remove_mark = true
+      end
+
+      def mark_for_removal?
+        @remove_mark
+      end
+
       def raw_remove
         if following_instruction
           following_instruction.preceeding_instruction = preceeding_instruction
@@ -1061,10 +1069,12 @@ module Rubinius
           node1 = g.add_nodes(control_flow.src.to_label(optimizer))
           node1.shape = 'rect'
           node1.fontname = 'monospace'
+          node1.style = 'dashed' if control_flow.src.mark_for_removal?
           #node1.fontsize = '18'
           node2 = g.add_nodes(control_flow.dst.to_label(optimizer))
           node2.shape = 'rect'
           node2.fontname = 'monospace'
+          node2.style = 'dashed' if control_flow.dst.mark_for_removal?
           #node2.fontsize = '18'
           edge = g.add_edges(node1, node2)
           edge.arrowhead = 'empty' if control_flow.static_dst?
@@ -1079,6 +1089,8 @@ module Rubinius
           if not control_flow.metadata.empty?
             labels += [control_flow.metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
           end
+          labels += [control_flow.src.to_s]
+          labels += [[control_flow.src.incoming_flows.collect(&:src)].to_s.split(", ").join("\n")]
           if not labels.empty?
             edge.label = labels.join("\n")
             edge.fontname = 'monospace'
@@ -1088,7 +1100,7 @@ module Rubinius
         end
 
         g.output(:pdf => "control_flow.pdf")
-        g.output(:ps => "control_flow.ps")
+        #g.output(:ps => "control_flow.ps")
         g.output(:svg => "control_flow.svg")
       end
     end
@@ -1182,8 +1194,7 @@ module Rubinius
           meta_matcher = matcher
           case meta_matcher
           when :no_stack_changes
-            if inst.op_code == :check_interrupts or
-               inst.op_code == :goto
+            if inst.op_code == :goto
               0
             else
               nil
@@ -1279,22 +1290,20 @@ module Rubinius
         end
 
         if forwardable?(spot)
-          flows.each.with_index do |flow, index|
+          raise "bad" if flows.size != 2
+          index = 0
+          flow = flows.first
+          return if flow.is_a?(NextControlFlow)
+          next_flow = flow.next_flow
+          puts
+          ap flow.to_label(nil)
+          ap flows.last.to_label(nil)
+          until next_flow == flows.last
+            flow.point_to_next_instruction
             next_flow = flow.next_flow
-            if next_flow == flows[index + 1]
-              p :cover
-              flow.metadata[spot][:cover] = true
-              @optimizer.remove_control_flow(flow.next_flow)
-              flow.point_to_next_instruction
-              flow.point_to_next_instruction
-            else
-              flow.metadata[spot][:iso_cover] = true
-              flow.point_to_next_instruction
-              flow.point_to_next_instruction
-              flow.point_to_next_instruction
-            end
-            return false
           end
+          flow.point_to_next_instruction
+          flow.point_to_next_instruction
         else
           flows.each do |flow|
             flow.metadata[spot][:cover] = false
@@ -1704,31 +1713,21 @@ module Rubinius
       end
     end
 
-    class PruneUnused < Optimizer
+    class PruneUnused < Optimization
       def optimize
-        #begin
+        begin
           found = false
-          optimizer.each_instruction do |inst|
-            p inst.incoming_flows if inst.instruction.ip == 1005
-            #p inst
-            #p inst.incoming_flows
-            if inst.incoming_flows.empty?
-              #p :found
+          optimizer.control_flows.dup.each do |flow|
+            next if flow == optimizer.first_flow
+            if flow.src.incoming_flows.empty?
               found = true
-              #p inst
-              #inst.static_next_flow.remove
-              if inst.next_flow
-                optimizer.remove_control_flow(inst.next_flow)
-                #inst.next_flow.uninstall
-              end
-              if inst.branch_flow?
-                optimizer.remove_control_flow(inst.branch_flow)
-                inst.branch_flow.uninstall
-              end
-              inst.raw_remove
+              flow.remove
+              flow.uninstall
+              optimizer.remove_control_flow(flow)
+              flow.src.raw_remove
             end
           end
-        #end while found
+        end while found
       end
     end
   end
@@ -1736,10 +1735,14 @@ end
 
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
-def loo
-  while true
-    hello
+def loo(_aa, _bb)
+  if kind_of?(Class)
+    nil
+  else
+    nil
   end
+
+  nil
 end
 code = Array.instance_method(:set_index).executable
 #code = method(:loo).executable
@@ -1747,25 +1750,33 @@ code = Array.instance_method(:set_index).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = [].method(:cycle).executable
-if ENV["opt"] == "true"
-  opt = Rubinius::Optimizer.new(code)
-  opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-  opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-  opt.add_pass(Rubinius::Optimizer::PruneUnused)
-  #opt.add_pass(Rubinius::Optimizer::Prune)
-  #opt.add_pass(Rubinius::Optimizer::GoToRemover)
-  #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-  #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt = Rubinius::Optimizer.new(code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
+#opt.add_pass(Rubinius::Optimizer::GoToRemover)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-  opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-  #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
-  code = opt.run
-else
-  opt = Rubinius::Optimizer.new(code)
-  code = opt.run
-end
+optimized_code = opt.run
 
+opt = Rubinius::Optimizer.new(code)
+un_code = opt.run
+
+#if ENV["opt"] == "true"
+#  code = optimied_code
+#else
+#  code = un_code
+#end
+
+opt = Rubinius::Optimizer.new(optimized_code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+optimized_code = opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
@@ -1777,12 +1788,12 @@ end
 #un_code = opt.run
 
 #puts code
-#puts optimized_code.decode.size
+puts optimized_code.decode.size
 
 def measure
   started_at = Time.now
   yield
-  puts Time.now - started_at
+  Time.now - started_at
 end
 # invoke(@name, @defined_in, obj, args, block)
 hello = [:world, :invoke, :name, :obj, :args, :block, :sat, :odct]
@@ -1793,22 +1804,29 @@ arg = [3...5, ["world", "haa"]]
 puts
 
 1.times do
-  p code.decode.size
+  time2 = 0
   5.times do
-  measure do
-    1000000.times do
-      code.invoke(:loo, Array, hello.dup, arg, nil)
+    time2 += measure do
+      1000000.times do
+        optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
+      end
     end
   end
+
+  time = 0
+  5.times do
+    time += measure do
+      1000000.times do
+        un_code.invoke(:loo, Array, hello.dup, arg, nil)
+      end
+    end
   end
+
+  p time/time2
 end
 #p result
 puts
 
-#opt = Rubinius::Optimizer.new(optimized_code)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
-#opt.run
 
 p result
 
