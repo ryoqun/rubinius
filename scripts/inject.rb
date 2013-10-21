@@ -228,7 +228,7 @@ module Rubinius
       end
 
       def branch_flow
-        raise "no #{op_code} #{self.inspect}" unless branch_flow?
+        raise "not branch flow #{op_code} #{self.inspect}" unless branch_flow?
         @op_rands.first
       end
 
@@ -416,6 +416,41 @@ module Rubinius
           bytecodes << op_rand.to_bytecode(inst)
         end
       end
+
+      sequence = []
+      stacks = [first_instruction]
+      used = {}
+      until stacks.empty?
+        instruction = stacks.pop
+
+        if instruction
+          if not used.include?(instruction)
+            sequence << instruction
+            used[instruction] = true
+          end
+        end
+
+        while instruction
+          if next_flow = instruction.static_next_flow
+            instruction = next_flow.dst
+          else
+            if next_flow = instruction.next_flow
+              instruction = next_flow.dst
+            else
+              instruciton = nil
+            end
+            if instruction.branch_flow? and branch_flow = instruction.branch_flow
+              stacks.push(branch_flow.dst)
+            end
+          end
+          if instruction
+            break if used.include?(instruction)
+            sequence << instruction
+            used[instruction] = true
+          end
+        end
+      end
+      p sequence.map(&:op_code)
 
       #p bytecodes
 
@@ -1763,7 +1798,7 @@ end
 #code = File.method(:absolute_path).executable
 def loo(_aa, _bb)
   i = 0
-  while i < 1000
+  while i < 10000
     @foo = true
     @bar = @foo
     @baz = @bar
@@ -1830,21 +1865,21 @@ puts
 
 1.times do
   puts optimized_code.decode.size
-  optimized_time = 0
-  5.times do
-    optimized_time += measure do
-      1000.times do
-        optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
-      end
-    end
-  end
-
   puts un_code.decode.size
   unoptimized_time = 0
   5.times do
     unoptimized_time += measure do
       1000.times do
         un_code.invoke(:loo, Array, hello.dup, arg, nil)
+      end
+    end
+  end
+
+  optimized_time = 0
+  5.times do
+    optimized_time += measure do
+      1000.times do
+        optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
       end
     end
   end
