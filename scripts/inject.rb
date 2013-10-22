@@ -405,6 +405,7 @@ module Rubinius
       sequence = []
       stacks = [first_instruction]
       used = {}
+      instruction = nil
       until stacks.empty?
         instruction = stacks.pop
 
@@ -419,14 +420,21 @@ module Rubinius
           if next_flow = instruction.next_flow
             instruction = next_flow.dst
             if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
-              p branch_flow.dst.to_label(nil)
+              p branch_flow.src.to_label(nil)
               stacks.push(branch_flow.dst)
             end
+          elsif instruction.op_code == :goto
+            goto_branch = stacks.pop
+            previous_branch = stacks.pop
+            stacks.push(goto_branch)
+            instruction = previous_branch
           else
             instruction = nil
           end
+
           if instruction
             break if used.include?(instruction)
+            #p instruction.to_label(self)
             sequence << instruction
             used[instruction] = true
           end
