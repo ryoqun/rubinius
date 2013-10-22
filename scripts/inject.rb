@@ -401,6 +401,55 @@ module Rubinius
       end
     end
 
+    def generate_bytecode
+      sequence = []
+      stacks = [first_instruction]
+      used = {}
+      until stacks.empty?
+        instruction = stacks.pop
+
+        if instruction
+          if not used.include?(instruction)
+            sequence << instruction
+            used[instruction] = true
+          end
+        end
+
+        while instruction
+          if next_flow = instruction.next_flow
+            instruction = next_flow.dst
+            if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
+              p branch_flow.dst.to_label(nil)
+              stacks.push(branch_flow.dst)
+            end
+          else
+            instruction = nil
+          end
+          if instruction
+            break if used.include?(instruction)
+            sequence << instruction
+            used[instruction] = true
+          end
+        end
+      end
+
+      ip = 0
+      sequence.each do |inst|
+        inst.ip = ip
+        ip += inst.instruction_width
+      end
+
+      bytecodes = []
+      sequence.each do |inst|
+        bytecodes << inst.bytecode
+        inst.op_rands.each do |op_rand|
+          bytecodes << op_rand.to_bytecode(inst)
+        end
+      end
+
+      bytecodes
+    end
+
     def encode
       ip = 0
       each_instruction do |inst|
@@ -417,42 +466,8 @@ module Rubinius
         end
       end
 
-      sequence = []
-      stacks = [first_instruction]
-      used = {}
-      until stacks.empty?
-        instruction = stacks.pop
-
-        if instruction
-          if not used.include?(instruction)
-            sequence << instruction
-            used[instruction] = true
-          end
-        end
-
-        while instruction
-          if next_flow = instruction.static_next_flow
-            instruction = next_flow.dst
-          else
-            if next_flow = instruction.next_flow
-              instruction = next_flow.dst
-            else
-              instruciton = nil
-            end
-            if instruction.branch_flow? and branch_flow = instruction.branch_flow
-              stacks.push(branch_flow.dst)
-            end
-          end
-          if instruction
-            break if used.include?(instruction)
-            sequence << instruction
-            used[instruction] = true
-          end
-        end
-      end
-      p sequence.map(&:op_code)
-
-      #p bytecodes
+      bytecodes = generate_bytecode
+      raise "too small, is there call flow analysis???" if bytecodes.size == 1
 
       opted = OptimizedCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
@@ -1086,6 +1101,11 @@ module Rubinius
     end
 
     class ControlFlowPrinter < Analysis
+      def initialize(*args, file, &block)
+        super(*args, &block)
+        @file = file
+      end
+
       def optimize
         g = GraphViz.new(:G, :type => :digraph)
         g[:fontname] = "monospace"
@@ -1134,9 +1154,9 @@ module Rubinius
           edge.style = 'dashed' if control_flow.removed?
         end
 
-        g.output(:pdf => "control_flow.pdf")
+        g.output(:pdf => "control_flow#{@file}.pdf")
         #g.output(:ps => "control_flow.ps")
-        g.output(:svg => "control_flow.svg")
+        g.output(:svg => "control_flow#{@file}.svg")
       end
     end
 
@@ -1491,8 +1511,8 @@ module Rubinius
         begin
           found = false
           optimizer.each_instruction do |inst|
-            p inst.instruction.ip
-            p inst if inst.instruciton.ip == 0
+            #p inst.instruction.ip
+            #p inst if inst.instruciton.ip == 0
             #p inst.incoming_flows
             if inst.incoming_flows.empty?
               #p :found
@@ -1562,7 +1582,7 @@ module Rubinius
         begin
           found = false
           optimizer.each_instruction do |inst|
-            p inst.incoming_flows if inst.instruction.ip == 1005
+            #p inst.incoming_flows if inst.instruction.ip == 1005
             #p inst
             #p inst.incoming_flows
             if inst.incoming_flows.empty?
@@ -1806,26 +1826,28 @@ def loo(_aa, _bb)
   end
 end
 #code = Array.instance_method(:set_index).executable
-code = method(:loo).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
-#code = [].method(:cycle).executable
+code = [].method(:cycle).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::GoToRemover)
+#opt.add_pass(Rubinius::Optimizer::GoToRemover)"
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
+puts optimized_code.decode.size
 
 opt = Rubinius::Optimizer.new(code)
+opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 un_code = opt.run
 
 #if ENV["opt"] == "true"
@@ -1836,8 +1858,9 @@ un_code = opt.run
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "generated")
 optimized_code = opt.run
+puts optimized_code.decode.size
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
