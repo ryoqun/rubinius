@@ -407,7 +407,7 @@ module Rubinius
       used = {}
       instruction = nil
       until stacks.empty?
-        instruction = stacks.pop
+        instruction = stacks.shift
 
         if instruction
           if not used.include?(instruction)
