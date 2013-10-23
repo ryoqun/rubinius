@@ -1,8 +1,6 @@
 require 'awesome_print'
 require 'graphviz'
 
-require 'graphviz'
-
 module Rubinius
   class Optimizer
     class OpRand
@@ -430,9 +428,9 @@ module Rubinius
               stacks.push(branch_flow.dst)
             end
           elsif instruction.op_code == :goto
-            goto_branch = stacks.pop
+            goto_branch = stacks.last
+            stacks.push(stacks.delete(goto_branch))
             previous_branch = stacks.shift
-            stacks.push(goto_branch)
             instruction = previous_branch
           else
             instruction = nil
@@ -1844,7 +1842,8 @@ end
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
-code = [].method(:cycle).executable
+#code = "".method(:start_with?).executable
+code = IO.instance_method(:each).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
