@@ -408,11 +408,18 @@ module Rubinius
         instruction = stacks.shift
 
         if instruction
-          puts "entry_section: #{instruction.to_label(self)}"
-          puts
-          p = instruction
-          while p = (p.previous ? p.previous.src : nil)
-            puts p.to_label(self)
+          if instruction.previous && instruction != first_instruction
+            rewinds = []
+            previous = instruction.previous.src
+            while not used.include?(previous)
+              rewinds << previous
+              break if previous.previous.nil?
+              previous = previous.previous.src
+            end
+            rewinds.reverse.each do |rewind|
+              sequence << rewind
+              used[rewind] = true
+            end
           end
           if not used.include?(instruction)
             sequence << instruction
