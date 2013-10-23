@@ -128,7 +128,7 @@ module Rubinius
 
       def dup
         super.tap do |new|
-          new.instance_variable_set(:@generation, @generation + 1)
+          new.instance_variable_set(:@generation, rand(100000))
         end
       end
 
@@ -985,6 +985,13 @@ module Rubinius
         end
       end
 
+      def change_src_dst(src, dst)
+        reinstall do
+          @src = src
+          @dst = dst
+        end
+      end
+
       def src_flow=(src_flow)
         raise
         #@src = src_flow.src
@@ -1524,27 +1531,29 @@ module Rubinius
       end
     end
 
-    class GoToRemover < Optimization
-      def prune_unused_insts
-        begin
-          found = false
-          optimizer.each_instruction do |inst|
-            #p inst.instruction.ip
-            #p inst if inst.instruciton.ip == 0
-            #p inst.incoming_flows
-            if inst.incoming_flows.empty?
-              #p :found
-              found = true
-              #p inst
-              #inst.static_next_flow.remove
-              optimizer.remove_control_flow(inst.static_next_flow)
-              #p inst
-              inst.raw_remove
-            end
-          end
-        end while found
-      end
+    class GotoRet < Optimization
+      def optimize
+        optimizer.each_instruction do |inst|
+          if inst.op_code == :goto and inst.branch_flow.dst.op_code == :ret and inst.incoming_flows.size == 1 and not inst.previous.nil?
+            goto = inst
 
+            new_goto = goto.branch_flow.dst.dup
+            new_goto.incoming_flows.clear
+            new_goto.branch_flows.clear
+
+            previous_inst = goto.previous.src
+            goto.previous.change_src_dst(previous_inst, new_goto)
+
+            optimizer.remove_control_flow(goto.branch_flow)
+
+            goto.raw_remove
+            goto.insert_after(previous_inst)
+          end
+        end
+      end
+    end
+
+    class GoToRemover < Optimization
       def optimize
         optimizer.each_instruction do |inst|
           if inst.op_code == :goto
@@ -1591,7 +1600,6 @@ module Rubinius
             #inst.raw_remove if inst.incoming_flows.empty?
           end
         end
-        #prune_unused_insts
       end
     end
 
@@ -1827,20 +1835,23 @@ end
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
+#code = Time.method(:at).executable
 #code = [].method(:cycle).executable
-code = IO.instance_method(:each).executable
+#code = IO.instance_method(:each).executable
+#code = IO.method(:binwrite).executable
 #code = Regexp.method(:escape).executable
-#code = Rational.instance_method(:/).executable
+code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::GotoRet)
 #opt.add_pass(Rubinius::Optimizer::GoToRemover)"
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_original")
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
