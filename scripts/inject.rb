@@ -1205,9 +1205,17 @@ module Rubinius
           edge.style = 'dashed' if flow.removed?
         end
 
-        g.output(:pdf => "flow#{@file}.pdf")
+        g.output(:pdf => "#{base_name}.pdf")
         #g.output(:ps => "flow.ps")
-        g.output(:svg => "flow#{@file}.svg")
+        g.output(:svg => "#{base_name}.svg")
+      end
+
+      def base_name
+        if @file
+          "flow_#{@file}"
+        else
+          "flow"
+        end
       end
     end
 
@@ -1866,7 +1874,7 @@ code = Array.instance_method(:set_index).executable
 #code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "_original")
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
@@ -1892,7 +1900,7 @@ un_code = opt.run
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "_generated")
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 optimized_code = opt.run
 puts optimized_code.decode.size
 #opt = Rubinius::Optimizer.new(code)
