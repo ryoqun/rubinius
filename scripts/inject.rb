@@ -88,6 +88,14 @@ module Rubinius
         !!@unconditional_branch_flow
       end
 
+      def previous_inst
+        @previous.src
+      end
+
+      def next_inst
+        @next.dst
+      end
+
       def previous_flow
         @previous
       end
@@ -420,11 +428,11 @@ module Rubinius
         if instruction
           if instruction.previous_flow && instruction != first_instruction
             rewinds = []
-            previous = instruction.previous_flow.src
+            previous = instruction.previous_inst
             while not used.include?(previous) and not previous.incoming_flows.empty? # remove empty future
               rewinds << previous
               break if previous.previous_flow.nil?
-              previous = previous.previous_flow.src
+              previous = previous.previous_inst
             end
             rewinds.reverse.each do |rewind|
               sequence << rewind
@@ -984,7 +992,7 @@ module Rubinius
             @dst = @dst.branch_flow.dst
             raise "dst is nil" if @dst.nil?
           elsif @dst.control_flow_type == :next
-            @dst = @dst.next_flow.dst
+            @dst = @dst.next_inst
             #p self.dst.to_label(self)
             raise "dst is nil" if @dst.nil?
           elsif @dst.unconditional_branch_flow?
