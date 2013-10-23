@@ -1044,10 +1044,7 @@ module Rubinius
     class EntryFlow < Flow
       def initialize(dst)
         super(EntryInst.new(self), dst)
-      end
-
-      def incoming_flows
-        [self]
+        @incoming_flows = [self]
       end
 
       def dynamic_dst?
