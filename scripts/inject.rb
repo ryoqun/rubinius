@@ -411,7 +411,7 @@ module Rubinius
           if instruction.previous && instruction != first_instruction
             rewinds = []
             previous = instruction.previous.src
-            while not used.include?(previous)
+            while not used.include?(previous) and not previous.incoming_flows.empty? # remove empty future
               rewinds << previous
               break if previous.previous.nil?
               previous = previous.previous.src
@@ -1827,8 +1827,10 @@ end
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
-#code = IO.instance_method(:each).executable
-code = Regexp.method(:escape).executable
+#code = [].method(:cycle).executable
+code = IO.instance_method(:each).executable
+#code = Regexp.method(:escape).executable
+#code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
