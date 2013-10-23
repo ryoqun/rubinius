@@ -408,6 +408,12 @@ module Rubinius
         instruction = stacks.shift
 
         if instruction
+          puts "entry_section: #{instruction.to_label(self)}"
+          puts
+          p = instruction
+          while p = (p.previous ? p.previous.src : nil)
+            puts p.to_label(self)
+          end
           if not used.include?(instruction)
             sequence << instruction
             used[instruction] = true
@@ -418,13 +424,14 @@ module Rubinius
           if next_flow = instruction.next_flow
             instruction = next_flow.dst
             if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
-              stacks.push(branch_flow.dst)
+              branch_instruction = stacks.delete(branch_flow.dst) ||
+                                     branch_flow.dst
+              stacks.push(branch_instruction)
             end
           elsif instruction.op_code == :goto
             goto_branch = stacks.last
             stacks.push(stacks.delete(goto_branch))
-            previous_branch = stacks.shift
-            instruction = previous_branch
+            break
           else
             instruction = nil
           end
@@ -1582,32 +1589,6 @@ module Rubinius
     end
 
     class Prune < Optimization
-      def prune_unused_insts
-        begin
-          found = false
-          optimizer.each_instruction do |inst|
-            #p inst.incoming_flows if inst.instruction.ip == 1005
-            #p inst
-            #p inst.incoming_flows
-            if inst.incoming_flows.empty?
-              #p :found
-              found = true
-              #p inst
-              #inst.static_next_flow.remove
-              if inst.next_flow
-                optimizer.remove_control_flow(inst.next_flow)
-                #inst.next_flow.uninstall
-              end
-              if inst.branch_flow?
-                optimizer.remove_control_flow(inst.branch_flow)
-                inst.branch_flow.uninstall
-              end
-              inst.raw_remove
-            end
-          end
-        end while found
-      end
-
       def optimize
         moved_flows = []
 
@@ -1671,7 +1652,6 @@ module Rubinius
             end
           end
         end
-        prune_unused_insts
       end
     end
 
@@ -1802,6 +1782,11 @@ module Rubinius
       def optimize
         begin
           found = false
+          optimizer.each_instruction do |instruction|
+            if instruction.incoming_flows.empty? # maybe we should also check next but haven't a convenient api yet.
+              instruction.raw_remove
+            end
+          end
           optimizer.control_flows.dup.each do |flow|
             next if flow == optimizer.first_flow
             if flow.src.incoming_flows.empty?
@@ -1835,7 +1820,8 @@ end
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
-code = IO.instance_method(:each).executable
+#code = IO.instance_method(:each).executable
+code = Regexp.method(:escape).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
@@ -1845,7 +1831,7 @@ opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_original")
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
@@ -1863,7 +1849,7 @@ un_code = opt.run
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "generated")
+opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_generated")
 optimized_code = opt.run
 puts optimized_code.decode.size
 #opt = Rubinius::Optimizer.new(code)
