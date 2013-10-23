@@ -62,7 +62,7 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :branch_flows, :incoming_flows, :entry_flow
+      attr_reader :instruction, :imports, :exports, :incoming_branch_flows, :incoming_flows, :entry_flow
       attr_accessor :op_rands, :ip,
                     :following_instruction, :preceeding_instruction, :unconditional_branch_flow
       def initialize(instruction)
@@ -70,7 +70,7 @@ module Rubinius
         @op_rands = nil
 
         @previous = @next = nil
-        @branch_flows = []
+        @incoming_branch_flows = []
         @incoming_flows = []
 
         @imports = []
@@ -142,7 +142,7 @@ module Rubinius
         super.tap do |new|
           new.instance_variable_set(:@generation, rand(100000))
           new.incoming_flows.clear
-          new.branch_flows.clear
+          new.incoming_branch_flows.clear
         end
       end
 
@@ -162,8 +162,8 @@ module Rubinius
         @previous
       end
 
-      def branch_flows
-        @branch_flows
+      def incoming_branch_flows
+        @incoming_branch_flows
       end
 
       def mark_raw_remove
@@ -195,8 +195,8 @@ module Rubinius
           prev_flow.point_to_next_instruction
           #p prev_flow.to_label(nil)
         end
-        #p branch_flows.map(&:class)
-        branch_flows.dup.each do |f|
+        #p incoming_branch_flows.map(&:class)
+        incoming_branch_flows.dup.each do |f|
           while f.next_flow? and f.next_flow.removed?
             #p next_flow.to_label(nil)
             f.point_to_next_instruction if f
@@ -648,7 +648,7 @@ module Rubinius
         optimizer.each_instruction do |instruction|
           #p instruction.to_label(optimizer)
           branch_target_found = false
-          instruction.branch_flows.each do |goto|
+          instruction.incoming_branch_flows.each do |goto|
             if goto.src.op_code == :goto or
                goto.src.op_code == :goto_if_true or
                goto.src.op_code == :goto_if_false
@@ -843,7 +843,7 @@ module Rubinius
       end
 
       def decorate_node(data)
-        suffix = nil #"(branch_flow)" if data.respond_to?(:branch_flows) and not data.branch_flows.empty?
+        suffix = nil #"(branch_flow)" if data.respond_to?(:incoming_branch_flows) and not data.incoming_branch_flows.empty?
         if data.is_a?(Inst) and (not data.imports.empty? or not data.exports.empty?)
           node = @g.get_node(data.to_label(optimizer)) || @g.add_nodes(data.to_label(optimizer))
           label = escape(data.to_label(optimizer))
@@ -1100,7 +1100,7 @@ module Rubinius
       def install
         super.tap do
           #@src.branch_flow = self
-          @dst.branch_flows.push(self)
+          @dst.incoming_branch_flows.push(self)
           @dst.incoming_flows.push(self)
         end
       end
@@ -1108,7 +1108,7 @@ module Rubinius
       def uninstall
         super.tap do
           #@src.branch_flow = nil
-          @dst.branch_flows.delete(self)
+          @dst.incoming_branch_flows.delete(self)
           @dst.incoming_flows.delete(self)
         end
       end
