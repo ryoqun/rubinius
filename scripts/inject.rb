@@ -888,7 +888,7 @@ module Rubinius
     end
 
     class Flow
-      attr_accessor :src, :dst, :spots, :previous_spots, :metadata
+      attr_accessor :src, :dst, :spots, :previous_spots
       def initialize(src, dst)
         @src = src
         raise "src is nil" if @src.nil?
@@ -899,6 +899,14 @@ module Rubinius
         @spots = []
         @previous_spots = []
         @metadata = {}
+      end
+
+      def metadata(spot)
+        @metadata[spot] ||= {}
+      end
+
+      def all_metadata
+        @metadata
       end
 
       def add_spot(spot)
@@ -1184,8 +1192,8 @@ module Rubinius
           if not flow.previous_spots.empty?
             labels += flow.previous_spots.collect {|s| "#{s.to_label(optimizer)} PREV" }
           end
-          if not flow.metadata.empty?
-            labels += [flow.metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
+          if not flow.all_metadata.empty?
+            labels += [flow.all_metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
           end
           labels += [flow.src.to_s]
           labels += [[flow.src.incoming_flows.collect(&:src)].to_s.split(", ").join("\n")]
@@ -1340,8 +1348,6 @@ module Rubinius
 
             flow.add_spot(spot)
             spot.add_flow(flow)
-
-            flow.metadata[spot] ||= {}
           end
         end
 
@@ -1454,8 +1460,7 @@ module Rubinius
           @results.each do |previous_flow, flow, match|
             unless @matcher.class.translator.include?(match)
               flows << flow
-              flow.metadata[self] ||= {}
-              flow.metadata[self][:isolated] = false
+              flow.metadata(self)[:isolated] = false
             end
           end
 
@@ -1476,8 +1481,7 @@ module Rubinius
             flow.point_to_next_instruction
           else
             flows.each do |flow|
-              flow.metadata[self] ||= {}
-              flow.metadata[self][:cover] = false
+              flow.metadata(self)[:cover] = false
             end
           end
         end
