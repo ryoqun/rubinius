@@ -129,6 +129,8 @@ module Rubinius
       def dup
         super.tap do |new|
           new.instance_variable_set(:@generation, rand(100000))
+          new.incoming_flows.clear
+          new.branch_flows.clear
         end
       end
 
@@ -1538,8 +1540,6 @@ module Rubinius
             goto = inst
 
             new_goto = goto.branch_flow.dst.dup
-            new_goto.incoming_flows.clear
-            new_goto.branch_flows.clear
 
             previous_inst = goto.previous.src
             goto.previous.change_src_dst(previous_inst, new_goto)
@@ -1829,7 +1829,7 @@ def loo(_aa, _bb)
     i += 1
   end
 end
-#code = Array.instance_method(:set_index).executable
+code = Array.instance_method(:set_index).executable
 #code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
@@ -1840,7 +1840,7 @@ end
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Regexp.method(:escape).executable
-code = Rational.instance_method(:/).executable
+#code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_original")
