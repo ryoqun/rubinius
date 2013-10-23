@@ -888,7 +888,7 @@ module Rubinius
     end
 
     class Flow
-      attr_accessor :src, :dst, :spots, :previous_spots
+      attr_reader :src, :dst, :spots, :previous_spots
       def initialize(src, dst)
         @src = src
         raise "src is nil" if @src.nil?
@@ -1012,16 +1012,11 @@ module Rubinius
       end
 
       def change_src_dst(src, dst)
+        raise "src or dst is nil" if src.nil? or dst.nil?
         reinstall do
           @src = src
           @dst = dst
         end
-      end
-
-      def src_flow=(src_flow)
-        raise
-        #@src = src_flow.src
-        #src_flow.src.next = self
       end
     end
 
