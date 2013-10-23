@@ -77,7 +77,7 @@ module Rubinius
         @exports = []
 
         @following_instruction = @preceeding_instruction = nil
-        @entry_control_flow = nil
+        @entry_flow = nil
 
         @ip = 0
         @generation = 0
@@ -116,7 +116,7 @@ module Rubinius
           branch_flow
         elsif op_code == :ret
           nil
-        elsif control_flow_type == :next
+        elsif flow_type == :next
           next_flow
         elsif unconditional_branch_flow?
           unconditional_branch_flow
@@ -231,7 +231,7 @@ module Rubinius
         @instruction.instruction.width
       end
 
-      def control_flow_type
+      def flow_type
         @instruction.instruction.control_flow
       end
 
@@ -249,7 +249,7 @@ module Rubinius
       end
 
       def branch_flow?
-        control_flow_type == :branch or control_flow_type == :handler
+        flow_type == :branch or flow_type == :handler
       end
 
       def branch_flow=(branch)
@@ -291,19 +291,19 @@ module Rubinius
     class JumpTarget
     end
 
-    attr_reader :compiled_code, :control_flows, :data_flows
+    attr_reader :compiled_code, :flows, :data_flows
     attr_accessor :entry_flow
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
-      @control_flows = []
+      @flows = []
       @data_flows = []
       decode
     end
 
-    def remove_control_flow(flow)
+    def remove_flow(flow)
       raise "baaad" if flow.nil?
-      @control_flows.delete(flow)
+      @flows.delete(flow)
     end
 
     def first_flow
@@ -319,10 +319,10 @@ module Rubinius
       @data_flows.push(data_flow)
     end
 
-    def add_control_flow(control_flow)
-      control_flow.install
-      @control_flows.push(control_flow)
-      control_flow
+    def add_flow(flow)
+      flow.install
+      @flows.push(flow)
+      flow
     end
 
     def add_pass(pass, *args)
@@ -965,7 +965,7 @@ module Rubinius
       def next_flow
         if @dst.op_code == :goto
           @dst.branch_flow
-        elsif @dst.control_flow_type == :next
+        elsif @dst.flow_type == :next
           @dst.next_flow
         elsif @dst.unconditional_branch_flow?
           @dst.unconditional_branch_flow
@@ -977,7 +977,7 @@ module Rubinius
       def next_flow?
         if @dst.op_code == :goto
           true
-        elsif @dst.control_flow_type == :next
+        elsif @dst.flow_type == :next
           true
         elsif @dst.unconditional_branch_flow?
           true
@@ -991,7 +991,7 @@ module Rubinius
           if @dst.op_code == :goto
             @dst = @dst.branch_flow.dst
             raise "dst is nil" if @dst.nil?
-          elsif @dst.control_flow_type == :next
+          elsif @dst.flow_type == :next
             @dst = @dst.next_inst
             #p self.dst.to_label(self)
             raise "dst is nil" if @dst.nil?
@@ -1084,7 +1084,7 @@ module Rubinius
 
     class BranchFlow < Flow
       def initialize(src, dst, bytecode)
-        raise "not branch instruction" if src.control_flow_type == :next
+        raise "not branch instruction" if src.flow_type == :next
         super(src, dst)
         @bytecode = bytecode
       end
@@ -1120,23 +1120,23 @@ module Rubinius
 
     class FlowAnalysis < Analysis
       def reset
-        optimizer.control_flows.clear
+        optimizer.flows.clear
       end
 
       def optimize
         reset
         previous = nil
-        optimizer.add_control_flow(optimizer.entry_flow)
+        optimizer.add_flow(optimizer.entry_flow)
         optimizer.each_instruction do |instruction|
           if previous and
              previous.op_code != :goto and
              previous.op_code != :ret and
              previous.op_code != :reraise
-            optimizer.add_control_flow(NextFlow.new(previous, instruction))
+            optimizer.add_flow(NextFlow.new(previous, instruction))
           end
-          if instruction.control_flow_type == :branch or
-             instruction.control_flow_type == :handler
-            optimizer.add_control_flow(instruction.branch_flow)
+          if instruction.flow_type == :branch or
+             instruction.flow_type == :handler
+            optimizer.add_flow(instruction.branch_flow)
           end
           previous = instruction
         end
@@ -1162,44 +1162,44 @@ module Rubinius
           #node.fontsize = '18'
         end
 
-        optimizer.control_flows.each do |control_flow|
-          #p control_flow.class
-          node1 = g.add_nodes(control_flow.src.to_label(optimizer))
+        optimizer.flows.each do |flow|
+          #p flow.class
+          node1 = g.add_nodes(flow.src.to_label(optimizer))
           node1.shape = 'rect'
           node1.fontname = 'monospace'
-          node1.style = 'dashed' if control_flow.src.mark_for_removal?
+          node1.style = 'dashed' if flow.src.mark_for_removal?
           #node1.fontsize = '18'
-          node2 = g.add_nodes(control_flow.dst.to_label(optimizer))
+          node2 = g.add_nodes(flow.dst.to_label(optimizer))
           node2.shape = 'rect'
           node2.fontname = 'monospace'
-          node2.style = 'dashed' if control_flow.dst.mark_for_removal?
+          node2.style = 'dashed' if flow.dst.mark_for_removal?
           #node2.fontsize = '18'
           edge = g.add_edges(node1, node2)
-          edge.arrowhead = 'empty' if control_flow.static_dst?
+          edge.arrowhead = 'empty' if flow.static_dst?
           edge.arrowsize = '1.7'
           labels = []
-          if not control_flow.spots.empty?
-            labels += control_flow.spots.collect {|s| "#{s.to_label(optimizer)} #{s.position(control_flow)}" }
+          if not flow.spots.empty?
+            labels += flow.spots.collect {|s| "#{s.to_label(optimizer)} #{s.position(flow)}" }
           end
-          if not control_flow.previous_spots.empty?
-            labels += control_flow.previous_spots.collect {|s| "#{s.to_label(optimizer)} PREV" }
+          if not flow.previous_spots.empty?
+            labels += flow.previous_spots.collect {|s| "#{s.to_label(optimizer)} PREV" }
           end
-          if not control_flow.metadata.empty?
-            labels += [control_flow.metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
+          if not flow.metadata.empty?
+            labels += [flow.metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
           end
-          labels += [control_flow.src.to_s]
-          labels += [[control_flow.src.incoming_flows.collect(&:src)].to_s.split(", ").join("\n")]
+          labels += [flow.src.to_s]
+          labels += [[flow.src.incoming_flows.collect(&:src)].to_s.split(", ").join("\n")]
           if not labels.empty?
             edge.label = labels.join("\n")
             edge.fontname = 'monospace'
             edge.fontsize = '11'
           end
-          edge.style = 'dashed' if control_flow.removed?
+          edge.style = 'dashed' if flow.removed?
         end
 
-        g.output(:pdf => "control_flow#{@file}.pdf")
-        #g.output(:ps => "control_flow.ps")
-        g.output(:svg => "control_flow#{@file}.svg")
+        g.output(:pdf => "flow#{@file}.pdf")
+        #g.output(:ps => "flow.ps")
+        g.output(:svg => "flow#{@file}.svg")
       end
     end
 
@@ -1563,7 +1563,7 @@ module Rubinius
             previous_inst = goto.previous.src
             goto.previous.change_src_dst(previous_inst, new_goto)
 
-            optimizer.remove_control_flow(goto.branch_flow)
+            optimizer.remove_flow(goto.branch_flow)
 
             goto.raw_remove
             goto.insert_after(previous_inst)
@@ -1587,7 +1587,7 @@ module Rubinius
                 if incoming_flow.src.next == inst.previous
                   puts "goto goto if false next"
                   puts inst.incoming_flows.size
-                  #optimizer.remove_control_flow(inst.previous)
+                  #optimizer.remove_flow(inst.previous)
                   #p incoming_flow.src.branch_flow
                   #p incoming_flow.dst
                   #incoming_flow.reinstall do
@@ -1595,7 +1595,7 @@ module Rubinius
                   #end
                   ##incoming_flow.src.next.point_to_next_instruction
                   #puts inst.incoming_flows.size
-                  #optimizer.remove_control_flow(inst.branch_flow.remove)
+                  #optimizer.remove_flow(inst.branch_flow.remove)
                   #p incoming_flow.src.branch_flow
                   #inst.raw_remove
                   #break
@@ -1605,7 +1605,7 @@ module Rubinius
                   incoming_flow.src.branch_flow.reinstall do
                     incoming_flow.src.branch_flow.instance_variable_set(:@dst, inst.branch_flow.dst)
                   end
-                  optimizer.remove_control_flow(inst.branch_flow)
+                  optimizer.remove_flow(inst.branch_flow)
                 end
               elsif incoming_flow.src.op_code == :goto
                 puts "goto goto"
@@ -1638,14 +1638,14 @@ module Rubinius
                 flow.point_to_next_instruction
                 #flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
-                  optimizer.remove_control_flow(next_flow)
+                  optimizer.remove_flow(next_flow)
                 end
               if next_flow.removed?
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
                 #flow.add_spots(next_flow.spots)
                 if next_flow.src.incoming_flows.all?(&:removed?)
-                  optimizer.remove_control_flow(next_flow)
+                  optimizer.remove_flow(next_flow)
                 end
               end
 
@@ -1672,17 +1672,17 @@ module Rubinius
                   branch_flow.unremove
                 else
                   new_inst = inst.dup
-                  optimizer.remove_control_flow(inst.static_next_flow)
+                  optimizer.remove_flow(inst.static_next_flow)
                   inst.raw_remove
                   after_inst = branch_flow.src
                   after_inst.previous.dst = new_inst
 
                   branch_flow.point_to_next_instruction
                   branch_flow.unremove
-                  optimizer.add_control_flow(NextFlow.new(new_inst, after_inst))
+                  optimizer.add_flow(NextFlow.new(new_inst, after_inst))
                 end
               end
-              #optimizer.remove_control_flow(next_flow)
+              #optimizer.remove_flow(next_flow)
             end
           end
         end
@@ -1761,7 +1761,7 @@ module Rubinius
         until stack.empty?
           previous, current = stack.pop
           while current
-            if current.dst.control_flow_type == :branch
+            if current.dst.flow_type == :branch
               if loop_marks[current].nil?
                 loop_marks[current] = true
                 if current.dst.next_flow
@@ -1779,7 +1779,7 @@ module Rubinius
                 previous = current
                 current = nil
               end
-            elsif current.dst.control_flow_type == :return
+            elsif current.dst.flow_type == :return
               break
             else
               #if current.dst.incoming_flows.size == 1
@@ -1821,13 +1821,13 @@ module Rubinius
               instruction.raw_remove
             end
           end
-          optimizer.control_flows.dup.each do |flow|
+          optimizer.flows.dup.each do |flow|
             next if flow == optimizer.first_flow
             if flow.src.incoming_flows.empty?
               found = true
               flow.remove
               flow.uninstall
-              optimizer.remove_control_flow(flow)
+              optimizer.remove_flow(flow)
               flow.src.raw_remove
             end
           end
