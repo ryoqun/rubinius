@@ -62,8 +62,8 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :branch_flows, :previous, :incoming_flows, :entry_flow
-      attr_accessor :op_rands, :next, :ip,
+      attr_reader :instruction, :imports, :exports, :branch_flows, :incoming_flows, :entry_flow
+      attr_accessor :op_rands, :ip,
                     :following_instruction, :preceeding_instruction, :unconditional_branch_flow
       def initialize(instruction)
         @instruction = instruction
@@ -88,7 +88,11 @@ module Rubinius
         !!@unconditional_branch_flow
       end
 
-      def previous=(prev)
+      def previous_flow
+        @previous
+      end
+
+      def previous_flow=(prev)
         if prev
           @incoming_flows.delete(@previous) if @previous
           @incoming_flows.push(prev)
@@ -140,6 +144,10 @@ module Rubinius
 
       def next_flow
         @next
+      end
+
+      def next_flow=(next_flow)
+        @next = next_flow
       end
 
       def prev_flow
@@ -329,7 +337,7 @@ module Rubinius
           inst.preceeding_instruction = previous
         else
           inst.as_entry_inst
-          @entry_flow = inst.previous
+          @entry_flow = inst.previous_flow
         end
 
         ip += instruction.size
@@ -410,13 +418,13 @@ module Rubinius
         instruction = stacks.shift
 
         if instruction
-          if instruction.previous && instruction != first_instruction
+          if instruction.previous_flow && instruction != first_instruction
             rewinds = []
-            previous = instruction.previous.src
+            previous = instruction.previous_flow.src
             while not used.include?(previous) and not previous.incoming_flows.empty? # remove empty future
               rewinds << previous
-              break if previous.previous.nil?
-              previous = previous.previous.src
+              break if previous.previous_flow.nil?
+              previous = previous.previous_flow.src
             end
             rewinds.reverse.each do |rewind|
               sequence << rewind
@@ -1012,15 +1020,15 @@ module Rubinius
 
       def install
         super.tap do
-          @src.next = self
-          @dst.previous = self
+          @src.next_flow = self
+          @dst.previous_flow = self
         end
       end
 
       def uninstall
         super.tap do
-          @src.next = nil
-          @dst.previous = nil
+          @src.next_flow = nil
+          @dst.previous_flow = nil
         end
       end
     end
@@ -1055,13 +1063,13 @@ module Rubinius
 
       def install
         super.tap do
-          @dst.previous = self
+          @dst.previous_flow = self
         end
       end
 
       def uninstall
         super.tap do
-          @dst.previous = nil
+          @dst.previous_flow = nil
         end
       end
     end
@@ -1736,7 +1744,7 @@ module Rubinius
       end
 
       def scalar_each(&block)
-        entry = optimizer.first_instruction.next
+        entry = optimizer.first_instruction.next_flow
         loop_marks = {}
         previous = nil
         stack = [[previous, optimizer.first_flow]]
@@ -1748,7 +1756,7 @@ module Rubinius
             if current.dst.control_flow_type == :branch
               if loop_marks[current].nil?
                 loop_marks[current] = true
-                if current.dst.next
+                if current.dst.next_flow
                   yield Save.new
                   stack.push([current, current.dst.next_flow])
                   stack.push([current, current.dst.branch_flow])
@@ -1772,7 +1780,7 @@ module Rubinius
               #  yield Entry.new
               #end
               previous = current
-              current = current.dst.next
+              current = current.dst.next_flow
             end
           end
           yield Restore.new
