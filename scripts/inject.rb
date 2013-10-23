@@ -134,7 +134,7 @@ module Rubinius
       end
 
       def as_entry_inst
-        @previous = @entry_flow = EntryControlFlow.new(self)
+        @previous = @entry_flow = EntryFlow.new(self)
         self
       end
 
@@ -376,7 +376,7 @@ module Rubinius
           when :type
             Type.new(bytecode)
           when :location, :ip
-            BranchControlFlow.new(inst, ip_to_inst[bytecode], bytecode)
+            BranchFlow.new(inst, ip_to_inst[bytecode], bytecode)
           when :literal, :number
             Literal.new(bytecode)
           when :serial
@@ -887,7 +887,7 @@ module Rubinius
       end
     end
 
-    class ControlFlow
+    class Flow
       attr_accessor :src, :dst, :spots, :previous_spots, :metadata
       def initialize(src, dst)
         @src = src
@@ -1017,7 +1017,7 @@ module Rubinius
       end
     end
 
-    class NextControlFlow < ControlFlow
+    class NextFlow < Flow
       def type
         :next
       end
@@ -1056,7 +1056,7 @@ module Rubinius
       end
     end
 
-    class EntryControlFlow < ControlFlow
+    class EntryFlow < Flow
       def initialize(dst)
         super(EntryInst.new(self), dst)
       end
@@ -1082,7 +1082,7 @@ module Rubinius
       end
     end
 
-    class BranchControlFlow < ControlFlow
+    class BranchFlow < Flow
       def initialize(src, dst, bytecode)
         raise "not branch instruction" if src.control_flow_type == :next
         super(src, dst)
@@ -1118,7 +1118,7 @@ module Rubinius
       end
     end
 
-    class ControlFlowAnalysis < Analysis
+    class FlowAnalysis < Analysis
       def reset
         optimizer.control_flows.clear
       end
@@ -1132,7 +1132,7 @@ module Rubinius
              previous.op_code != :goto and
              previous.op_code != :ret and
              previous.op_code != :reraise
-            optimizer.add_control_flow(NextControlFlow.new(previous, instruction))
+            optimizer.add_control_flow(NextFlow.new(previous, instruction))
           end
           if instruction.control_flow_type == :branch or
              instruction.control_flow_type == :handler
@@ -1143,7 +1143,7 @@ module Rubinius
       end
     end
 
-    class ControlFlowPrinter < Analysis
+    class FlowPrinter < Analysis
       def initialize(*args, file, &block)
         super(*args, &block)
         @file = file
@@ -1463,7 +1463,7 @@ module Rubinius
             raise "bad" if flows.size != 2
             index = 0
             flow = flows.first
-            return if flow.is_a?(NextControlFlow)
+            return if flow.is_a?(NextFlow)
             next_flow = flow.next_flow
             #puts
             #ap flow.to_label(nil)
@@ -1679,7 +1679,7 @@ module Rubinius
 
                   branch_flow.point_to_next_instruction
                   branch_flow.unremove
-                  optimizer.add_control_flow(NextControlFlow.new(new_inst, after_inst))
+                  optimizer.add_control_flow(NextFlow.new(new_inst, after_inst))
                 end
               end
               #optimizer.remove_control_flow(next_flow)
@@ -1861,14 +1861,14 @@ code = Array.instance_method(:set_index).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_original")
+opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "_original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 #opt.add_pass(Rubinius::Optimizer::GoToRemover)"
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
@@ -1877,7 +1877,7 @@ optimized_code = opt.run
 puts optimized_code.decode.size
 
 opt = Rubinius::Optimizer.new(code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 un_code = opt.run
 
 #if ENV["opt"] == "true"
@@ -1887,16 +1887,16 @@ un_code = opt.run
 #end
 
 opt = Rubinius::Optimizer.new(optimized_code)
-opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter, "_generated")
+opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "_generated")
 optimized_code = opt.run
 puts optimized_code.decode.size
 #opt = Rubinius::Optimizer.new(code)
-#opt.add_pass(Rubinius::Optimizer::ControlFlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 #
-#opt.add_pass(Rubinius::Optimizer::ControlFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter)
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 #
 #un_code = opt.run
