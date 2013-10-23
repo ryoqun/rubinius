@@ -401,16 +401,11 @@ module Rubinius
 
     def generate_bytecode
       sequence = []
-      stacks = [first_instruction]
       used = {}
-      instruction = nil
+
+      stacks = [first_instruction]
       until stacks.empty?
-        puts
-        puts
-        puts
-        ap stacks.collect{|s| s.to_label(nil)}
         instruction = stacks.shift
-        ap instruction.to_label(self)
 
         if instruction
           if not used.include?(instruction)
@@ -423,8 +418,6 @@ module Rubinius
           if next_flow = instruction.next_flow
             instruction = next_flow.dst
             if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
-              p :goto
-              p branch_flow.src.to_label(nil)
               stacks.push(branch_flow.dst)
             end
           elsif instruction.op_code == :goto
@@ -438,7 +431,6 @@ module Rubinius
 
           if instruction
             break if used.include?(instruction)
-            #p instruction.to_label(self)
             sequence << instruction
             used[instruction] = true
           end
