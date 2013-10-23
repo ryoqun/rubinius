@@ -185,25 +185,6 @@ module Rubinius
         self
       end
 
-      def remove
-        raw_remove
-
-        #p self.to_label(nil)
-        if prev_flow
-          #p prev_flow.to_label(nil)
-          prev_flow.unremove
-          prev_flow.point_to_next_instruction
-          #p prev_flow.to_label(nil)
-        end
-        #p incoming_branch_flows.map(&:class)
-        incoming_branch_flows.dup.each do |f|
-          while f.next_flow? and f.next_flow.removed?
-            #p next_flow.to_label(nil)
-            f.point_to_next_instruction if f
-          end
-        end
-      end
-
       def insert_after(inst)
         following_instruction.preceeding_instruction = inst
         inst.following_instruction = following_instruction
@@ -928,7 +909,7 @@ module Rubinius
       end
 
       def to_label(optimizer)
-        "#{@src.to_label(optimizer).strip}=#{removed? ? "x" : "="}>#{@dst.to_label(optimizer).strip}"
+        "#{@src.to_label(optimizer).strip}=#{mark_removed? ? "x" : "="}>#{@dst.to_label(optimizer).strip}"
       end
 
       def static_dst?
@@ -957,16 +938,17 @@ module Rubinius
         end
       end
 
-      def remove
+      def mark_remove
         @remove = true
         self
       end
 
-      def unremove
+      def unmark_remove
         @remove = false
+        self
       end
 
-      def removed?
+      def mark_removed?
         @remove
       end
 
@@ -1197,7 +1179,7 @@ module Rubinius
             edge.fontname = 'monospace'
             edge.fontsize = '11'
           end
-          edge.style = 'dashed' if flow.removed?
+          edge.style = 'dashed' if flow.mark_removed?
         end
 
         g.output(:pdf => "#{base_name}.pdf")
@@ -1455,7 +1437,7 @@ module Rubinius
           @results.each do |previous_flow, flow, match|
             unless @matcher.class.translator.include?(match)
               #on_translate(spot, flow)
-              flow.remove
+              flow.mark_remove
             end
           end
         else
@@ -1545,13 +1527,13 @@ module Rubinius
       def on_translate(spot, prev, cur)
         if cur.op_code == :push_true and
            cur.next.dst.incoming_flows == [cur.next]
-          cur.incoming_flows.each(&:remove)
+          cur.incoming_flows.each(&:mark_remove)
           cur.incoming_flows.each {|f| f.add_spot(spot) }
         elsif prev.op_code == :push_true and
            cur.op_code == :goto_if_false and
            cur.incoming_flows == [prev.next]
           cur.unconditional_branch_flow = cur.next
-          #cur.branch_flow.remove
+          #cur.branch_flow.mark_remove
         end
       end
     end
@@ -1602,7 +1584,7 @@ module Rubinius
                   #end
                   ##incoming_flow.src.next.point_to_next_instruction
                   #puts inst.incoming_flows.size
-                  #optimizer.remove_flow(inst.branch_flow.remove)
+                  #optimizer.remove_flow(inst.branch_flow.mark_remove)
                   #p incoming_flow.src.branch_flow
                   #inst.raw_remove
                   #break
@@ -1634,7 +1616,7 @@ module Rubinius
         moved_flows = []
 
         optimizer.each_instruction do |inst|
-          if inst.incoming_flows.all?(&:removed?)
+          if inst.incoming_flows.all?(&:mark_removed?)
             used_spots = []
 
             inst.incoming_flows.dup.each do |flow|
@@ -1644,39 +1626,39 @@ module Rubinius
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
                 #flow.add_spots(next_flow.spots)
-                if next_flow.src.incoming_flows.all?(&:removed?)
+                if next_flow.src.incoming_flows.all?(&:mark_removed?)
                   optimizer.remove_flow(next_flow)
                 end
-              if next_flow.removed?
+              if next_flow.mark_removed?
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
                 #flow.add_spots(next_flow.spots)
-                if next_flow.src.incoming_flows.all?(&:removed?)
+                if next_flow.src.incoming_flows.all?(&:mark_removed?)
                   optimizer.remove_flow(next_flow)
                 end
               end
 
               #if (next_flow.spots - initial_spots).empty?
-                flow.unremove
+                flow.unmark_remove
               #end
             end
-          elsif inst.incoming_flows.any?(&:removed?)
+          elsif inst.incoming_flows.any?(&:mark_removed?)
             #p "partial #{inst.to_label(optimizer)}"
 
             flows = inst.incoming_flows
             next_flow = flows.detect(&:static_dst?)
-            if next_flow.nil? or not next_flow.removed?
+            if next_flow.nil? or not next_flow.mark_removed?
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
-                next if not branch_flow.removed?
+                next if not branch_flow.mark_removed?
                 branch_flow.point_to_next_instruction
-                branch_flow.unremove
+                branch_flow.unmark_remove
               end
             else
               inst = next_flow.dst
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
-                if branch_flow.removed?
+                if branch_flow.mark_removed?
                   branch_flow.point_to_next_instruction
-                  branch_flow.unremove
+                  branch_flow.unmark_remove
                 else
                   new_inst = inst.dup
                   optimizer.remove_flow(inst.static_next_flow)
@@ -1685,7 +1667,7 @@ module Rubinius
                   after_inst.previous.change_src_dst(after_inst.previous.src, new_inst)
 
                   branch_flow.point_to_next_instruction
-                  branch_flow.unremove
+                  branch_flow.unmark_remove
                   optimizer.add_flow(NextFlow.new(new_inst, after_inst))
                 end
               end
@@ -1832,7 +1814,7 @@ module Rubinius
             next if flow == optimizer.first_flow
             if flow.src.incoming_flows.empty?
               found = true
-              flow.remove
+              flow.mark_remove
               flow.uninstall
               optimizer.remove_flow(flow)
               flow.src.raw_remove
