@@ -1536,7 +1536,10 @@ module Rubinius
     class GotoRet < Optimization
       def optimize
         optimizer.each_instruction do |inst|
-          if inst.op_code == :goto and inst.branch_flow.dst.op_code == :ret and inst.incoming_flows.size == 1 and not inst.previous.nil?
+          if inst.op_code == :goto and
+             inst.branch_flow.dst.op_code == :ret and
+             inst.incoming_flows.size == 1 and
+             not inst.previous.nil?
             goto = inst
 
             new_goto = goto.branch_flow.dst.dup
