@@ -1687,7 +1687,7 @@ module Rubinius
                   optimizer.remove_flow(inst.static_next_flow)
                   inst.raw_remove
                   after_inst = branch_flow.src
-                  after_inst.previous.dst = new_inst
+                  after_inst.previous.change_src_dst(after_inst.previous.src, new_inst)
 
                   branch_flow.point_to_next_instruction
                   branch_flow.unremove
