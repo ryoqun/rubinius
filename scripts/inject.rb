@@ -1841,10 +1841,10 @@ end
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Time.method(:at).executable
-#code = [].method(:cycle).executable
+code = [].method(:|).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
-code = Regexp.method(:escape).executable
+#code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
