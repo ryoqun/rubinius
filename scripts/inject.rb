@@ -1535,6 +1535,33 @@ module Rubinius
       end
     end
 
+    class RemoveCheckInterrupts < Optimization
+      INTERRUPTABLE_INSTRUCTIONS = [
+        :yield_stack
+      ]
+
+      def optimize
+        optimizer.each_instruction do |inst|
+          if inst.op_code == :check_interrupts
+            removable = false
+            check_interrupts = inst
+            while inst.previous_flow and inst.incoming_flows.size == 1
+              p inst.op_code
+              if INTERRUPTABLE_INSTRUCTIONS.include?(inst.op_code)
+                removable = true
+                break
+              end
+              inst = inst.previous_inst
+            end
+            if removable
+              p :ok_removala
+              check_interrupts.previous_inst.next_flow.point_to_next_instruction
+            end
+          end
+        end
+      end
+    end
+
     class GotoRet < Optimization
       def optimize
         optimizer.each_instruction do |inst|
@@ -1572,7 +1599,7 @@ module Rubinius
                 #p inst.previous
                 if incoming_flow.src_inst.next_flow == inst.previous_flow and
                    inst.incoming_flows.size == 1
-                  puts "goto / goto if false next"
+                  #puts "goto / goto if false next"
                   goto_if_false = incoming_flow.src_inst
                   goto = inst
                   goto_if_false.next_flow.point_to_next_instruction
@@ -1863,6 +1890,7 @@ opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
+opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
