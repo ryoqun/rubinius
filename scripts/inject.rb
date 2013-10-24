@@ -1537,7 +1537,8 @@ module Rubinius
 
     class RemoveCheckInterrupts < Optimization
       INTERRUPTABLE_INSTRUCTIONS = [
-        :yield_stack
+        :yield_stack,
+        :send_stack,
       ]
 
       def optimize
@@ -1870,14 +1871,14 @@ def loo(_aa, _bb)
   end
 end
 #code = Array.instance_method(:set_index).executable
-#code = method(:loo).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Time.method(:at).executable
 #code = [].method(:|).executable
-code = ARGF.method(:each_line).executable
+#code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Regexp.method(:escape).executable
