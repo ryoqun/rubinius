@@ -1570,9 +1570,17 @@ module Rubinius
               elsif incoming_flow.src_inst.op_code == :goto_if_false
                 #incoming_flow.point_to_next_instruction
                 #p inst.previous
-                if incoming_flow.src_inst.next_flow == inst.previous_flow
+                if incoming_flow.src_inst.next_flow == inst.previous_flow and
+                   inst.incoming_flows.size == 1
                   puts "goto / goto if false next"
-                  puts inst.incoming_flows.size
+                  goto_if_false = incoming_flow.src_inst
+                  goto = inst
+                  goto_if_false.next_flow.point_to_next_instruction
+                  #goto.branch_flow.uninstall
+                  #goto.branch_flow.mark_remove
+                  #optimizer.remove_flow(.mark_remove)
+
+                  goto.raw_remove
                   #optimizer.remove_flow(inst.previous)
                   #p incoming_flow.src_inst.branch_flow
                   #p incoming_flow.dst_inst
