@@ -1864,9 +1864,9 @@ end
 def loo(_aa, _bb)
   i = 0
   while i < 10000
-    #@foo = true
-    #@bar = @foo
-    #@baz = @bar
+    @foo = true
+    @bar = @foo
+    @baz = @bar
     i += 1
   end
 end
@@ -1885,16 +1885,16 @@ code = method(:loo).executable
 #code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
-opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts)
+#opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts) # this hinders jit
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
 puts optimized_code.decode.size
@@ -1910,10 +1910,10 @@ puts un_code.decode.size
 #  code = un_code
 #end
 
-opt = Rubinius::Optimizer.new(optimized_code)
-opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-optimized_code2 = opt.run
+#opt = Rubinius::Optimizer.new(optimized_code)
+#opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
+#optimized_code2 = opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
@@ -1945,24 +1945,24 @@ puts
   optimized_time = 0
   5.times do
     optimized_time += measure do
-      1000.times do
-        optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
+      100.times do
+        optimized_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
   end
   unoptimized_time = 0
   5.times do
     unoptimized_time += measure do
-      1000.times do
-        un_code.invoke(:loo, Array, hello.dup, arg, nil)
+      100.times do
+        un_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
   end
 
 
-  p unoptimized_time
-  p optimized_time
-  p unoptimized_time/optimized_time
+  p "unoptimized: #{unoptimized_time}"
+  p "optimized_time: #{optimized_time}"
+  p "unopt/optimize: #{unoptimized_time/optimized_time}"
 end
 #p result
 puts
