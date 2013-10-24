@@ -1841,7 +1841,8 @@ end
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Time.method(:at).executable
-code = [].method(:|).executable
+#code = [].method(:|).executable
+code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Regexp.method(:escape).executable
