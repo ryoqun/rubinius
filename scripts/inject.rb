@@ -1212,8 +1212,14 @@ module Rubinius
     end
 
     class Restore
+      attr_reader :inst, :states
+      def initialize(inst, states)
+        @inst = inst
+        @states = states
+      end
+
       def to_label(optimizer)
-        :restore
+        "restore from #{@inst.to_label(nil)}"
       end
     end
 
@@ -1508,6 +1514,21 @@ module Rubinius
       end
     end
 
+    class PassedArg < Matcher
+      before [
+        [:push_nil],
+        [:set_local],
+        [:pop],
+      ]
+
+      after [
+      ]
+
+      def type
+        :passed_arg
+      end
+    end
+
     class InfiniteLoop < Matcher
       before [
         [:push_true],
@@ -1726,18 +1747,20 @@ module Rubinius
           scalar_each do |event|
             case event
             when Entry
-              #p event
+              p event
               reset
             when Restore
               #pop
+              @states = event.states.collect(&:take_snapshot)
               #p event
-              reset
-            when Save, Terminate
+              #reset
+            when Terminate
               #ap @states.collect(&:take_snapshot)
               #push
-              #p event
+              p event
             else
               #p event.compact.map{|i| i.to_label(optimizer)}
+              p event.last.dst_inst.to_label(@optimizer)
               transformed ||= feed(event)
             end
           end
@@ -1751,17 +1774,8 @@ module Rubinius
           PushIVarRemover.new(optimizer, self),
           NilRemover.new(optimizer, self),
           InfiniteLoop.new(optimizer, self),
+          #PassedArg.new(optimizer, self),
         ]
-
-        @snap_shots = []
-      end
-
-      def push
-        @snap_shots.push(@states)
-      end
-
-      def pop
-        @states = @snap_shots.last.collect(&:take_snapshot)
       end
 
       def feed(event)
@@ -1781,15 +1795,19 @@ module Rubinius
 
         yield Entry.new
         until stack.empty?
-          previous, current = stack.pop
+          previous, current, event = stack.pop
+
+          if event
+            yield event
+          end
+
           while current
             if current.dst_inst.flow_type == :branch
               if loop_marks[current].nil?
                 loop_marks[current] = true
                 if current.dst_inst.next_flow
-                  yield Save.new
-                  stack.push([current, current.dst_inst.next_flow])
-                  stack.push([current, current.dst_inst.branch_flow])
+                  stack.push([current, current.dst_inst.branch_flow, Restore.new(current.dst_inst, @states)])
+                  stack.push([current, current.dst_inst.next_flow, Restore.new(current.dst_inst, @states)])
                   yield_flow(previous, current, &block)
                   previous = current
                   current = nil
@@ -1804,16 +1822,11 @@ module Rubinius
             elsif current.dst_inst.flow_type == :return
               break
             else
-              #if current.dst_inst.incoming_flows.size == 1
-                yield_flow(previous, current, &block)
-              #else
-              #  yield Entry.new
-              #end
+              yield_flow(previous, current, &block)
               previous = current
               current = current.dst_inst.next_flow
             end
           end
-          yield Restore.new
         end
         yield Terminate.new
       end
@@ -1861,7 +1874,7 @@ end
 
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
-def loo(_aa, _bb)
+def loo(_aa=nil, _bb=nil)
   i = 0
   while i < 10000
     @foo = true
@@ -1885,12 +1898,13 @@ code = method(:loo).executable
 #code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts) # this hinders jit
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
@@ -1910,10 +1924,10 @@ puts un_code.decode.size
 #  code = un_code
 #end
 
-#opt = Rubinius::Optimizer.new(optimized_code)
-#opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-#optimized_code2 = opt.run
+opt = Rubinius::Optimizer.new(optimized_code)
+opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
+opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
@@ -1935,11 +1949,12 @@ end
 hello = [:world, :invoke, :name, :obj, :args, :block, :sat, :odct]
 result = nil
 arg = [3...5, ["world", "haa"]]
+arg = []
 
 #p result
 puts
 
-3.times do
+5.times do
   puts optimized_code.decode.size
   puts un_code.decode.size
   optimized_time = 0
