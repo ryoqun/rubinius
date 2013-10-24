@@ -1541,13 +1541,13 @@ module Rubinius
           if inst.op_code == :goto and
              inst.branch_flow.dst.op_code == :ret and
              inst.incoming_flows.size == 1 and
-             not inst.previous.nil?
+             not inst.previous_flow.nil?
             goto = inst
 
             new_goto = goto.branch_flow.dst.dup
 
-            previous_inst = goto.previous.src
-            goto.previous.change_src_dst(previous_inst, new_goto)
+            previous_inst = goto.previous_flow.src
+            goto.previous_flow.change_src_dst(previous_inst, new_goto)
 
             optimizer.remove_flow(goto.branch_flow)
 
@@ -1834,7 +1834,7 @@ def loo(_aa, _bb)
     i += 1
   end
 end
-code = Array.instance_method(:set_index).executable
+#code = Array.instance_method(:set_index).executable
 #code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
@@ -1844,7 +1844,7 @@ code = Array.instance_method(:set_index).executable
 #code = [].method(:cycle).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
-#code = Regexp.method(:escape).executable
+code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
@@ -1855,9 +1855,8 @@ opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 #opt.add_pass(Rubinius::Optimizer::GoToRemover)"
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
 puts optimized_code.decode.size
