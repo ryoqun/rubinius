@@ -1547,7 +1547,7 @@ module Rubinius
             removable = false
             check_interrupts = inst
             while inst.previous_flow and inst.incoming_flows.size == 1
-              p inst.op_code
+              #p inst.op_code
               if INTERRUPTABLE_INSTRUCTIONS.include?(inst.op_code)
                 removable = true
                 break
@@ -1555,7 +1555,7 @@ module Rubinius
               inst = inst.previous_inst
             end
             if removable
-              p :ok_removala
+              #p :ok_removala
               check_interrupts.previous_inst.next_flow.point_to_next_instruction
             end
           end
@@ -1864,9 +1864,9 @@ end
 def loo(_aa, _bb)
   i = 0
   while i < 10000
-    @foo = true
-    @bar = @foo
-    @baz = @bar
+    #@foo = true
+    #@bar = @foo
+    #@baz = @bar
     i += 1
   end
 end
@@ -1902,6 +1902,7 @@ puts optimized_code.decode.size
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 un_code = opt.run
+puts un_code.decode.size
 
 #if ENV["opt"] == "true"
 #  code = optimied_code
@@ -1912,8 +1913,7 @@ un_code = opt.run
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-optimized_code = opt.run
-puts optimized_code.decode.size
+optimized_code2 = opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
@@ -1939,9 +1939,17 @@ arg = [3...5, ["world", "haa"]]
 #p result
 puts
 
-1.times do
+3.times do
   puts optimized_code.decode.size
   puts un_code.decode.size
+  optimized_time = 0
+  5.times do
+    optimized_time += measure do
+      1000.times do
+        optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
+      end
+    end
+  end
   unoptimized_time = 0
   5.times do
     unoptimized_time += measure do
@@ -1951,15 +1959,9 @@ puts
     end
   end
 
-  optimized_time = 0
-  5.times do
-    optimized_time += measure do
-      1000.times do
-        optimized_code.invoke(:loo, Array, hello.dup, arg, nil)
-      end
-    end
-  end
 
+  p unoptimized_time
+  p optimized_time
   p unoptimized_time/optimized_time
 end
 #p result
