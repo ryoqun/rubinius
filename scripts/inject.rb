@@ -62,7 +62,7 @@ module Rubinius
     end
 
     class Inst
-      attr_reader :instruction, :imports, :exports, :incoming_branch_flows, :incoming_flows, :entry_flow
+      attr_reader :instruction, :imports, :exports, :incoming_branch_flows, :incoming_flows
       attr_accessor :op_rands, :ip,
                     :following_instruction, :preceeding_instruction, :unconditional_branch_flow
       def initialize(instruction)
@@ -77,7 +77,6 @@ module Rubinius
         @exports = []
 
         @following_instruction = @preceeding_instruction = nil
-        @entry_flow = nil
 
         @ip = 0
         @generation = 0
@@ -133,11 +132,6 @@ module Rubinius
         instruction.to_s
       end
 
-      def as_entry_inst
-        @previous = @entry_flow = EntryFlow.new(self)
-        self
-      end
-
       def dup
         super.tap do |new|
           new.instance_variable_set(:@generation, rand(100000))
@@ -147,7 +141,7 @@ module Rubinius
       end
 
       def entry_inst?
-        !!@entry_flow
+        @previous.src.is_a?(EntryInst)
       end
 
       def next_flow
@@ -269,11 +263,8 @@ module Rubinius
       end
     end
 
-    class JumpTarget
-    end
-
     attr_reader :compiled_code, :flows, :data_flows
-    attr_accessor :entry_flow
+    attr_accessor :entry_inst
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
@@ -288,11 +279,12 @@ module Rubinius
     end
 
     def first_flow
-      @entry_flow
+      @entry_inst.next_flow
     end
+    alias_method :entry_flow, :first_flow
 
     def first_instruction
-      @entry_flow.dst_inst
+      first_flow.dst_inst
     end
 
     def add_data_flow(data_flow)
@@ -325,8 +317,8 @@ module Rubinius
           previous.following_instruction = inst
           inst.preceeding_instruction = previous
         else
-          inst.as_entry_inst
-          @entry_flow = inst.previous_flow
+          @entry_inst = EntryInst.new
+          add_flow(NextFlow.new(entry_inst, inst))
         end
 
         ip += instruction.size
@@ -378,15 +370,6 @@ module Rubinius
     def run
       @passes.each(&:optimize)
       encode
-    end
-
-    def rerun(klass)
-      @passes.each do |pass|
-        if pass.is_a?(klass)
-          pass.reset
-          pass.optimize
-        end
-      end
     end
 
     def each_instruction
@@ -1000,6 +983,14 @@ module Rubinius
           @dst_inst = dst_inst
         end
       end
+
+      def change_src_inst(src_inst)
+        change_src_dst(src_inst, dst_inst)
+      end
+
+      def change_dst_inst(dst_inst)
+        change_src_dst(src_inst, dst_inst)
+      end
     end
 
     class NextFlow < Flow
@@ -1008,7 +999,11 @@ module Rubinius
       end
 
       def dynamic_dst?
-        false
+        if @src_inst.is_a?(EntryInst)
+          true
+        else
+          false
+        end
       end
 
       def install
@@ -1027,8 +1022,7 @@ module Rubinius
     end
 
     class EntryInst < Inst
-      def initialize(entry_flow)
-        @entry_flow = entry_flow
+      def initialize
         super(nil)
       end
 
@@ -1037,29 +1031,6 @@ module Rubinius
           optimizer.compiled_code.inspect
         else
           "<compiled code>"
-        end
-      end
-    end
-
-    class EntryFlow < Flow
-      def initialize(dst_inst)
-        super(EntryInst.new(self), dst_inst)
-        @incoming_flows = [self]
-      end
-
-      def dynamic_dst?
-        true
-      end
-
-      def install
-        super.tap do
-          @dst_inst.previous_flow = self
-        end
-      end
-
-      def uninstall
-        super.tap do
-          @dst_inst.previous_flow = nil
         end
       end
     end
@@ -1101,14 +1072,8 @@ module Rubinius
     end
 
     class FlowAnalysis < Analysis
-      def reset
-        optimizer.flows.clear
-      end
-
       def optimize
-        reset
         previous = nil
-        optimizer.add_flow(optimizer.entry_flow)
         optimizer.each_instruction do |instruction|
           if previous and
              previous.op_code != :goto and
@@ -1169,8 +1134,8 @@ module Rubinius
           if not flow.all_metadata.empty?
             labels += [flow.all_metadata.collect {|k, v| [k.to_label(optimizer), v]}.inspect]
           end
-          labels += [flow.src_inst.to_s]
-          labels += [[flow.src_inst.incoming_flows.collect(&:src_inst)].to_s.split(", ").join("\n")]
+          #labels += [flow.src_inst.to_s]
+          #labels += [[flow.src_inst.incoming_flows.collect(&:src_inst)].to_s.split(", ").join("\n")]
           if not labels.empty?
             edge.label = labels.join("\n")
             edge.fontname = 'monospace'
@@ -1238,6 +1203,7 @@ module Rubinius
         end
       end
 
+      attr_reader :optimizer
       def initialize(optimizer, scalar)
         @optimizer= optimizer
         @scalar = scalar
@@ -1346,9 +1312,6 @@ module Rubinius
       def create_spot(results)
         Spot.new(self, results)
       end
-
-      def on_translate(spot, flow)
-      end
     end
 
     class PushLocalRemover < Matcher
@@ -1439,7 +1402,6 @@ module Rubinius
         if isolated?
           @results.each do |previous_flow, flow, match|
             unless @matcher.class.translator.include?(match)
-              #on_translate(spot, flow)
               flow.mark_remove
             end
           end
@@ -1515,7 +1477,28 @@ module Rubinius
     end
 
     class PassedArg < Matcher
+      class Spot < Optimizer::Spot
+        def optimizer
+          @matcher.optimizer
+        end
+
+        def transform
+          to_passed_arg, to_goto_if_true, to_push_nil, to_set_local, to_pop = @flows
+          optimizer.remove_flow(to_passed_arg.mark_remove)
+          #to_passed_arg.change_dst_inst(to_pop.dst_inst.next_flow.dst_inst)
+          optimizer.remove_flow to_goto_if_true.mark_remove
+          optimizer.remove_flow to_goto_if_true.dst_inst.branch_flow.mark_remove
+          optimizer.remove_flow to_push_nil.mark_remove
+          optimizer.remove_flow to_set_local.mark_remove
+          optimizer.remove_flow to_pop.mark_remove
+          to_pop.dst_inst.next_flow.change_src_inst(to_passed_arg.src_inst)
+          #raise "overridden"
+        end
+      end
+
       before [
+        [:passed_arg],
+        [:goto_if_true],
         [:push_nil],
         [:set_local],
         [:pop],
@@ -1523,6 +1506,10 @@ module Rubinius
 
       after [
       ]
+
+      def create_spot(results)
+        Spot.new(self, results)
+      end
 
       def type
         :passed_arg
@@ -1773,8 +1760,8 @@ module Rubinius
           PushLocalRemover.new(optimizer, self),
           PushIVarRemover.new(optimizer, self),
           NilRemover.new(optimizer, self),
-          InfiniteLoop.new(optimizer, self),
-          #PassedArg.new(optimizer, self),
+          #InfiniteLoop.new(optimizer, self),
+          PassedArg.new(optimizer, self),
         ]
       end
 
@@ -1904,6 +1891,7 @@ opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts) # this hinders jit
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
