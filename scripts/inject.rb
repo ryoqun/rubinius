@@ -1655,7 +1655,10 @@ module Rubinius
                   #inst.raw_remove
                   #break
                 else
-                  #puts "goto / goto if false branch"
+                  puts "goto / goto if false branch"
+                  goto_if_false = incoming_flow.src_inst
+                  goto = inst
+                  goto_if_false.branch_flow.change_dst_inst(goto.branch_flow.dst_inst)
                   #puts incoming_flow.src_inst.incoming_flows.size
                   #incoming_flow.src_inst.branch_flow.reinstall do
                   #  incoming_flow.src_inst.branch_flow.instance_variable_set(:@dst_inst, inst.branch_flow.dst_inst)
@@ -1663,7 +1666,10 @@ module Rubinius
                   #optimizer.remove_flow(inst.branch_flow)
                 end
               elsif incoming_flow.src_inst.op_code == :goto
-                #puts "goto / goto"
+                puts "goto / goto"
+                first_goto = incoming_flow.src_inst
+                second_goto = inst
+                first_goto.branch_flow.change_dst_inst(second_goto.branch_flow.dst_inst)
                 #puts inst
                 #puts incoming_flow.src_inst.incoming_flows.size
                 #next = incoming_flow.next_flow.raw_remove
@@ -1902,7 +1908,7 @@ code = Array.instance_method(:set_index).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
-code = Enumerable.instance_method(:minmax).executable
+#code = Enumerable.instance_method(:minmax).executable
 #code = Time.method(:at).executable
 #code = [].method(:|).executable
 #code = [].method(:equal?).executable
@@ -1912,7 +1918,7 @@ code = Enumerable.instance_method(:minmax).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
-code = Rubinius::CodeLoader.method(:initialize).executable
+#code = Rubinius::CodeLoader.method(:initialize).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
