@@ -1350,6 +1350,17 @@ module Rubinius
       end
     end
 
+    class RepeatedPush < Matcher
+      before [
+        :push_nil,
+        :set_local,
+        :pop,
+        :push_nil,
+        :set_local,
+        :pop,
+      ]
+    end
+
     class NilRemover < Matcher
       before [
         [:push_nil],
@@ -1491,7 +1502,21 @@ module Rubinius
           optimizer.remove_flow to_push_nil.mark_remove
           optimizer.remove_flow to_set_local.mark_remove
           optimizer.remove_flow to_pop.mark_remove
+          next_inst = to_pop.dst_inst.next_flow.dst_inst
+          #next_inst.incoming_branch_flows.each do |flow|
+            #flow.change_src_inst(to_passed_arg.src_inst)
+          #end
+          to_passed_arg.dst_inst.incoming_flows.dup.each do |flow|
+            next if flow == to_passed_arg
+            #flow.mark_remove
+            flow.change_dst_inst(next_inst)
+          end
           to_pop.dst_inst.next_flow.change_src_inst(to_passed_arg.src_inst)
+          to_passed_arg.dst_inst.raw_remove
+          to_goto_if_true.dst_inst.raw_remove
+          to_push_nil.dst_inst.raw_remove
+          to_set_local.dst_inst.raw_remove
+          to_pop.dst_inst.raw_remove
           #raise "overridden"
         end
       end
@@ -1600,8 +1625,8 @@ module Rubinius
           if inst.op_code == :goto
             inst.incoming_flows.dup.each do |incoming_flow|
               if incoming_flow.src_inst.op_code == :goto_if_true
-                puts "goto / goto if true"
-                puts incoming_flow.src_inst.incoming_flows.size
+                #puts "goto / goto if true"
+                #puts incoming_flow.src_inst.incoming_flows.size
                 #incoming_flow.point_to_next_instruction
               elsif incoming_flow.src_inst.op_code == :goto_if_false
                 #incoming_flow.point_to_next_instruction
@@ -1630,17 +1655,17 @@ module Rubinius
                   #inst.raw_remove
                   #break
                 else
-                  puts "goto / goto if false branch"
-                  puts incoming_flow.src_inst.incoming_flows.size
+                  #puts "goto / goto if false branch"
+                  #puts incoming_flow.src_inst.incoming_flows.size
                   #incoming_flow.src_inst.branch_flow.reinstall do
                   #  incoming_flow.src_inst.branch_flow.instance_variable_set(:@dst_inst, inst.branch_flow.dst_inst)
                   #end
                   #optimizer.remove_flow(inst.branch_flow)
                 end
               elsif incoming_flow.src_inst.op_code == :goto
-                puts "goto / goto"
-                puts inst
-                puts incoming_flow.src_inst.incoming_flows.size
+                #puts "goto / goto"
+                #puts inst
+                #puts incoming_flow.src_inst.incoming_flows.size
                 #next = incoming_flow.next_flow.raw_remove
                 #incoming_flow.point_to_next_instruction
                 #inst.raw_remove
@@ -1664,12 +1689,12 @@ module Rubinius
               #next unless flow.first_flow?
               used_spots = flow.spots.dup
 
-                next_flow = flow.next_flow
-                flow.point_to_next_instruction
-                #flow.add_spots(next_flow.spots)
-                if next_flow.src_inst.incoming_flows.all?(&:mark_removed?)
-                  optimizer.remove_flow(next_flow)
-                end
+              next_flow = flow.next_flow
+              flow.point_to_next_instruction
+              #flow.add_spots(next_flow.spots)
+              if next_flow.src_inst.incoming_flows.all?(&:mark_removed?)
+                optimizer.remove_flow(next_flow)
+              end
               if next_flow.mark_removed?
                 next_flow = flow.next_flow
                 flow.point_to_next_instruction
@@ -1734,7 +1759,7 @@ module Rubinius
           scalar_each do |event|
             case event
             when Entry
-              p event
+              #p event
               reset
             when Restore
               #pop
@@ -1744,10 +1769,10 @@ module Rubinius
             when Terminate
               #ap @states.collect(&:take_snapshot)
               #push
-              p event
+              #p event
             else
               #p event.compact.map{|i| i.to_label(optimizer)}
-              p event.last.dst_inst.to_label(@optimizer)
+              #p event.last.dst_inst.to_label(@optimizer)
               transformed ||= feed(event)
             end
           end
@@ -1759,6 +1784,7 @@ module Rubinius
         @states = [
           PushLocalRemover.new(optimizer, self),
           PushIVarRemover.new(optimizer, self),
+          #RepeatedPush.new(optimizer, self),
           NilRemover.new(optimizer, self),
           #InfiniteLoop.new(optimizer, self),
           PassedArg.new(optimizer, self),
@@ -1870,23 +1896,27 @@ def loo(_aa=nil, _bb=nil)
     i += 1
   end
 end
-#code = Array.instance_method(:set_index).executable
-code = method(:loo).executable
+code = Array.instance_method(:set_index).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
+code = Enumerable.instance_method(:minmax).executable
 #code = Time.method(:at).executable
 #code = [].method(:|).executable
+#code = [].method(:equal?).executable
 #code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
+#code = Rubinius::Loader.instance_method(:script).executable
+code = Rubinius::CodeLoader.method(:initialize).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
@@ -1895,11 +1925,8 @@ opt.add_pass(Rubinius::Optimizer::GoToRemover)
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts) # this hinders jit
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
 
 optimized_code = opt.run
-puts optimized_code.decode.size
 
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
@@ -1915,7 +1942,9 @@ puts un_code.decode.size
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-opt.run
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+puts opt.run.decode.size
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
