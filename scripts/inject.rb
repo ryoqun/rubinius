@@ -1,6 +1,10 @@
 require 'awesome_print'
 require 'graphviz'
 
+# generateg by
+#   cat runtime/gems/rubinius-compiler-2.0.4/lib/rubinius/compiler/generator_methods.rb | grep -v -E '(@ip|@stream|  @instruction|close|right|left|used_at|new_basic_block|find_literal|generators|current_block = )' | tee generator_methods.rb | ruby -c -
+require './scripts/generator_methods'
+
 module Rubinius
   class Optimizer
     class OpRand
@@ -22,6 +26,10 @@ module Rubinius
       def to_i
         bytecode
       end
+
+      def +(other)
+        to_i + other
+      end
     end
 
     module Endpoint
@@ -35,6 +43,9 @@ module Rubinius
     end
 
     class Serial < OpRand
+      def to_i
+        bytecode
+      end
     end
 
     class Local < OpRand
@@ -668,28 +679,52 @@ module Rubinius
     end
 
     class BasicBlock
+      class GeneratorWrapper
+        include GeneratorMethods
+        def initialize(block)
+          @current_block = block
+        end
+
+        def emit_push_literal(arg1)
+          @current_block.add_stack(0, 1)
+        end
+        alias_method :push_literal, :emit_push_literal
+      end
+
       attr_accessor :right, :left
+      attr_reader :stack, :min_size, :max_size
       def initialize
         @instructions = []
         @right = @left = nil
+        @wrapper = GeneratorWrapper.new(self)
+        @max_size = @min_size = @stack = 0
       end
 
       def add_instruction(instruction)
+        @wrapper.send(instruction.op_code, *instruction.op_rands)
         @instructions.push(instruction)
       end
 
+      def add_stack(read, write)
+        read_change = @stack - read
+        @min_size = read_change if read_change < @min_size
+
+        @stack += (write - read)
+
+        @max_size = @stack if @stack > @max_size
+      end
+
       def to_label(optimizer)
-        @instructions.collect do |instruction|
-          instruction.to_label(optimizer)
-        end.join("\n")
+        (
+          ["min: #{@min_size}, max: #{@max_size}"] +
+          (@instructions.collect do |instruction|
+            instruction.to_label(optimizer)
+          end)
+        ).join("\n")
       end
     end
 
     class StackAnalyzer < Analysis
-      class GeneratorWrapper
-        include Rubinius::ToolSet.current::TS::GeneratorMethods
-      end
-
       def optimize
         pending_flows = [optimizer.first_flow]
         blocks = {}
@@ -764,18 +799,22 @@ module Rubinius
         flags = {}
 
         optimizer.basic_blocks.each do |block|
-          node = @g.add_nodes(block.to_label(optimizer))
+          node = @g.add_nodes(block_node(block))
           if block.left
-            edge = @g.add_edges(block.to_label(optimizer), block.left.to_label(optimizer))
+            edge = @g.add_edges(block_node(block), block_node(block.left))
             edge.label = "left"
           end
           if block.right
-            edge = @g.add_edges(block.to_label(optimizer), block.right.to_label(optimizer))
+            edge = @g.add_edges(block_node(block), block_node(block.right))
             edge.label = "right"
           end
         end
 
         @g.output(:pdf => "#{base_name}.pdf")
+      end
+
+      def block_node(block)
+        block.to_label(optimizer)
       end
     end
 
