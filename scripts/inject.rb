@@ -30,6 +30,10 @@ module Rubinius
       def +(other)
         to_i + other
       end
+
+      def *(other)
+        to_i * other
+      end
     end
 
     module Endpoint
@@ -251,6 +255,8 @@ module Rubinius
           op_rands[count.last - 1].to_i + 1
         when :ret, :goto, :reraise
           0
+        when :dup_many
+          op_rands.first.to_i * 2
         else
           count
         end
@@ -264,10 +270,14 @@ module Rubinius
           count.first + op_rands[count.last - 1].to_i
         when :send_stack_with_block, :yield_stack
           count.first + op_rands[count.last - 1].to_i
+        when :send_super_stack_with_block
+          count.first + op_rands[count.last - 1].to_i
         when :string_build, :make_array
           count.first + op_rands.first.to_i
         when :move_down
           op_rands[count.last - 1].to_i + 1
+        when :dup_many
+          op_rands.first.to_i
         else
           count
         end
@@ -678,26 +688,32 @@ module Rubinius
       end
     end
 
-    class BasicBlock
-      class GeneratorWrapper
-        include GeneratorMethods
-        def initialize(block)
-          @current_block = block
-        end
-
-        def emit_push_literal(arg1)
-          @current_block.add_stack(0, 1)
-        end
-        alias_method :push_literal, :emit_push_literal
+    class GeneratorWrapper
+      include GeneratorMethods
+      def initialize
+        @current_block = self
       end
 
+      def emit_push_literal(arg1)
+        @current_block.add_stack(0, 1)
+      end
+      alias_method :push_literal, :emit_push_literal
+
+      def add_stack(read, write)
+        [read, write]
+      end
+
+    end
+    W = GeneratorWrapper.new
+
+    class BasicBlock
       attr_accessor :right, :left
       attr_reader :stack, :min_size, :max_size
       def initialize(analyzer)
         @analyzer = analyzer
         @instructions = []
         @right = @left = nil
-        @wrapper = GeneratorWrapper.new(self)
+        @wrapper = GeneratorWrapper.new
         @max_size = @min_size = @stack = 0
         @visited = false
       end
@@ -707,7 +723,8 @@ module Rubinius
       end
 
       def add_instruction(instruction)
-        @wrapper.send(instruction.op_code, *instruction.op_rands)
+        read, write = @wrapper.send(instruction.op_code, *instruction.op_rands)
+        add_stack(read.to_i, write.to_i)
         @instructions.push(instruction)
       end
 
@@ -1026,8 +1043,7 @@ module Rubinius
                 end
               end
             else
-              #puts
-              #p instruction
+              puts instruction.op_code
               instruction.stack_consumed.times do
                 optimizer.add_data_flow(DataFlow.new(stack.pop, instruction))
               end
@@ -2241,8 +2257,8 @@ end
 #code = [].method(:equal?).executable
 #code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
-#code = IO.method(:binwrite).executable
-code = Regexp.method(:escape).executable
+code = IO.method(:binwrite).executable
+#code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
 #code = Rubinius::CodeLoader.method(:initialize).executable
@@ -2253,10 +2269,10 @@ opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::MoveDownRemover)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts) # this hinders jit
@@ -2277,9 +2293,9 @@ puts un_code.decode.size
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 optimized_code = opt.run
