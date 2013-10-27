@@ -696,7 +696,6 @@ module Rubinius
 
         until pending_flows.empty?
           flow = pending_flows.shift
-          p flow.dst_inst.to_label(nil)
           current = (blocks[flow.dst_inst] ||= create_block)
 
           while flow
