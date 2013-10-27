@@ -270,6 +270,8 @@ module Rubinius
       @passes = []
       @flows = []
       @data_flows = []
+      @source_data_flows = Hash.new{|hash, key| hash[key] = [] }
+      @sink_data_flows = Hash.new{|hash, key| hash[key] = [] }
       decode
     end
 
@@ -289,7 +291,17 @@ module Rubinius
 
     def add_data_flow(data_flow)
       data_flow.install
+      @source_data_flows[data_flow.source] << data_flow
+      @sink_data_flows[data_flow.sink] << data_flow
       @data_flows.push(data_flow)
+    end
+
+    def find_sink_data_flows(end_point)
+      @sink_data_flows[end_point]
+    end
+
+    def find_source_data_flows(end_point)
+      @source_data_flows[end_point]
     end
 
     def add_flow(flow)
@@ -611,6 +623,44 @@ module Rubinius
       end
     end
 
+    class MoveDownRemover < Optimization
+      def optimize
+        optimizer.each_instruction do |instruction|
+          if instruction.op_code == :move_down
+            consumers = optimizer.find_source_data_flows(instruction.exports.first)
+            next if consumers.size != 1
+            consumer = consumers.first.sink
+            next if not consumer.is_a?(Inst) or consumer.op_code != :pop
+            producers = optimizer.find_sink_data_flows(instruction.imports.last)
+            next if producers.size != 1
+            producer = producers.first.source
+            next if not producer.is_a?(DataFlow::Shuffle) or producer.instruction.op_code != :dup_top
+            dup_top = producer.instruction
+            move_down = instruction
+            pop = consumer
+            next unless (dup_top.previous_flow && dup_top.incoming_branch_flows.empty? and
+                         move_down.previous_flow && move_down.incoming_branch_flows.empty? and
+                         pop.previous_flow && pop.incoming_branch_flows.empty?)
+
+            dup_top.mark_raw_remove
+            move_down.mark_raw_remove
+            pop.mark_raw_remove
+
+            dup_top.previous_flow.change_dst_inst(move_down.next_flow.dst_inst)
+            pop.previous_flow.change_dst_inst(pop.next_flow.dst_inst)
+
+            optimizer.remove_flow(dup_top.next_flow.mark_remove.uninstall)
+            optimizer.remove_flow(move_down.next_flow.mark_remove.uninstall)
+            optimizer.remove_flow(pop.next_flow.mark_remove.uninstall)
+
+            dup_top.raw_remove
+            move_down.raw_remove
+            pop.raw_remove
+          end
+        end
+      end
+    end
+
     class DataFlowAnalyzer < Analysis
       def optimize
         goto_to_stack = {}
@@ -784,6 +834,11 @@ module Rubinius
     end
 
     class DataFlowPrinter < Analysis
+      def initialize(*args, file, &block)
+        super(*args, &block)
+        @file = file
+      end
+
       def optimize
         @g = GraphViz.new(:G, :type => :digraph)
         @g[:rankdir] = "LR"
@@ -814,7 +869,15 @@ module Rubinius
           flags[flag_key] = true
         end
 
-        @g.output(:pdf => "data_flow.pdf")
+        @g.output(:pdf => "#{base_name}.pdf")
+      end
+
+      def base_name
+        if @file
+          "data_flow_#{@file}"
+        else
+          "data_flow"
+        end
       end
 
       def escape(text)
@@ -851,6 +914,7 @@ module Rubinius
 
           node.label = "{#{imports}#{label}#{suffix}#{exports}}"
           node.shape = 'record'
+          node.style = 'dashed' if data.is_a?(Inst) and data.mark_for_removal?
           node.fontname = 'M+ 1mn'
         else
           node = @g.get_node(label = data.to_label(optimizer)) || @g.add_nodes(label = data.to_label(optimizer))
@@ -862,6 +926,7 @@ module Rubinius
             node.shape = 'round'
           end
 
+          node.style = 'dashed' if data.is_a?(Inst) and data.mark_for_removal?
           node.fontname = 'M+ 1mn'
         end
         node
@@ -1939,12 +2004,15 @@ code = Array.instance_method(:bottom_up_merge).executable
 #code = Rubinius::CodeLoader.method(:initialize).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
-opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::MoveDownRemover)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::RemoveCheckInterrupts) # this hinders jit
@@ -1965,9 +2033,10 @@ puts un_code.decode.size
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 puts opt.run.decode.size
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
