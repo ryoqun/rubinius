@@ -263,7 +263,7 @@ module Rubinius
       end
     end
 
-    attr_reader :compiled_code, :flows, :data_flows
+    attr_reader :compiled_code, :flows, :data_flows, :basic_blocks
     attr_accessor :entry_inst
     def initialize(compiled_code)
       @compiled_code = compiled_code
@@ -272,6 +272,7 @@ module Rubinius
       @data_flows = []
       @source_data_flows = Hash.new{|hash, key| hash[key] = [] }
       @sink_data_flows = Hash.new{|hash, key| hash[key] = [] }
+      @basic_blocks = []
       decode
     end
 
@@ -308,6 +309,11 @@ module Rubinius
       flow.install
       @flows.push(flow)
       flow
+    end
+
+    def add_basic_block(block)
+      @basic_blocks.push(block)
+      block
     end
 
     def add_pass(pass, *args)
@@ -658,6 +664,119 @@ module Rubinius
             pop.raw_remove
           end
         end
+      end
+    end
+
+    class BasicBlock
+      attr_accessor :right, :left
+      def initialize
+        @instructions = []
+        @right = @left = nil
+      end
+
+      def add_instruction(instruction)
+        @instructions.push(instruction)
+      end
+
+      def to_label(optimizer)
+        @instructions.collect do |instruction|
+          instruction.to_label(optimizer)
+        end.join("\n")
+      end
+    end
+
+    class StackAnalyzer < Analysis
+      class GeneratorWrapper
+        include Rubinius::ToolSet.current::TS::GeneratorMethods
+      end
+
+      def optimize
+        pending_flows = [optimizer.first_flow]
+        blocks = {}
+
+        until pending_flows.empty?
+          flow = pending_flows.shift
+          p flow.dst_inst.to_label(nil)
+          current = (blocks[flow.dst_inst] ||= create_block)
+
+          while flow
+            instruction = flow.dst_inst
+
+            if not instruction.incoming_branch_flows.empty? and
+               not blocks.has_key?(instruction)
+              new_block = (blocks[flow.dst_inst] ||= create_block)
+              current.left = new_block
+              current = new_block
+            end
+
+            current.add_instruction(flow.dst_inst)
+
+            case instruction.op_code
+            when :goto
+              if not blocks.has_key?(instruction.branch_flow.dst_inst)
+                pending_flows.push(instruction.branch_flow)
+              end
+              new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
+              current.right = new_block
+              flow = nil
+            when :goto_if_true, :goto_if_false
+              if not blocks.has_key?(instruction.branch_flow.dst_inst)
+                pending_flows.push(instruction.branch_flow)
+                new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
+                current.right = new_block
+              end
+              if not blocks.has_key?(instruction.next_flow.dst_inst)
+                pending_flows.push(instruction.next_flow)
+                new_block = (blocks[instruction.next_flow.dst_inst] ||= create_block)
+                current.left = new_block
+              end
+              flow = nil
+            when :ret
+              flow = nil
+            else
+              flow = instruction.next_flow
+            end
+          end
+        end
+      end
+
+      def create_block
+        optimizer.add_basic_block(BasicBlock.new)
+      end
+    end
+
+    class StackPrinter < Analysis
+      def initialize(*args, file, &block)
+        super(*args, &block)
+        @file = file
+      end
+
+      def base_name
+        if @file
+          "stack_#{@file}"
+        else
+          "stack"
+        end
+      end
+
+      def optimize
+        @g = GraphViz.new(:G, :type => :digraph)
+        @g[:rankdir] = "LR"
+        flags = {}
+
+        optimizer.basic_blocks.each do |block|
+          node = @g.add_nodes(block.to_label(optimizer))
+          if block.left
+            edge = @g.add_edges(block.to_label(optimizer), block.left.to_label(optimizer))
+            edge.label = "left"
+          end
+          if block.right
+            edge = @g.add_edges(block.to_label(optimizer), block.right.to_label(optimizer))
+            edge.label = "right"
+          end
+        end
+
+        @g.output(:pdf => "#{base_name}.pdf")
       end
     end
 
@@ -1975,18 +2094,23 @@ end
 
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
-def loo(_aa=nil, _bb=nil)
+
+class M
+  def []=(index, other)
+  end
+end
+
+def loo
+  b = M.new
   i = 0
-  while i < 10000
-    @foo = true
-    @bar = @foo
-    @baz = @bar
+  while i < 100000
+    b[0] = i
     i += 1
   end
 end
 #code = Array.instance_method(:set_index).executable
-code = Array.instance_method(:bottom_up_merge).executable
-#code = method(:loo).executable
+#code = Array.instance_method(:bottom_up_merge).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -2011,7 +2135,9 @@ opt.add_pass(Rubinius::Optimizer::GoToRemover)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::MoveDownRemover)
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
@@ -2037,7 +2163,7 @@ opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-puts opt.run.decode.size
+optimized_code = opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 ##opt.add_pass(Rubinius::Optimizer::ScalarTransform)
@@ -2070,7 +2196,7 @@ puts
   optimized_time = 0
   5.times do
     optimized_time += measure do
-      100.times do
+      10000.times do
         optimized_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
@@ -2078,7 +2204,7 @@ puts
   unoptimized_time = 0
   5.times do
     unoptimized_time += measure do
-      100.times do
+      10000.times do
         un_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
