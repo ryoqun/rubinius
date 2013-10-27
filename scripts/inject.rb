@@ -693,11 +693,17 @@ module Rubinius
 
       attr_accessor :right, :left
       attr_reader :stack, :min_size, :max_size
-      def initialize
+      def initialize(analyzer)
+        @analyzer = analyzer
         @instructions = []
         @right = @left = nil
         @wrapper = GeneratorWrapper.new(self)
         @max_size = @min_size = @stack = 0
+        @visited = false
+      end
+
+      def visited?
+        @visited
       end
 
       def add_instruction(instruction)
@@ -716,16 +722,77 @@ module Rubinius
 
       def to_label(optimizer)
         (
-          ["min: #{@min_size}, max: #{@max_size}"] +
+          ["exit: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
           (@instructions.collect do |instruction|
             instruction.to_label(optimizer)
           end)
         ).join("\n")
       end
+
+      def validate_stack
+        @enter_size = 0
+
+        stack = [self]
+        until stack.empty?
+          bb = stack.shift
+          bb.flow_stack_size stack
+        end
+      end
+
+      def flow_stack_size(stack)
+        unless @visited
+          @visited = true
+
+          @analyzer.accumulate_stack(@enter_size + @max_size)
+
+          net_size = @enter_size + @stack
+
+          if net_size < 0
+            invalid "net stack underflow in block starting at #{location}"
+          end
+
+          if @enter_size + @min_size < 0
+            invalid "minimum stack underflow in block starting at #{location}"
+          end
+
+          if @exit_size and @enter_size + @exit_size < 1
+            invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
+          end
+
+          if @left
+            @left.check_stack net_size
+            stack.push @left unless @left.visited?
+          end
+
+          if @right
+            @right.check_stack net_size
+            stack.push @right unless @right.visited?
+          end
+        end
+      end
+
+      def check_stack(stack_size)
+        if @enter_size
+          unless stack_size == @enter_size
+            invalid "unbalanced stack at #{stack_size} != #{@enter_size}"
+          end
+        else
+          #if not @closed
+          #  invalid "control fails to exit properly at"
+          #end
+
+          @enter_size = stack_size
+        end
+      end
+
+      def invalid(message)
+        raise message
+      end
     end
 
     class StackAnalyzer < Analysis
       def optimize
+        @max_stack = 0
         pending_flows = [optimizer.first_flow]
         blocks = {}
 
@@ -772,10 +839,21 @@ module Rubinius
             end
           end
         end
+
+        validate_stack
+        puts [@max_stack]
+      end
+
+      def validate_stack
+        optimizer.basic_blocks.first.validate_stack
       end
 
       def create_block
-        optimizer.add_basic_block(BasicBlock.new)
+        optimizer.add_basic_block(BasicBlock.new(self))
+      end
+
+      def accumulate_stack(size)
+        @max_stack = size if size > @max_stack
       end
     end
 
@@ -2148,7 +2226,7 @@ def loo
 end
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-code = method(:loo).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -2160,7 +2238,7 @@ code = method(:loo).executable
 #code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
-#code = Regexp.method(:escape).executable
+code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
 #code = Rubinius::CodeLoader.method(:initialize).executable
