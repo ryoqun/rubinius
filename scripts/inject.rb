@@ -803,11 +803,15 @@ module Rubinius
           while flow
             instruction = flow.dst_inst
 
-            if not instruction.incoming_branch_flows.empty? and
-               not blocks.has_key?(instruction)
-              new_block = (blocks[flow.dst_inst] ||= create_block)
-              current.left = new_block
-              current = new_block
+            if not instruction.incoming_branch_flows.empty?
+              if not blocks.has_key?(instruction)
+                new_block = (blocks[instruction] ||= create_block)
+                current.left = new_block
+                current = new_block
+              elsif current != blocks[instruction]
+                current.left = blocks[instruction]
+                break
+              end
             end
 
             current.add_instruction(flow.dst_inst)
@@ -841,7 +845,7 @@ module Rubinius
         end
 
         validate_stack
-        puts [@max_stack]
+        puts ["max stack", @max_stack].inspect
       end
 
       def validate_stack
