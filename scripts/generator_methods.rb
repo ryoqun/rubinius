@@ -243,7 +243,6 @@ class Rubinius::Optimizer
       end
 
       def create_block(arg1)
-        arg1 = add_literal arg1
         @current_block.add_stack(0, 1)
       end
 
