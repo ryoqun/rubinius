@@ -34,6 +34,10 @@ module Rubinius
       def *(other)
         to_i * other
       end
+
+      def times(*args, &block)
+        to_i.times(*args, &block)
+      end
     end
 
     module Endpoint
@@ -248,39 +252,13 @@ module Rubinius
       end
 
       def stack_produced
-        count = instruction.instruction.stack_produced
-
-        case op_code
-        when :move_down
-          op_rands[count.last - 1].to_i + 1
-        when :ret, :goto, :reraise
-          0
-        when :dup_many
-          op_rands.first.to_i * 2
-        else
-          count
-        end
+        _read, write = W.send(op_code, *op_rands)
+        write
       end
 
       def stack_consumed
-        count = instruction.instruction.stack_consumed
-
-        case op_code
-        when :send_stack
-          count.first + op_rands[count.last - 1].to_i
-        when :send_stack_with_block, :yield_stack
-          count.first + op_rands[count.last - 1].to_i
-        when :send_super_stack_with_block
-          count.first + op_rands[count.last - 1].to_i
-        when :string_build, :make_array
-          count.first + op_rands.first.to_i
-        when :move_down
-          op_rands[count.last - 1].to_i + 1
-        when :dup_many
-          op_rands.first.to_i
-        else
-          count
-        end
+        read, _write = W.send(op_code, *op_rands)
+        read
       end
     end
 
@@ -713,7 +691,6 @@ module Rubinius
         @analyzer = analyzer
         @instructions = []
         @right = @left = nil
-        @wrapper = GeneratorWrapper.new
         @max_size = @min_size = @stack = 0
         @visited = false
       end
@@ -723,7 +700,7 @@ module Rubinius
       end
 
       def add_instruction(instruction)
-        read, write = @wrapper.send(instruction.op_code, *instruction.op_rands)
+        read, write = W.send(instruction.op_code, *instruction.op_rands)
         add_stack(read.to_i, write.to_i)
         @instructions.push(instruction)
       end
@@ -1023,6 +1000,13 @@ module Rubinius
                 instruction.imports.unshift(shuffle) if stack_index.zero?
                 optimizer.add_data_flow(DataFlow.new(source, shuffle))
               end
+            when :rotate
+              instruction.stack_consumed.times.to_a.reverse.each do |index|
+                source = stack.pop
+                shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+                instruction.imports.unshift(shuffle) if stack_index.zero?
+                optimizer.add_data_flow(DataFlow.new(source, shuffle))
+              end
             when :send_stack_with_block
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 if index == 0
@@ -1064,6 +1048,12 @@ module Rubinius
               exports.each do |export|
                 instruction.exports.push(export) if stack_index.zero?
                 stack.push(export)
+              end
+            elsif instruction.op_code == :rotate
+              instruction.stack_produced.times.each do |index|
+                shuffle = DataFlow::Shuffle.new(index, instruction, :export)
+                instruction.exports.unshift(shuffle) if stack_index.zero?
+                stack.push(shuffle)
               end
             elsif instruction.op_code == :swap_stack
               instruction.stack_produced.times.to_a.reverse.each do |index|
@@ -2274,8 +2264,8 @@ end
 #code = [].method(:equal?).executable
 #code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
-#code = IO.method(:binwrite).executable
-code = Hash.instance_method(:reject!).executable
+code = IO.method(:binwrite).executable
+#code = Hash.instance_method(:reject!).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
