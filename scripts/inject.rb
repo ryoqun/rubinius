@@ -967,13 +967,13 @@ module Rubinius
             when :push_self
               #optimizer.add_data_flow(DataFlow.new(DataFlow::Self.new, instruction))
             when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
-              #instruction.op_rands.each do |op_rand|
-              #  optimizer.add_data_flow(DataFlow.new(op_rand, instruction))
-              #end
+              instruction.op_rands.each do |op_rand|
+                optimizer.add_data_flow(DataFlow.new(op_rand, instruction))
+              end
             when :set_local, :set_literal, :set_const_fast, :set_ivar
-              #instruction.op_rands.each do |op_rand|
-              #  optimizer.add_data_flow(DataFlow.new(instruction, op_rand))
-              #end
+              instruction.op_rands.each do |op_rand|
+                optimizer.add_data_flow(DataFlow.new(instruction, op_rand))
+              end
             when :pop
               #optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Void.new))
             when :ret
@@ -1698,9 +1698,26 @@ module Rubinius
       ]
     end
 
+    class CheckFrozen < Matcher
+      before [
+        [:check_frozen],
+        [:pop],
+        [:push_self],
+      ]
+
+      after [
+        [:check_frozen],
+      ]
+
+      def type
+        :check_frozen
+      end
+    end
+
     class NilRemover < Matcher
       before [
         [:push_nil],
+        :no_stack_changes,
         [:pop],
       ]
 
@@ -1762,9 +1779,8 @@ module Rubinius
             end
           end
 
-          if forwardable?(self)
+          if forwardable?
             raise "bad" if flows.size != 2
-            index = 0
             flow = flows.first
             return if flow.is_a?(NextFlow)
             next_flow = flow.next_flow
@@ -1785,13 +1801,13 @@ module Rubinius
         end
       end
 
-      def forwardable?(spot)
+      def forwardable?
         forwardable = false
         @results.each do |previous_flow, flow, match|
           unless @matcher.class.translator.include?(match)
             next_flow = flow
             while next_flow = next_flow.dst_inst.static_next_flow
-              if next_flow.spots == [spot]
+              if next_flow.spots == [self]
                 forwardable = true
               elsif not next_flow.spots.empty?
                 return false
@@ -2131,6 +2147,7 @@ module Rubinius
           NilRemover.new(optimizer, self),
           #InfiniteLoop.new(optimizer, self),
           PassedArg.new(optimizer, self),
+          CheckFrozen.new(optimizer, self),
         ]
       end
 
@@ -2257,21 +2274,23 @@ end
 #code = [].method(:equal?).executable
 #code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
-code = IO.method(:binwrite).executable
+#code = IO.method(:binwrite).executable
+code = Hash.instance_method(:reject!).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
 #code = Rubinius::CodeLoader.method(:initialize).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::MoveDownRemover)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
@@ -2293,11 +2312,11 @@ puts un_code.decode.size
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "generated")
 optimized_code = opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
