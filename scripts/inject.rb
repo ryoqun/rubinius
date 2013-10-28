@@ -977,7 +977,7 @@ module Rubinius
             when :pop
               #optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Void.new))
             when :ret
-              #optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Exit.new))
+              optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Exit.new))
             end
 
             case instruction.op_code
