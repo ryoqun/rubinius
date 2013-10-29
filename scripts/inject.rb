@@ -48,6 +48,14 @@ module Rubinius
       def to_label(optimizer)
         "<literal: #{(optimizer.compiled_code.literals[bytecode] || bytecode).inspect.to_s[0, 20]}>"
       end
+
+      def <(other)
+        bytecode < other
+      end
+
+      def >(other)
+        bytecode > other
+      end
     end
 
     class Serial < OpRand
@@ -716,7 +724,7 @@ module Rubinius
 
       def to_label(optimizer)
         (
-          ["exit: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
+          ["enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
           (@instructions.collect do |instruction|
             instruction.to_label(optimizer)
           end)
@@ -768,7 +776,7 @@ module Rubinius
       def check_stack(stack_size)
         if @enter_size
           unless stack_size == @enter_size
-            invalid "unbalanced stack at #{stack_size} != #{@enter_size}"
+            invalid "unbalanced stack at stack_size != enter_size: #{stack_size} != #{@enter_size}"
           end
         else
           #if not @closed
@@ -780,7 +788,9 @@ module Rubinius
       end
 
       def invalid(message)
-        raise message
+        puts to_label(nil)
+        puts message
+        #raise message
       end
     end
 
@@ -821,9 +831,9 @@ module Rubinius
             when :goto_if_true, :goto_if_false
               if not blocks.has_key?(instruction.branch_flow.dst_inst)
                 pending_flows.push(instruction.branch_flow)
-                new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
-                current.right = new_block
               end
+              new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
+              current.right = new_block
               if not blocks.has_key?(instruction.next_flow.dst_inst)
                 pending_flows.push(instruction.next_flow)
                 new_block = (blocks[instruction.next_flow.dst_inst] ||= create_block)
@@ -2284,17 +2294,21 @@ end
 #code = [].method(:equal?).executable
 #code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
-code = IO.method(:binwrite).executable
-#code = Hash.instance_method(:reject!).executable
+#code = IO.method(:binwrite).executable
+#code = Hash.instance_method(:reject).executable
+#code = Integer.instance_method(:upto).executable
+code = Integer.instance_method(:round).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
 #code = Rubinius::CodeLoader.method(:initialize).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
