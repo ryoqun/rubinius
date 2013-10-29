@@ -1007,6 +1007,20 @@ module Rubinius
                 instruction.imports.unshift(shuffle) if stack_index.zero?
                 optimizer.add_data_flow(DataFlow.new(source, shuffle))
               end
+            when :dup_many
+              instruction.stack_consumed.times.to_a.reverse.each do |index|
+                source = stack.pop
+                shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+                instruction.imports.unshift(shuffle) if stack_index.zero?
+                optimizer.add_data_flow(DataFlow.new(source, shuffle))
+              end
+            when :make_array
+              instruction.stack_consumed.times.to_a.reverse.each do |index|
+                source = stack.pop
+                shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+                instruction.imports.unshift(shuffle) if stack_index.zero?
+                optimizer.add_data_flow(DataFlow.new(source, shuffle))
+              end
             when :send_stack_with_block
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 if index == 0
@@ -1048,6 +1062,12 @@ module Rubinius
               exports.each do |export|
                 instruction.exports.push(export) if stack_index.zero?
                 stack.push(export)
+              end
+            elsif instruction.op_code == :dup_many
+              instruction.stack_produced.times.to_a.reverse.each do |index|
+                shuffle = DataFlow::Shuffle.new(index % instruction.op_rands.first.to_i, instruction, :export)
+                instruction.exports.unshift(shuffle) if stack_index.zero? and (index / instruction.op_rands.first.to_i).zero?
+                stack.push(shuffle)
               end
             elsif instruction.op_code == :rotate
               instruction.stack_produced.times.each do |index|
