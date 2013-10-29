@@ -1014,7 +1014,7 @@ module Rubinius
                   receiver = DataFlow::Receiver.new(instruction)
                   instruction.imports.unshift(receiver) if stack_index.zero?
                   optimizer.add_data_flow(DataFlow.new(source, receiver))
-                elsif index == 1
+                elsif index == instruction.stack_consumed - 1
                   source = stack.pop
                   receiver = DataFlow::Block.new(instruction)
                   instruction.imports.unshift(receiver) if stack_index.zero?
