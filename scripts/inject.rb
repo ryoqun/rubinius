@@ -1742,6 +1742,7 @@ module Rubinius
       ]
 
       after [
+        :no_stack_changes,
       ]
 
       def type
@@ -1839,19 +1840,33 @@ module Rubinius
         forwardable
       end
 
+      def not_isolated?
+        not @isolation
+      end
+
       def isolated?
+        @isolation ||= do_isolated?
+      end
+
+      def do_isolated?
         @results.each do |previous_flow, flow, match|
           unless @matcher.class.translator.include?(match)
             if flow.dst_inst.incoming_flows.size > 1
-              comparison = flow.dst_inst.incoming_flows.collect do |flow|
+              comparison = flow.dst_inst.incoming_flows.collect do |incoming_flow|
+                return false if incoming_flow !=flow and incoming_flow.spots.any?(&:not_isolated?)
+
                 [
-                flow.spots.map(&:type),
-                flow.spots.map{|s| s.position(flow) },
+                incoming_flow.spots.map(&:type),
+                incoming_flow.spots.map{|s| s.position(incoming_flow) },
                 ]
               end
               if comparison.uniq.size > 1
                 return false
               end
+            end
+          else
+            if flow.dst_inst.incoming_flows.size > 1
+              return false
             end
           end
         end
@@ -2205,6 +2220,7 @@ module Rubinius
                   previous = current
                   current = nil
                 else
+                  yield_flow(previous, current, &block)
                   previous = current
                   current = current.next_flow
                 end
