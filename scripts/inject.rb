@@ -849,7 +849,7 @@ module Rubinius
         end
 
         validate_stack
-        puts ["max stack", @max_stack].inspect
+        #puts ["max stack", @max_stack].inspect
       end
 
       def validate_stack
@@ -1051,7 +1051,7 @@ module Rubinius
                 end
               end
             else
-              puts instruction.op_code
+              #puts instruction.op_code
               instruction.stack_consumed.times do
                 optimizer.add_data_flow(DataFlow.new(stack.pop, instruction))
               end
@@ -1855,7 +1855,7 @@ module Rubinius
       end
 
       def do_isolated?
-        @results.each do |previous_flow, flow, match|
+        @results[1..-1].each do |previous_flow, flow, match|
           unless @matcher.class.translator.include?(match)
             if flow.dst_inst.incoming_flows.size > 1
               comparison = flow.dst_inst.incoming_flows.collect do |incoming_flow|
@@ -2049,7 +2049,7 @@ module Rubinius
                   #inst.raw_remove
                   #break
                 else
-                  puts "goto / goto if false branch"
+                  #puts "goto / goto if false branch"
                   goto_if_false = incoming_flow.src_inst
                   goto = inst
                   goto_if_false.branch_flow.change_dst_inst(goto.branch_flow.dst_inst)
@@ -2060,7 +2060,7 @@ module Rubinius
                   #optimizer.remove_flow(inst.branch_flow)
                 end
               elsif incoming_flow.src_inst.op_code == :goto
-                puts "goto / goto"
+                #puts "goto / goto"
                 first_goto = incoming_flow.src_inst
                 second_goto = inst
                 first_goto.branch_flow.change_dst_inst(second_goto.branch_flow.dst_inst)
@@ -2328,11 +2328,12 @@ code = Integer.instance_method(:round).executable
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
@@ -2360,6 +2361,7 @@ puts un_code.decode.size
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
