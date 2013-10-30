@@ -1841,10 +1841,16 @@ module Rubinius
       end
 
       def not_isolated?
-        not @isolation
+        if not @isolation_calculated
+          # this is bad
+          true
+        else
+          not @isolation
+        end
       end
 
       def isolated?
+        @isolation_calculated = true
         @isolation ||= do_isolated?
       end
 
@@ -2120,11 +2126,12 @@ module Rubinius
                   branch_flow.point_to_next_instruction
                   branch_flow.unmark_remove
                 else
+                  raise "recently untested"
                   new_inst = inst.dup
                   optimizer.remove_flow(inst.static_next_flow)
                   inst.raw_remove
                   after_inst = branch_flow.src_inst
-                  after_inst.previous.change_src_dst(after_inst.previous.src_inst, new_inst)
+                  after_inst.previous_flow.change_src_dst(after_inst.previous_flow.src_inst, new_inst)
 
                   branch_flow.point_to_next_instruction
                   branch_flow.unmark_remove
@@ -2325,6 +2332,7 @@ opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::Prune)
 opt.add_pass(Rubinius::Optimizer::GotoRet)
 opt.add_pass(Rubinius::Optimizer::GoToRemover)
@@ -2353,7 +2361,6 @@ puts un_code.decode.size
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "generated")
