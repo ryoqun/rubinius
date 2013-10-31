@@ -693,12 +693,12 @@ module Rubinius
     W = GeneratorWrapper.new
 
     class BasicBlock
-      attr_accessor :right, :left
+      attr_accessor :branch_block, :next_block
       attr_reader :stack, :min_size, :max_size
       def initialize(analyzer)
         @analyzer = analyzer
         @instructions = []
-        @right = @left = nil
+        @branch_block = @next_block = nil
         @max_size = @min_size = @stack = 0
         @visited = false
       end
@@ -761,14 +761,14 @@ module Rubinius
             invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
           end
 
-          if @left
-            @left.check_stack net_size
-            stack.push @left unless @left.visited?
+          if @next_block
+            @next_block.check_stack net_size
+            stack.push @next_block unless @next_block.visited?
           end
 
-          if @right
-            @right.check_stack net_size
-            stack.push @right unless @right.visited?
+          if @branch_block
+            @branch_block.check_stack net_size
+            stack.push @branch_block unless @branch_block.visited?
           end
         end
       end
@@ -810,10 +810,10 @@ module Rubinius
             if not instruction.incoming_branch_flows.empty?
               if not blocks.has_key?(instruction)
                 new_block = (blocks[instruction] ||= create_block)
-                current.left = new_block
+                current.next_block = new_block
                 current = new_block
               elsif current != blocks[instruction]
-                current.left = blocks[instruction]
+                current.next_block = blocks[instruction]
                 break
               end
             end
@@ -826,18 +826,18 @@ module Rubinius
                 pending_flows.push(instruction.branch_flow)
               end
               new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
-              current.right = new_block
+              current.branch_block = new_block
               flow = nil
             when :goto_if_true, :goto_if_false
               if not blocks.has_key?(instruction.branch_flow.dst_inst)
                 pending_flows.push(instruction.branch_flow)
               end
               new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
-              current.right = new_block
+              current.branch_block = new_block
               if not blocks.has_key?(instruction.next_flow.dst_inst)
                 pending_flows.push(instruction.next_flow)
                 new_block = (blocks[instruction.next_flow.dst_inst] ||= create_block)
-                current.left = new_block
+                current.next_block = new_block
               end
               flow = nil
             when :ret
@@ -886,13 +886,13 @@ module Rubinius
 
         optimizer.basic_blocks.each do |block|
           node = @g.add_nodes(block_node(block))
-          if block.left
-            edge = @g.add_edges(block_node(block), block_node(block.left))
-            edge.label = "left"
+          if block.next_block
+            edge = @g.add_edges(block_node(block), block_node(block.next_block))
+            edge.label = "next_block"
           end
-          if block.right
-            edge = @g.add_edges(block_node(block), block_node(block.right))
-            edge.label = "right"
+          if block.branch_block
+            edge = @g.add_edges(block_node(block), block_node(block.branch_block))
+            edge.label = "branch_block"
           end
         end
 
@@ -2315,12 +2315,13 @@ end
 #code = Time.method(:at).executable
 #code = [].method(:|).executable
 #code = [].method(:equal?).executable
-#code = ARGF.method(:each_line).executable
+#code = [].method(:cycle).executable
+code = ARGF.method(:each_line).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
 #code = Integer.instance_method(:upto).executable
-code = Integer.instance_method(:round).executable
+#code = Integer.instance_method(:round).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
