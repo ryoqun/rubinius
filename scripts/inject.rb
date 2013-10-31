@@ -750,15 +750,15 @@ module Rubinius
           net_size = @enter_size + @stack
 
           if net_size < 0
-            invalid "net stack underflow in block starting at #{location}"
+            invalid "net stack underflow"
           end
 
           if @enter_size + @min_size < 0
-            invalid "minimum stack underflow in block starting at #{location}"
+            invalid "minimum stack underflow"
           end
 
           if @exit_size and @enter_size + @exit_size < 1
-            invalid "exit stack underflow in block starting at #{location(@exit_ip)}"
+            invalid "exit stack underflow"
           end
 
           if @next_block
@@ -790,7 +790,7 @@ module Rubinius
       def invalid(message)
         puts to_label(nil)
         puts message
-        #raise message
+        raise message
       end
     end
 
