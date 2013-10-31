@@ -738,7 +738,7 @@ module Rubinius
 
       def to_label(optimizer)
         (
-          ["#{closed? ? "CLOSED " : ""}enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
+          ["#{closed? ? "CLOSED " : ""}#{@exit_size ? "exit_size: #{@exit_size} " : ""}enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
           (@instructions.collect do |instruction|
             instruction.to_label(optimizer)
           end)
@@ -2352,7 +2352,7 @@ opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
