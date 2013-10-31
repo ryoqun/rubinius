@@ -700,7 +700,21 @@ module Rubinius
         @instructions = []
         @branch_block = @next_block = nil
         @max_size = @min_size = @stack = 0
+        @closed = false
         @visited = false
+        @exit_size = nil
+      end
+
+      def close(record_exit=false)
+        @closed = true
+
+        if record_exit
+          @exit_size = @stack
+        end
+      end
+
+      def closed?
+        @closed
       end
 
       def visited?
@@ -724,7 +738,7 @@ module Rubinius
 
       def to_label(optimizer)
         (
-          ["enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
+          ["#{closed? ? "CLOSED " : ""}enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
           (@instructions.collect do |instruction|
             instruction.to_label(optimizer)
           end)
@@ -779,17 +793,18 @@ module Rubinius
             invalid "unbalanced stack at stack_size != enter_size: #{stack_size} != #{@enter_size}"
           end
         else
-          #if not @closed
-          #  invalid "control fails to exit properly at"
-          #end
+          if not closed?
+            invalid "control fails to exit properly"
+          end
 
           @enter_size = stack_size
         end
       end
 
       def invalid(message)
+        puts
+        puts "INVALID:"
         puts to_label(nil)
-        puts message
         raise message
       end
     end
@@ -811,8 +826,10 @@ module Rubinius
               if not blocks.has_key?(instruction)
                 new_block = (blocks[instruction] ||= create_block)
                 current.next_block = new_block
+                current.close
                 current = new_block
               elsif current != blocks[instruction]
+                current.close
                 current.next_block = blocks[instruction]
                 break
               end
@@ -827,6 +844,7 @@ module Rubinius
               end
               new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
               current.branch_block = new_block
+              current.close
               flow = nil
             when :goto_if_true, :goto_if_false
               if not blocks.has_key?(instruction.branch_flow.dst_inst)
@@ -834,13 +852,15 @@ module Rubinius
               end
               new_block = (blocks[instruction.branch_flow.dst_inst] ||= create_block)
               current.branch_block = new_block
+              current.close
               if not blocks.has_key?(instruction.next_flow.dst_inst)
                 pending_flows.push(instruction.next_flow)
                 new_block = (blocks[instruction.next_flow.dst_inst] ||= create_block)
                 current.next_block = new_block
               end
               flow = nil
-            when :ret
+            when :ret, :raise_return, :ensure_return
+              current.close(true)
               flow = nil
             else
               flow = instruction.next_flow
@@ -2332,7 +2352,7 @@ opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
