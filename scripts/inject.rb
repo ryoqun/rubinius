@@ -140,7 +140,7 @@ module Rubinius
       def static_next_flow
         if op_code == :goto
           branch_flow
-        elsif op_code == :ret or op_code == :ensure_return or op_code == :raise_return or op_code == :raise_break
+        elsif flow_type == :raise or flow_type == :return
           nil
         elsif flow_type == :next
           next_flow
@@ -864,11 +864,13 @@ module Rubinius
                 current.next_block = new_block
               end
               flow = nil
-            when :ret, :raise_return, :ensure_return
-              current.close(true)
-              flow = nil
             else
-              flow = instruction.next_flow
+              if instruction.flow_type == :return or instruction.flow_type == :raise
+                current.close(true)
+                flow = nil
+              else
+                flow = instruction.next_flow
+              end
             end
           end
         end
@@ -946,7 +948,7 @@ module Rubinius
               stacks << goto_to_stack[goto.src_inst] if goto_to_stack.has_key?(goto.src_inst)
             end
           end
-          if not previous.nil? and (previous.op_code == :goto or previous.op_code == :ret or previous.op_code == :raise_return or previous.op_code == :ensure_return or previous.op_code == :raise_break)
+          if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
             stacks.reject!{|s| s.equal?(main_stack)}
             if not branch_target_found and stacks.all?(&:empty?)
               previous = instruction
@@ -988,8 +990,10 @@ module Rubinius
               end
             when :pop
               #optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Void.new))
-            when :ret, :ensure_return, :raise_return, :raise_break
-              optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Exit.new))
+            else
+              if instruction.flow_type == :return or instruction.flow_type == :raise
+                optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Exit.new))
+              end
             end
 
             case instruction.op_code
@@ -1459,11 +1463,8 @@ module Rubinius
         optimizer.each_instruction do |instruction|
           if previous and
              previous.op_code != :goto and
-             previous.op_code != :ret and
-             previous.op_code != :raise_return and
-             previous.op_code != :ensure_return and
-             previous.op_code != :raise_break and
-             previous.op_code != :reraise
+             previous.flow_type != :return and
+             previous.flow_type != :raise
             optimizer.add_flow(NextFlow.new(previous, instruction))
           end
           if instruction.flow_type == :branch or
@@ -2356,6 +2357,7 @@ code = IO::StreamCopier.instance_method(:run).executable
 #code = Rubinius::Loader.instance_method(:script).executable
 #code = Rubinius::CodeLoader.method(:initialize).executable
 opt = Rubinius::Optimizer.new(code)
+puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
