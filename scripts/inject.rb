@@ -140,7 +140,7 @@ module Rubinius
       def static_next_flow
         if op_code == :goto
           branch_flow
-        elsif op_code == :ret
+        elsif op_code == :ret or op_code == :ensure_return or op_code == :raise_return or op_code == :raise_break
           nil
         elsif flow_type == :next
           next_flow
@@ -413,6 +413,11 @@ module Rubinius
       stacks = [first_instruction]
       until stacks.empty?
         instruction = stacks.shift
+        if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
+          branch_instruction = stacks.delete(branch_flow.dst_inst) ||
+                                 branch_flow.dst_inst
+          stacks.push(branch_instruction)
+        end
 
         if instruction
           if instruction.previous_flow && instruction != first_instruction
@@ -941,7 +946,7 @@ module Rubinius
               stacks << goto_to_stack[goto.src_inst] if goto_to_stack.has_key?(goto.src_inst)
             end
           end
-          if not previous.nil? and (previous.op_code == :goto or previous.op_code == :ret)
+          if not previous.nil? and (previous.op_code == :goto or previous.op_code == :ret or previous.op_code == :raise_return or previous.op_code == :ensure_return or previous.op_code == :raise_break)
             stacks.reject!{|s| s.equal?(main_stack)}
             if not branch_target_found and stacks.all?(&:empty?)
               previous = instruction
@@ -983,7 +988,7 @@ module Rubinius
               end
             when :pop
               #optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Void.new))
-            when :ret
+            when :ret, :ensure_return, :raise_return, :raise_break
               optimizer.add_data_flow(DataFlow.new(instruction, DataFlow::Exit.new))
             end
 
@@ -1232,9 +1237,9 @@ module Rubinius
       attr_reader :src_inst, :dst_inst, :spots, :previous_spots
       def initialize(src_inst, dst_inst)
         @src_inst = src_inst
-        raise "src_inst is nil" if @src_inst.nil?
+        raise "src_inst is nil: #{@dst_inst.to_label(nil) if @dst_inst}" if @src_inst.nil?
         @dst_inst = dst_inst
-        raise "dst_inst is nil" if @dst_inst.nil?
+        raise "dst_inst is nil: src: #{@src_inst.to_label(nil)}" if @dst_inst.nil?
         @remove = false
         @installed = false
         @spots = []
@@ -1455,6 +1460,9 @@ module Rubinius
           if previous and
              previous.op_code != :goto and
              previous.op_code != :ret and
+             previous.op_code != :raise_return and
+             previous.op_code != :ensure_return and
+             previous.op_code != :raise_break and
              previous.op_code != :reraise
             optimizer.add_flow(NextFlow.new(previous, instruction))
           end
@@ -2336,7 +2344,8 @@ end
 #code = [].method(:|).executable
 #code = [].method(:equal?).executable
 #code = [].method(:cycle).executable
-code = ARGF.method(:each_line).executable
+#code = ARGF.method(:each_line).executable
+code = IO::StreamCopier.instance_method(:run).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
