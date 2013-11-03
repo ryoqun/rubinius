@@ -349,8 +349,8 @@ module Rubinius
           if lines[line - 1] <= ip and ip < lines[line + 1]
             inst.line = lines[line]
           else
+            line += 2
             if line < lines.size - 1
-              line += 2
               if lines[line - 1] <= ip and ip < lines[line + 1]
                 inst.line = lines[line]
               end
@@ -495,7 +495,6 @@ module Rubinius
       lines << line
       sequence.each do |inst|
         inst.ip = ip
-        puts "#{line} #{inst.line}"
         if line != inst.line
           lines << ip
           lines << line
@@ -512,7 +511,7 @@ module Rubinius
         end
       end
 
-      bytecodes
+      [bytecodes, lines]
     end
 
     def encode
@@ -531,13 +530,13 @@ module Rubinius
         end
       end
 
-      bytecodes = generate_bytecode
+      bytecodes, lines = generate_bytecode
       raise "too small, is there call flow analysis???" if bytecodes.size == 1
 
       opted = OptimizedCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
       opted.literals = @compiled_code.literals
-      opted.lines = [-1, 999, 0, 999, 9999].to_tuple
+      opted.lines = lines.to_tuple
       opted.required_args = @compiled_code.required_args
       opted.post_args = @compiled_code.post_args
       opted.total_args = @compiled_code.total_args
