@@ -90,7 +90,7 @@ module Rubinius
 
     class Inst
       attr_reader :instruction, :imports, :exports, :incoming_branch_flows, :incoming_flows
-      attr_accessor :op_rands, :ip,
+      attr_accessor :op_rands, :ip, :line,
                     :following_instruction, :preceeding_instruction, :unconditional_branch_flow
       def initialize(instruction)
         @instruction = instruction
@@ -108,6 +108,7 @@ module Rubinius
         @ip = 0
         @generation = 0
         @unconditional_branch_flow = nil
+        @line = 0
       end
 
       def unconditional_branch_flow?
@@ -239,9 +240,9 @@ module Rubinius
 
       def to_label(optimizer)
         if @generation.zero?
-          instruction.to_s
+          "#{"#{@line}: " if @line}#{instruction.to_s}"
         else
-          "#{instruction.to_s} (#{@generation})"
+          "#{"#{@line}: " if @line}#{instruction.to_s} (#{@generation})"
         end
       end
 
@@ -331,6 +332,11 @@ module Rubinius
       ip_to_inst = {}
       ip = 0
       inst = previous = nil
+      lines = @compiled_code.lines
+      if lines.first == -1
+        @definition_line = lines[1]
+      end
+      line = 1
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                        decode.
                                        collect do |stream|
@@ -338,6 +344,17 @@ module Rubinius
         op_code, *bytecodes = stream
 
         inst = ip_to_inst[ip] = Inst.new(instruction)
+        if line
+          if lines[line - 1] <= ip and ip < lines[line + 1]
+            inst.line = lines[line]
+          else
+            if line < lines.size - 2
+              line += 2
+            else
+              line = nil
+            end
+          end
+        end
         if previous
           previous.following_instruction = inst
           inst.preceeding_instruction = previous
