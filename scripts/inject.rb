@@ -512,6 +512,7 @@ module Rubinius
       opted.local_count = @compiled_code.local_count
       opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
       opted.local_names = @compiled_code.local_names
+      opted.primitive      = @compiled_code.primitive
       opted.original_code = @compiled_code
       opted
     end
