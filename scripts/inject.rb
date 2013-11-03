@@ -484,9 +484,23 @@ module Rubinius
         end
       end
 
+      lines = []
+      if @definition_line
+        lines << -1
+        lines << @definition_line
+      end
       ip = 0
+      line = first_instruction.line
+      lines << ip
+      lines << line
       sequence.each do |inst|
         inst.ip = ip
+        puts "#{line} #{inst.line}"
+        if line != inst.line
+          lines << ip
+          lines << line
+          line = inst.line
+        end
         ip += inst.instruction_width
       end
 
