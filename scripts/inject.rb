@@ -333,10 +333,11 @@ module Rubinius
       ip = 0
       inst = previous = nil
       lines = @compiled_code.lines
+      line = 1
       if lines.first == -1
         @definition_line = lines[1]
+        line += 2
       end
-      line = 1
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                        decode.
                                        collect do |stream|
@@ -348,8 +349,11 @@ module Rubinius
           if lines[line - 1] <= ip and ip < lines[line + 1]
             inst.line = lines[line]
           else
-            if line < lines.size - 2
+            if line < lines.size - 1
               line += 2
+              if lines[line - 1] <= ip and ip < lines[line + 1]
+                inst.line = lines[line]
+              end
             else
               line = nil
             end
