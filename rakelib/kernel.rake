@@ -25,6 +25,8 @@ end
 # TODO: Build this functionality into the compiler
 class KernelCompiler
   def self.compile(file, output, line, transforms)
+    require './scripts/optimizer'
+
     compiler = Rubinius::ToolSet::Build::Compiler.new :file, :compiled_file
 
     parser = compiler.parser
