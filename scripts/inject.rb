@@ -2352,6 +2352,8 @@ module Rubinius
   end
 end
 
+if __FILE__ == $0
+
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
 
@@ -2491,7 +2493,7 @@ puts
 
 p result
 
-return
+#return
 #puts code.decode
 #puts
 #puts code.decode
@@ -2583,3 +2585,4 @@ hello
 #guards:
 #  :__block__ => (inlined) original CompiledMethod (= def aa)
 #  :Rubinius, :Type, :compatible? => (inlined) CompiledMethod
+end
