@@ -382,7 +382,7 @@ module Rubinius
         op_rands = inst.instruction.args.collect.with_index do |arg, index|
           bytecode = bytecodes[index]
           case op_code.args[index]
-          when :count, :positions, :index
+          when :count, :positions, :index, :depth
             if inst.op_code == :passed_arg
               Parameter.new(bytecode)
             else
