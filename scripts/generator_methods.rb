@@ -162,8 +162,7 @@ class Rubinius::Optimizer
       end
 
       def cast_array
-        unless @instruction == 36 or @instruction == 35
-        end
+        @current_block.add_stack(1, 1)
       end
 
       def shift_array

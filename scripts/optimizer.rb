@@ -198,6 +198,7 @@ module Rubinius::ToolSet.current::TS
       opt = Rubinius::Optimizer.new(compiled_code)
       opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
       basename = "#{compiled_code.file.to_s.gsub('/', '_')}:#{compiled_code.line_from_ip(0)}_#{compiled_code.name}"
+      basename.gsub!(/[\&\|<=>]/, '_')
       opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
       opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
       opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
