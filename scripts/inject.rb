@@ -979,7 +979,8 @@ module Rubinius
           instruction.incoming_branch_flows.each do |goto|
             if goto.src_inst.op_code == :goto or
                goto.src_inst.op_code == :goto_if_true or
-               goto.src_inst.op_code == :goto_if_false
+               goto.src_inst.op_code == :goto_if_false or
+               goto.src_inst.op_code == :setup_unwind
               branch_target_found = true
               stacks << goto_to_stack[goto.src_inst] if goto_to_stack.has_key?(goto.src_inst)
             end
@@ -1227,9 +1228,8 @@ module Rubinius
 
       def decorate_node(data)
         unless data
-          raise
           puts optimizer.compiled_code.inspect
-          return "NIL" unless data
+          raise
         end
 
         suffix = nil #"(branch_flow)" if data.respond_to?(:incoming_branch_flows) and not data.incoming_branch_flows.empty?
