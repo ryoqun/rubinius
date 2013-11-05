@@ -1202,7 +1202,7 @@ module Rubinius
             source_node = decorate_node(data_flow.source.instruction)
             source_node = {source_node => data_flow.source.to_label(optimizer)}
           else
-            puts data_flow.sink.to_label(optimizer)
+            #puts data_flow.sink.to_label(optimizer)
             source_node = decorate_node(data_flow.source)
           end
 
