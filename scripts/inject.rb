@@ -109,6 +109,7 @@ module Rubinius
         @generation = 0
         @unconditional_branch_flow = nil
         @line = 0
+        @remove_mark = nil
       end
 
       def unconditional_branch_flow?
@@ -281,6 +282,7 @@ module Rubinius
       @source_data_flows = Hash.new{|hash, key| hash[key] = [] }
       @sink_data_flows = Hash.new{|hash, key| hash[key] = [] }
       @basic_blocks = []
+      @definition_line = nil
       decode
     end
 
@@ -382,7 +384,7 @@ module Rubinius
         op_rands = inst.instruction.args.collect.with_index do |arg, index|
           bytecode = bytecodes[index]
           case op_code.args[index]
-          when :count, :positions, :index, :depth
+          when :count, :positions, :index
             if inst.op_code == :passed_arg
               Parameter.new(bytecode)
             else
@@ -787,7 +789,6 @@ module Rubinius
 
       def validate_stack
         @enter_size = 0
-
         stack = [self]
         until stack.empty?
           bb = stack.shift
@@ -828,7 +829,7 @@ module Rubinius
       end
 
       def check_stack(stack_size)
-        if @enter_size
+        if defined?(@enter_size)
           unless stack_size == @enter_size
             invalid "unbalanced stack at stack_size != enter_size: #{stack_size} != #{@enter_size}"
           end
@@ -935,9 +936,9 @@ module Rubinius
 
       def base_name
         if @file
-          "stack_#{@file}"
+          "/tmp/stack_#{@file}"
         else
-          "stack"
+          "/tmp/stack"
         end
       end
 
@@ -991,7 +992,7 @@ module Rubinius
             end
           end
 
-          stacks.last(stacks.size - 1).each do |other_stack|
+          stacks.last([stacks.size - 1, 0].max).each do |other_stack|
             stacks.delete(other_stack) if other_stack.empty?
           end
 
@@ -1200,6 +1201,7 @@ module Rubinius
             source_node = decorate_node(data_flow.source.instruction)
             source_node = {source_node => data_flow.source.to_label(optimizer)}
           else
+            puts data_flow.sink.to_label(optimizer)
             source_node = decorate_node(data_flow.source)
           end
 
@@ -1213,9 +1215,9 @@ module Rubinius
 
       def base_name
         if @file
-          "data_flow_#{@file}"
+          "/tmp/data_flow_#{@file}"
         else
-          "data_flow"
+          "/tmp/data_flow"
         end
       end
 
@@ -1224,6 +1226,12 @@ module Rubinius
       end
 
       def decorate_node(data)
+        unless data
+          raise
+          puts optimizer.compiled_code.inspect
+          return "NIL" unless data
+        end
+
         suffix = nil #"(branch_flow)" if data.respond_to?(:incoming_branch_flows) and not data.incoming_branch_flows.empty?
         if data.is_a?(Inst) and (not data.imports.empty? or not data.exports.empty?)
           node = @g.get_node(data.to_label(optimizer)) || @g.add_nodes(data.to_label(optimizer))
@@ -1572,9 +1580,9 @@ module Rubinius
 
       def base_name
         if @file
-          "flow_#{@file}"
+          "/tmp/flow_#{@file}"
         else
-          "flow"
+          "/tmp/flow"
         end
       end
     end

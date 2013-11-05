@@ -111,6 +111,36 @@ end
 
 module Rubinius::ToolSet.current::TS
   class Rubinius::CompiledCode
+    ##
+    # Return the line of source code at +ip+.
+    #
+    # @param  [Fixnum] ip
+    # @return [Fixnum] line
+    def line_from_ip(ip)
+      return -1 unless @lines
+      return 0 if @lines.size < 2
+
+      low = 0
+      high = @lines.size / 2 - 1
+
+      while low <= high
+        # the chance that we're going from a fixnum to a bignum
+        # here is low, but we still try to prevent that.
+        mid = low + ((high - low) / 2)
+
+        line_index = mid * 2 + 1
+
+        if ip < @lines.at(line_index - 1)
+          high = mid - 1
+        elsif ip >= @lines.at(line_index + 1)
+          low = mid + 1
+        else
+          return @lines.at(line_index)
+        end
+      end
+
+      @lines.at(@lines.size - 2)
+    end
     def decode(bytecodes = @iseq)
       decoder = Rubinius::InstructionDecoder.new(bytecodes)
       stream = decoder.decode(false)
@@ -155,15 +185,26 @@ module Rubinius::ToolSet.current::TS
     end
   end
 
+  class Rubinius::OptimizedCode < Rubinius::CompiledCode
+    attr_accessor :original_code
+  end
+
   class Generator
     alias_method :__package__, :package
     def package(klass)
       compiled_code = __package__(klass)
-      #p compiled_code.name
-      Rubinius::InstructionDecoder
+
       puts "#{compiled_code.name} #{compiled_code.decode.size}"
       opt = Rubinius::Optimizer.new(compiled_code)
-      #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+      opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+      basename = "#{compiled_code.file.to_s.gsub('/', '_')}:#{compiled_code.line_from_ip(0)}_#{compiled_code.name}"
+      opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+      opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+      opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
+      opt.run
+
       optimized_code = compiled_code
       optimized_code
     end
