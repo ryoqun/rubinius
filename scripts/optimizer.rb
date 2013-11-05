@@ -194,7 +194,7 @@ module Rubinius::ToolSet.current::TS
     def package(klass)
       compiled_code = __package__(klass)
 
-      puts "#{compiled_code.name} #{compiled_code.decode.size}"
+      print "#{compiled_code.name} #{compiled_code.decode.size}"
       opt = Rubinius::Optimizer.new(compiled_code)
       opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
       basename = "#{compiled_code.file.to_s.gsub('/', '_')}:#{compiled_code.line_from_ip(0)}_#{compiled_code.name}"
@@ -203,7 +203,10 @@ module Rubinius::ToolSet.current::TS
       opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
       opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
       opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
-      opt.run
+      opt.add_pass(Rubinius::Optimizer::PruneUnused)
+      opted = opt.run
+      puts "=> #{opted.decode.size}"
+      opt = Rubinius::Optimizer.new(compiled_code)
 
       optimized_code = compiled_code
       optimized_code
