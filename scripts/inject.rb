@@ -1230,6 +1230,7 @@ module Rubinius
         unless data
           puts optimizer.compiled_code.inspect
           raise
+          #return "NIL"
         end
 
         suffix = nil #"(branch_flow)" if data.respond_to?(:incoming_branch_flows) and not data.incoming_branch_flows.empty?
