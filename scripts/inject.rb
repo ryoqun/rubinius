@@ -1015,7 +1015,7 @@ module Rubinius
           end
 
           stacks.each do |other_stack|
-            stacks.delete(other_stack) if other_stack.empty?
+            stacks.delete(other_stack) if other_stack and other_stack.empty?
           end
 
           if stacks.empty?
@@ -1239,6 +1239,7 @@ module Rubinius
         end
 
         @g.output(:pdf => "#{base_name}.pdf")
+        raise "failed" if $FAIL
       end
 
       def base_name
@@ -2434,6 +2435,7 @@ opt = Rubinius::Optimizer.new(code)
 puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)

@@ -1,3 +1,4 @@
+$FAIL = false
 require "./scripts/inject"
 
     ##
