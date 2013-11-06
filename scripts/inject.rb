@@ -887,7 +887,7 @@ module Rubinius
               current.branch_block = new_block
               current.close
               flow = nil
-            when :goto_if_true, :goto_if_false
+            when :goto_if_true, :goto_if_false, :setup_unwind
               if not blocks.has_key?(instruction.branch_flow.dst_inst)
                 pending_flows.push(instruction.branch_flow)
               end
@@ -901,8 +901,16 @@ module Rubinius
               end
               flow = nil
             else
-              if instruction.flow_type == :return or instruction.flow_type == :raise
+              if instruction.flow_type == :return
                 current.close(true)
+                flow = nil
+              elsif instruction.flow_type == :raise
+                if instruction.op_code == :raise_return or
+                   instruction.op_code == :ensure_return
+                  current.close(true)
+                else
+                  current.close
+                end
                 flow = nil
               else
                 flow = instruction.next_flow
@@ -1229,8 +1237,7 @@ module Rubinius
       def decorate_node(data)
         unless data
           puts optimizer.compiled_code.inspect
-          raise
-          #return "NIL"
+          return "NIL"
         end
 
         suffix = nil #"(branch_flow)" if data.respond_to?(:incoming_branch_flows) and not data.incoming_branch_flows.empty?
