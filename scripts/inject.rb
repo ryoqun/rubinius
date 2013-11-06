@@ -301,6 +301,8 @@ module Rubinius
     end
 
     def add_data_flow(data_flow)
+      raise "baad" if data_flow.source.nil? or data_flow.sink.nil?
+
       data_flow.install
       @source_data_flows[data_flow.source] << data_flow
       @sink_data_flows[data_flow.sink] << data_flow
@@ -1237,6 +1239,7 @@ module Rubinius
       def decorate_node(data)
         unless data
           puts optimizer.compiled_code.inspect
+          raise
           return "NIL"
         end
 
