@@ -986,6 +986,16 @@ module Rubinius
         optimizer.each_instruction do |instruction|
           #p instruction.to_label(optimizer)
           branch_target_found = false
+          if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
+            #puts stacks.size
+            #puts previous.to_label(nil)
+            #puts main_stack.map{|a| a.to_label(optimizer) }
+            stacks.clear if instruction.incoming_branch_flows.all? do |goto|
+              goto.src_inst != previous
+            end
+            stacks.reject!{|s| s.equal?(main_stack)}
+            #puts stacks.size
+          end
           instruction.incoming_branch_flows.each do |goto|
             if goto.src_inst.op_code == :goto or
                goto.src_inst.op_code == :goto_if_true or
@@ -998,7 +1008,6 @@ module Rubinius
             end
           end
           if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
-            stacks.reject!{|s| s.equal?(main_stack)}
             if not branch_target_found and stacks.all?(&:empty?)
               previous = instruction
               next
@@ -1014,6 +1023,7 @@ module Rubinius
             stacks = [main_stack]
           end
           stacks.uniq!
+          #p instruction.to_label(nil)
           #ap stacks.map{|s| s.map{|m| m.to_label(optimizer) } }
           stacks.each.with_index do |stack, stack_index|
             case instruction.op_code
@@ -1083,7 +1093,7 @@ module Rubinius
               instruction.imports.unshift(shuffle) if stack_index.zero?
               optimizer.add_data_flow(DataFlow.new(source, shuffle))
             when :move_down
-              instruction.stack_consumed.times.to_a.reverse.each do |index|
+              (instruction.stack_consumed + 1).times.to_a.reverse.each do |index|
                 source = stack.pop
                 shuffle = DataFlow::Shuffle.new(index, instruction, :import)
                 instruction.imports.unshift(shuffle) if stack_index.zero?
@@ -1143,7 +1153,7 @@ module Rubinius
             if instruction.op_code == :move_down
               exports = Array.new(instruction.stack_produced)
               i = 0
-              instruction.stack_produced.times.to_a.rotate(-1).each do |index|
+              (instruction.stack_produced + 1).times.to_a.rotate(-1).each do |index|
                 shuffle = DataFlow::Shuffle.new(index, instruction, :export)
                 exports[i] = shuffle
                 i += 1
@@ -1154,10 +1164,13 @@ module Rubinius
                 stack.push(export)
               end
             elsif instruction.op_code == :dup_many
-              instruction.stack_produced.times.to_a.reverse.each do |index|
-                shuffle = DataFlow::Shuffle.new(index % instruction.op_rands.first.to_i, instruction, :export)
-                instruction.exports.unshift(shuffle) if stack_index.zero? and (index / instruction.op_rands.first.to_i).zero?
-                stack.push(shuffle)
+              2.times.to_a.each do |repeat|
+                (instruction.stack_produced / 2).times.to_a.each do |index|
+                  label = "#{index}_#{"abcdefg"[repeat]}"
+                  shuffle = DataFlow::Shuffle.new(label, instruction, :export)
+                  instruction.exports.push(shuffle) if stack_index.zero?
+                  stack.push(shuffle)
+                end
               end
             elsif instruction.op_code == :rotate
               instruction.stack_produced.times.each do |index|
@@ -1244,6 +1257,7 @@ module Rubinius
         unless data
           puts optimizer.compiled_code.inspect
           #raise
+          $FAIL = true
           return "NIL"
         end
 
