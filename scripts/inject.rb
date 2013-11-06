@@ -992,6 +992,8 @@ module Rubinius
                goto.src_inst.op_code == :goto_if_false or
                goto.src_inst.op_code == :setup_unwind
               branch_target_found = true
+              #puts "aadding stack"
+              #puts goto.src_inst.to_label(optimizer)
               stacks << goto_to_stack[goto.src_inst] if goto_to_stack.has_key?(goto.src_inst)
             end
           end
@@ -1003,7 +1005,7 @@ module Rubinius
             end
           end
 
-          stacks.last([stacks.size - 1, 0].max).each do |other_stack|
+          stacks.each do |other_stack|
             stacks.delete(other_stack) if other_stack.empty?
           end
 
@@ -1012,11 +1014,12 @@ module Rubinius
             stacks = [main_stack]
           end
           stacks.uniq!
+          #ap stacks.map{|s| s.map{|m| m.to_label(optimizer) } }
           stacks.each.with_index do |stack, stack_index|
             case instruction.op_code
-            when :goto_if_true, :goto_if_false, :goto
+            when :goto_if_true, :goto_if_false, :goto, :setup_unwind
               stk = stack.dup
-              if instruction.op_code != :goto
+              if instruction.op_code != :goto and instruction.op_code != :setup_unwind
                 raise "underflow" if stk.empty?
                 stk.pop
                 #p instruction
@@ -1127,7 +1130,8 @@ module Rubinius
                 end
               end
             else
-              #puts instruction.op_code
+              #puts stacks.size
+              #puts instruction.to_label(nil)
               instruction.stack_consumed.times do
                 optimizer.add_data_flow(DataFlow.new(stack.pop, instruction))
               end
@@ -1239,7 +1243,7 @@ module Rubinius
       def decorate_node(data)
         unless data
           puts optimizer.compiled_code.inspect
-          raise
+          #raise
           return "NIL"
         end
 
