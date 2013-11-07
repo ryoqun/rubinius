@@ -453,7 +453,7 @@ module Rubinius
                 raise "detected recursive"
               end
               rewinds << previous
-              p previous.to_label(self)
+              #p previous.to_label(self)
               break if previous.previous_flow.nil?
               previous = previous.previous_inst
             end
@@ -1261,7 +1261,6 @@ module Rubinius
       def decorate_node(data)
         unless data
           puts optimizer.compiled_code.inspect
-          #raise
           $FAIL = true
           return "NIL"
         end
@@ -1947,7 +1946,7 @@ module Rubinius
       end
 
       def not_isolated?
-        if not @isolation_calculated
+        if not defined?(@isolation_calculated)
           # this is bad
           true
         else
