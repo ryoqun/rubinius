@@ -449,7 +449,11 @@ module Rubinius
             rewinds = []
             previous = instruction.previous_inst
             while not used.include?(previous) and not previous.incoming_flows.empty? # remove empty future
+              if rewinds.include?(previous)
+                raise "detected recursive"
+              end
               rewinds << previous
+              p previous.to_label(self)
               break if previous.previous_flow.nil?
               previous = previous.previous_inst
             end
@@ -2132,6 +2136,10 @@ module Rubinius
                   #puts "goto / goto if false next"
                   goto_if_false = incoming_flow.src_inst
                   goto = inst
+                  if goto.branch_flow.dst_inst.instruction.ip < goto.instruction.ip
+                    next
+                  end
+
                   goto_if_false.next_flow.point_to_next_instruction
                   #goto.branch_flow.uninstall
                   #goto.branch_flow.mark_remove

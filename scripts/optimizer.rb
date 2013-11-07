@@ -204,11 +204,16 @@ module Rubinius::ToolSet.current::TS
       basename = "#{compiled_code.file.to_s.gsub('/', '_')}:#{compiled_code.line_from_ip(0)}_#{compiled_code.name}"
       basename.gsub!(/[`\/!\&\|<=>]/, '_')
       opt.add_pass(Rubinius::Optimizer::PruneUnused)
-      #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
       opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-      #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
       opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-      #opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::GotoRet)
+      opt.add_pass(Rubinius::Optimizer::GoToRemover)
+      opt.add_pass(Rubinius::Optimizer::PruneUnused)
+      opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename + ".opt")
+      opt.add_pass(Rubinius::Optimizer::StackPrinter, basename + ".opt")
       opted = opt.run
       puts "=> #{opted.decode.size}"
       opt = Rubinius::Optimizer.new(compiled_code)
