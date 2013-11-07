@@ -205,20 +205,25 @@ module Rubinius::ToolSet.current::TS
       basename.gsub!(/[`\/!\&\|<=>]/, '_')
       opt.add_pass(Rubinius::Optimizer::PruneUnused)
       #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
-      opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+      #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
       #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
-      opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+      #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
       #opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
-      opt.add_pass(Rubinius::Optimizer::GotoRet)
-      opt.add_pass(Rubinius::Optimizer::GoToRemover)
-      opt.add_pass(Rubinius::Optimizer::PruneUnused)
-      opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-      opt.add_pass(Rubinius::Optimizer::Prune)
+      #opt.add_pass(Rubinius::Optimizer::GotoRet)
+      #opt.add_pass(Rubinius::Optimizer::GoToRemover)
+      #opt.add_pass(Rubinius::Optimizer::PruneUnused)
+      #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+      #opt.add_pass(Rubinius::Optimizer::Prune)
       #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename + ".opt")
       #opt.add_pass(Rubinius::Optimizer::StackPrinter, basename + ".opt")
       opted = opt.run
       puts "=> #{opted.decode.size}"
-      opt = Rubinius::Optimizer.new(compiled_code)
+      opt = Rubinius::Optimizer.new(opted)
+      opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+      opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
+      opt.run
       raise "failed" if $FAIL
 
       optimized_code = compiled_code

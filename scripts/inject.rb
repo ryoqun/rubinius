@@ -342,6 +342,7 @@ module Rubinius
         @definition_line = lines[1]
         line += 2
       end
+      #p lines
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                        decode.
                                        collect do |stream|
@@ -510,6 +511,7 @@ module Rubinius
         end
         ip += inst.instruction_width
       end
+      lines << ip
 
       bytecodes = []
       sequence.each do |inst|
@@ -2297,8 +2299,8 @@ module Rubinius
           #RepeatedPush.new(optimizer, self),
           NilRemover.new(optimizer, self),
           #InfiniteLoop.new(optimizer, self),
-          PassedArg.new(optimizer, self),
-          CheckFrozen.new(optimizer, self),
+          #PassedArg.new(optimizer, self),
+          #CheckFrozen.new(optimizer, self),
         ]
       end
 
