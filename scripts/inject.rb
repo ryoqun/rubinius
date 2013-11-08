@@ -301,7 +301,7 @@ module Rubinius
     end
 
     def add_data_flow(data_flow)
-      raise "baad" if data_flow.source.nil? or data_flow.sink.nil?
+      #raise "baad" if data_flow.source.nil? or data_flow.sink.nil?
 
       data_flow.install
       @source_data_flows[data_flow.source] << data_flow
@@ -996,10 +996,12 @@ module Rubinius
             #puts stacks.size
             #puts previous.to_label(nil)
             #puts main_stack.map{|a| a.to_label(optimizer) }
-            stacks.clear if instruction.incoming_branch_flows.all? do |goto|
+            if(instruction.incoming_flows.all? do |goto|
               goto.src_inst != previous
+            end)
+              #stacks.clear
             end
-            stacks.reject!{|s| s.equal?(main_stack)}
+            #stacks.reject!{|s| s.equal?(main_stack)}
             #puts stacks.size
           end
           instruction.incoming_branch_flows.each do |goto|
@@ -1610,7 +1612,7 @@ module Rubinius
 
         g.output(:pdf => "#{base_name}.pdf")
         #g.output(:ps => "flow.ps")
-        g.output(:svg => "#{base_name}.svg")
+        #g.output(:svg => "#{base_name}.svg")
       end
 
       def base_name

@@ -195,19 +195,20 @@ module Rubinius::ToolSet.current::TS
 
   class Generator
     alias_method :__package__, :package
-    def package(klass)
-      compiled_code = __package__(klass)
 
-      print "#{compiled_code.name} #{compiled_code.decode.size}"
-      opt = Rubinius::Optimizer.new(compiled_code)
-      opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+    def optimize(compiled_code)
       basename = "#{compiled_code.file.to_s.gsub('/', '_')}:#{compiled_code.line_from_ip(0)}_#{compiled_code.name}"
       basename.gsub!(/[`\/!\&\|<=>]/, '_')
+
+      opt = Rubinius::Optimizer.new(compiled_code)
+      opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
       opt.add_pass(Rubinius::Optimizer::PruneUnused)
+      #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename + "noopt")
       #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
-      #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+      opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+      #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename + "noopt")
       #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
-      #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+      opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
       #opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
       #opt.add_pass(Rubinius::Optimizer::GotoRet)
       #opt.add_pass(Rubinius::Optimizer::GoToRemover)
@@ -217,16 +218,27 @@ module Rubinius::ToolSet.current::TS
       #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename + ".opt")
       #opt.add_pass(Rubinius::Optimizer::StackPrinter, basename + ".opt")
       opted = opt.run
-      puts "=> #{opted.decode.size}"
+      puts "#{compiled_code.name} #{compiled_code.decode.size} => #{opted.decode.size}"
       opt = Rubinius::Optimizer.new(opted)
       opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-      opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
-      opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
-      opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
+      opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+      opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+
+      #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
+      #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, basename)
+      #opt.add_pass(Rubinius::Optimizer::StackPrinter, basename)
       opt.run
       raise "failed" if $FAIL
 
-      optimized_code = compiled_code
+      opted
+    end
+
+    def package(klass)
+      compiled_code = __package__(klass)
+
+      optimized_code = optimize(compiled_code) if compiled_code.decode.size < 100000
+      #optimized_code = compiled_code
+
       optimized_code
     end
   end
