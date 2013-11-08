@@ -546,10 +546,12 @@ module Rubinius
       bytecodes, lines = generate_bytecode
       raise "too small, is there call flow analysis???" if bytecodes.size == 1
 
-      opted = OptimizedCode.new
+      #opted = OptimizedCode.new
+      opted = CompiledCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
       opted.literals = @compiled_code.literals
       opted.lines = lines.to_tuple
+
       opted.required_args = @compiled_code.required_args
       opted.post_args = @compiled_code.post_args
       opted.total_args = @compiled_code.total_args
@@ -572,7 +574,7 @@ module Rubinius
         opted.add_metadata :for_module_body, true
       end
 
-      opted.original_code = @compiled_code
+      #opted.original_code = @compiled_code
       opted
     end
 
