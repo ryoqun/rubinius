@@ -208,15 +208,7 @@ namespace jit {
         case InstructionSequence::insn_goto:
         case InstructionSequence::insn_goto_if_true:
         case InstructionSequence::insn_goto_if_false:
-          if(iter.operand1() > iter.position()) {
-            current_->add_child(add_block(iter.operand1()));
-          } else {
-#ifndef NDEBUG
-            CFGBlock* loop_header = find_block(iter.operand1());
-            assert(loop_header);
-            assert(loop_header->exception_handler() == current_->exception_handler());
-#endif
-          }
+          current_->add_child(add_block(iter.operand1()));
           start_new_block(iter);
           break;
 
