@@ -1,6 +1,7 @@
 $FAIL = false
-require "./scripts/inject"
 
+if RUBY_DESCRIPTION !~ /rubinius/i
+  require "./scripts/inject"
     ##
     # Represents virtual machine's CPU instruction.
     # Instructions are organized into instruction
@@ -192,7 +193,10 @@ module Rubinius::ToolSet.current::TS
   class Rubinius::OptimizedCode < Rubinius::CompiledCode
     attr_accessor :original_code
   end
+end
+end
 
+module Rubinius::ToolSet.current::TS
   class Generator
     alias_method :__package__, :package
 
@@ -202,7 +206,7 @@ module Rubinius::ToolSet.current::TS
 
       opt = Rubinius::Optimizer.new(compiled_code)
       opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-      opt.add_pass(Rubinius::Optimizer::PruneUnused)
+      #opt.add_pass(Rubinius::Optimizer::PruneUnused)
       #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename + "noopt")
       #opt.add_pass(Rubinius::Optimizer::FlowPrinter, basename)
       opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
@@ -231,6 +235,7 @@ module Rubinius::ToolSet.current::TS
       raise "failed" if $FAIL
 
       opted
+      #compiled_code
     end
 
     def package(klass)

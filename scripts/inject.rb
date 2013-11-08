@@ -1,9 +1,12 @@
-require 'awesome_print'
-require 'graphviz'
+#require 'awesome_print'
+#require 'graphviz'
 
 # generateg by
 #   cat runtime/gems/rubinius-compiler-2.0.4/lib/rubinius/compiler/generator_methods.rb | grep -v -E '(@ip|@stream|  @instruction|close|right|left|used_at|new_basic_block|find_literal|generators|current_block = )' | tee generator_methods.rb | ruby -c -
-require './scripts/generator_methods'
+
+if RUBY_DESCRIPTION !~ /rubinius/i
+  require './scripts/generator_methods'
+end
 
 module Rubinius
   class Optimizer
@@ -552,11 +555,23 @@ module Rubinius
       opted.total_args = @compiled_code.total_args
       opted.splat = @compiled_code.splat
       opted.block_index = @compiled_code.block_index
-      opted.stack_size = @compiled_code.stack_size
       opted.local_count = @compiled_code.local_count
-      opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
       opted.local_names = @compiled_code.local_names
+      #opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
+
+      opted.stack_size = @compiled_code.stack_size
+      opted.file = @compiled_code.file
+      opted.name = @compiled_code.name
       opted.primitive      = @compiled_code.primitive
+
+      if @compiled_code.is_block?
+        opted.add_metadata :for_block, true
+      end
+
+      if @compiled_code.for_module_body?
+        opted.add_metadata :for_module_body, true
+      end
+
       opted.original_code = @compiled_code
       opted
     end
