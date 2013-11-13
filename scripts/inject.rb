@@ -317,12 +317,6 @@ module Rubinius
       @source_data_flows[end_point]
     end
 
-    def add_flow(flow)
-      flow.install
-      @flows.push(flow)
-      flow
-    end
-
     def add_basic_block(block)
       @basic_blocks.push(block)
       block
@@ -369,7 +363,7 @@ module Rubinius
           inst.preceeding_instruction = previous
         else
           @entry_inst = EntryInst.new
-          add_flow(NextFlow.new(entry_inst, inst))
+          NextFlow.new(self, entry_inst, inst)
         end
 
         ip += instruction.size
@@ -400,7 +394,7 @@ module Rubinius
           when :type
             Type.new(bytecode)
           when :location, :ip
-            BranchFlow.new(inst, ip_to_inst[bytecode], bytecode)
+            BranchFlow.new(self, inst, ip_to_inst[bytecode], bytecode)
           when :literal, :number
             Literal.new(bytecode)
           when :serial
@@ -1343,7 +1337,7 @@ module Rubinius
 
     class Flow
       attr_reader :src_inst, :dst_inst, :spots, :previous_spots
-      def initialize(src_inst, dst_inst)
+      def initialize(optimizer, src_inst, dst_inst)
         @src_inst = src_inst
         raise "src_inst is nil: #{@dst_inst.to_label(nil) if @dst_inst}" if @src_inst.nil?
         @dst_inst = dst_inst
@@ -1353,6 +1347,12 @@ module Rubinius
         @spots = []
         @previous_spots = []
         @metadata = {}
+        @optimizer = optimizer
+        install
+      end
+
+      def add_flow(flow)
+        flow
       end
 
       def metadata(spot)
@@ -1391,12 +1391,14 @@ module Rubinius
 
       def install
         raise "double installation" if @installed
+        @optimizer.flows.push(self)
         @installed = true
         self
       end
 
       def uninstall
         raise "double uninstallation" if not @installed
+        @optimizer.flows.delete(self)
         @installed = false
         self
       end
@@ -1526,9 +1528,9 @@ module Rubinius
     end
 
     class BranchFlow < Flow
-      def initialize(src_inst, dst_inst, bytecode)
+      def initialize(optimizer, src_inst, dst_inst, bytecode)
         raise "not branch instruction" if src_inst.flow_type == :next
-        super(src_inst, dst_inst)
+        super(optimizer, src_inst, dst_inst)
         @bytecode = bytecode
       end
 
@@ -1569,11 +1571,7 @@ module Rubinius
              previous.op_code != :goto and
              previous.flow_type != :return and
              previous.flow_type != :raise
-            optimizer.add_flow(NextFlow.new(previous, instruction))
-          end
-          if instruction.flow_type == :branch or
-             instruction.flow_type == :handler
-            optimizer.add_flow(instruction.branch_flow)
+            NextFlow.new(optimizer, previous, instruction)
           end
           previous = instruction
         end
@@ -2272,7 +2270,7 @@ module Rubinius
 
                   branch_flow.point_to_next_instruction
                   branch_flow.unmark_remove
-                  optimizer.add_flow(NextFlow.new(new_inst, after_inst))
+                  NextFlow.new(optimizer, new_inst, after_inst)
                 end
               end
               #optimizer.remove_flow(next_flow)
