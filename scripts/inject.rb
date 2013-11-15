@@ -92,10 +92,14 @@ module Rubinius
       end
     end
 
+    class MethodGuard
+    end
+
     class Inst
-      attr_reader :instruction, :imports, :exports, :incoming_branch_flows, :incoming_flows
+      attr_reader :instruction, :imports, :exports, :incoming_branch_flows, :incoming_flows, :guards
       attr_accessor :op_rands, :ip, :line,
-                    :following_instruction, :preceeding_instruction, :unconditional_branch_flow
+                    :following_instruction, :preceeding_instruction, :unconditional_branch_flow,
+                    :call_site
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
@@ -114,6 +118,7 @@ module Rubinius
         @unconditional_branch_flow = nil
         @line = 0
         @remove_mark = nil
+        @guards = []
       end
 
       def unconditional_branch_flow?
@@ -155,6 +160,17 @@ module Rubinius
         else
           nil
         end
+      end
+
+      def signature
+        raise "not send instruction" if op_code != :send_stack
+        [
+         op_rands[1].to_i,
+         0,
+         op_rands[1].to_i,
+         nil,
+         nil,
+        ]
       end
 
       def to_s
@@ -276,7 +292,7 @@ module Rubinius
       end
     end
 
-    attr_reader :compiled_code, :flows, :data_flows, :basic_blocks
+    attr_reader :compiled_code, :flows, :data_flows, :basic_blocks, :exit_flows
     attr_reader :source_data_flows, :sink_data_flows
     attr_accessor :entry_inst
     def initialize(compiled_code)
@@ -288,7 +304,22 @@ module Rubinius
       @sink_data_flows = Hash.new{|hash, key| hash[key] = [] }
       @basic_blocks = []
       @definition_line = nil
+      @exit_flows = []
       decode
+    end
+
+    def merge(optimizer)
+      @flows.concat(optimizer.flows.reject{|flow| flow.src_inst.is_a?(EntryInst)})
+    end
+
+    def signature
+      [
+        @compiled_code.required_args,
+        @compiled_code.post_args,
+        @compiled_code.total_args,
+        @compiled_code.splat,
+        @compiled_code.block_index,
+      ]
     end
 
     def remove_flow(flow)
@@ -305,7 +336,7 @@ module Rubinius
       first_flow.dst_inst
     end
 
-    def receiver(send_inst)
+    def receiver_data(send_inst)
       data_flows = find_source_data_flows(send_inst)
     end
 
@@ -337,6 +368,8 @@ module Rubinius
         line += 2
       end
       #p lines
+      call_sites = @compiled_code.call_sites.to_a
+      call_site_index = 0
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                        decode.
                                        collect do |stream|
@@ -344,6 +377,10 @@ module Rubinius
         op_code, *bytecodes = stream
 
         inst = ip_to_inst[ip] = Inst.new(instruction)
+        if call_sites[call_site_index] and ip == call_sites[call_site_index].ip
+          inst.call_site = call_sites[call_site_index]
+          call_site_index += 1
+        end
         if line
           if lines[line - 1] <= ip and ip < lines[line + 1]
             inst.line = lines[line]
@@ -691,6 +728,9 @@ module Rubinius
         install(optimizer)
       end
 
+      def inst
+      end
+
       def install(optimizer)
         optimizer.source_data_flows[source] << self
         optimizer.sink_data_flows[sink] << self
@@ -892,12 +932,14 @@ module Rubinius
             if not instruction.incoming_branch_flows.empty?
               if not blocks.has_key?(instruction)
                 new_block = (blocks[instruction] ||= create_block)
-                current.next_block = new_block
                 current.close
+                current.next_block = new_block
+                optimizer.exit_flows << flow
                 current = new_block
               elsif current != blocks[instruction]
                 current.close
                 current.next_block = blocks[instruction]
+                optimizer.exit_flows << flow
                 break
               end
             end
@@ -929,11 +971,13 @@ module Rubinius
             else
               if instruction.flow_type == :return
                 current.close(true)
+                optimizer.exit_flows << flow
                 flow = nil
               elsif instruction.flow_type == :raise
                 if instruction.op_code == :raise_return or
                    instruction.op_code == :ensure_return
                   current.close(true)
+                  optimizer.exit_flows << flow
                 else
                   current.close
                 end
@@ -2388,13 +2432,37 @@ module Rubinius
     end
 
     class Inliner < Optimization
-      attr_reader :container, :inlined
-      def initialize(container, inlined)
-        @container = container
-        @inlined = inlined
-      end
-
       def optimize
+        optimizer.each_instruction do |instruction|
+          case instruction.op_code
+          when :send_stack
+            if instruction.call_site.is_a?(MonoInlineCache)
+              code = instruction.call_site.method
+              if code.name == :StringValue
+                p code.name
+
+                opt = Rubinius::Optimizer.new(code)
+                opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+                opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+                opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined")
+                opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined")
+                opt.run
+                if opt.signature == instruction.signature
+                  optimizer.merge(opt)
+
+                  p code.local_names
+                  send_stack = instruction
+                  send_stack.incoming_flows.each do |flow|
+                    flow.change_dst_inst(opt.first_instruction)
+                  end
+                  opt.exit_flows.each do |exit_flow|
+                    exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
+                  end
+                end
+              end
+            end
+          end
+        end
       end
     end
 
@@ -2426,6 +2494,7 @@ end
 if __FILE__ == $0
 
 require 'graphviz'
+require "pp"
 
 #code = Rubinius::Optimizer::Inst.instance_method(:stack_consumed).executable
 #code = File.method(:absolute_path).executable
@@ -2456,7 +2525,8 @@ end
 #code = [].method(:equal?).executable
 #code = [].method(:cycle).executable
 #code = ARGF.method(:each_line).executable
-code = IO::StreamCopier.instance_method(:run).executable
+#code = IO::StreamCopier.instance_method(:run).executable
+code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
@@ -2475,14 +2545,16 @@ opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
-opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
-opt.add_pass(Rubinius::Optimizer::GotoRet)
-opt.add_pass(Rubinius::Optimizer::GoToRemover)
-opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::Inliner)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
+#opt.add_pass(Rubinius::Optimizer::PruneUnused)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::Prune)
+#opt.add_pass(Rubinius::Optimizer::GotoRet)
+#opt.add_pass(Rubinius::Optimizer::GoToRemover)
+#opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::MoveDownRemover)
+#opt.add_pass(Rubinius::Optimizer::MoveDownRemover)
 #opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 #opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
