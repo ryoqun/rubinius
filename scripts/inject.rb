@@ -119,6 +119,7 @@ module Rubinius
         @line = 0
         @remove_mark = nil
         @guards = []
+        @instruction_width = @bytecode = @flow_type = nil
       end
 
       def unconditional_branch_flow?
@@ -257,6 +258,23 @@ module Rubinius
 
       def flow_type
         @instruction.instruction.control_flow
+      end
+
+
+      attr_writer :instruction_width
+      def instruction_width
+        @instruction_width || @instruction.instruction.width
+      end
+
+      attr_writer :bytecode
+      def bytecode
+        @bytecode || @instruction.instruction.bytecode
+      end
+
+      attr_writer :flow_type
+      def flow_type
+        @instruction.instruction.control_flow
+        @flow_type || @instruction.instruction.control_flow
       end
 
       def to_label(optimizer)
