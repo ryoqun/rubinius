@@ -50,7 +50,11 @@ module Rubinius
     class Literal < OpRand
       include Endpoint
       def to_label(optimizer)
-        "<literal: #{(optimizer.compiled_code.literals[bytecode] || bytecode).inspect.to_s[0, 20]}>"
+        "<literal: #{(optimizer.literals[bytecode] || bytecode).inspect.to_s[0, 20]}>"
+      end
+
+      def to_inst
+        "literal (to_inst)"
       end
 
       def <(other)
@@ -70,19 +74,23 @@ module Rubinius
 
     class Local < OpRand
       def to_label(optimizer)
-        "<local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
+        "<local: #{optimizer.local_names[bytecode] || bytecode}>"
+      end
+
+      def to_inst
+        "some thing"
       end
     end
 
     class Parameter < OpRand
       def to_label(optimizer)
-        "<param: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
+        "<param: #{optimizer.local_names[bytecode] || bytecode}>"
       end
     end
 
     class StackLocal < OpRand
       def to_label(optimizer)
-        "<stk_local: #{optimizer.compiled_code.local_names[bytecode] || bytecode}>"
+        "<stk_local: #{optimizer.local_names[bytecode] || bytecode}>"
       end
     end
 
@@ -100,6 +108,10 @@ module Rubinius
       attr_accessor :op_rands, :ip, :line,
                     :following_instruction, :preceeding_instruction, :unconditional_branch_flow,
                     :call_site
+      def to_inst
+        self
+      end
+
       def initialize(instruction)
         @instruction = instruction
         @op_rands = nil
@@ -311,6 +323,7 @@ module Rubinius
     end
 
     attr_reader :compiled_code, :flows, :data_flows, :basic_blocks, :exit_flows
+    attr_reader :local_names, :literals
     attr_reader :source_data_flows, :sink_data_flows
     attr_accessor :entry_inst
     def initialize(compiled_code)
@@ -323,6 +336,8 @@ module Rubinius
       @basic_blocks = []
       @definition_line = nil
       @exit_flows = []
+      @local_names = compiled_code.local_names.dup
+      @literals = compiled_code.literals.dup
       decode
     end
 
@@ -428,6 +443,8 @@ module Rubinius
       #ap ip_to_inst
 
       ip = 0
+      locals = {}
+      literals = {}
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                    decode.
                                    each do |stream|
@@ -443,7 +460,7 @@ module Rubinius
               Count.new(bytecode)
             end
           when :local
-            Local.new(bytecode)
+            locals[bytecode] ||= Local.new(bytecode)
           when :which
             StackLocal.new(bytecode)
           when :type
@@ -451,7 +468,7 @@ module Rubinius
           when :location, :ip
             BranchFlow.new(self, inst, ip_to_inst[bytecode], bytecode)
           when :literal, :number
-            Literal.new(bytecode)
+            literals[bytecode] ||= Literal.new(bytecode)
           when :serial
             Serial.new(bytecode)
           else
@@ -595,7 +612,7 @@ module Rubinius
       #opted = OptimizedCode.new
       opted = CompiledCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
-      opted.literals = @compiled_code.literals
+      opted.literals = literals
       opted.lines = lines.to_tuple
 
       opted.required_args = @compiled_code.required_args
@@ -604,7 +621,7 @@ module Rubinius
       opted.splat = @compiled_code.splat
       opted.block_index = @compiled_code.block_index
       opted.local_count = @compiled_code.local_count
-      opted.local_names = @compiled_code.local_names
+      opted.local_names = local_names
       #opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
 
       opted.stack_size = @compiled_code.stack_size
@@ -645,73 +662,63 @@ module Rubinius
     end
 
     class DataFlow
-      class Self
+      class OpRand
+        attr_reader :instruction
+        def initialize(instruction)
+          @instruction = instruction
+        end
+
+        def to_inst
+          @instruction
+        end
+      end
+
+      class Self < OpRand
         def to_label(optimizer)
           "<self>"
         end
       end
 
-      class Exit
+      class Exit < OpRand
         def to_label(optimizer)
           "<exit>"
         end
       end
 
-      class Void
+      class Void < OpRand
         def to_label(optimizer)
           "<void>"
         end
       end
 
-      class Receiver
-        attr_reader :instruction
-        def initialize(instruction)
-          @instruction = instruction
-        end
-
+      class Receiver < OpRand
         def to_label(optimizer)
           "recv"
         end
       end
 
-      class Block
-        attr_reader :instruction
-        def initialize(instruction)
-          @instruction = instruction
-        end
-
+      class Block < OpRand
         def to_label(optimizer)
           "block"
         end
       end
 
-      class Object
-        attr_reader :instruction
-        def initialize(instruction)
-          @instruction = instruction
-        end
-
+      class Object < OpRand
         def to_label(optimizer)
           "object"
         end
       end
 
-      class Class
-        attr_reader :instruction
-        def initialize(instruction)
-          @instruction = instruction
-        end
-
+      class Class < OpRand
         def to_label(optimizer)
           "class"
         end
       end
 
-      class Argument
-        attr_reader :instruction
+      class Argument < OpRand
         def initialize(index, instruction)
+          super(instruction)
           @index = index
-          @instruction = instruction
         end
 
         def to_label(_optimizer)
@@ -719,11 +726,11 @@ module Rubinius
         end
       end
 
-      class Shuffle
+      class Shuffle < OpRand
         attr_reader :instruction
         def initialize(index, instruction, type)
+          super(instruction)
           @index = index
-          @instruction = instruction
           @type = type
         end
 
@@ -750,14 +757,14 @@ module Rubinius
       end
 
       def install(optimizer)
-        optimizer.source_data_flows[source] << self
-        optimizer.sink_data_flows[sink] << self
+        optimizer.source_data_flows[source.to_inst] << self
+        optimizer.sink_data_flows[sink.to_inst] << self
         optimizer.data_flows.push(self)
       end
 
       def uninstall(optimizer)
-        optimizer.source_data_flows[source].delete(self)
-        optimizer.sink_data_flows[sink].delete(self)
+        optimizer.source_data_flows[source.to_inst].delete(self)
+        optimizer.sink_data_flows[sink.to_inst].delete(self)
         optimizer.data_flows.delete(self)
       end
     end
@@ -1127,7 +1134,7 @@ module Rubinius
               end
               goto_to_stack[instruction] = stk unless stk.empty?
             when :push_self
-              DataFlow.new(optimizer, DataFlow::Self.new, instruction)
+              DataFlow.new(optimizer, DataFlow::Self.new(instruction), instruction)
             when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
               instruction.op_rands.each do |op_rand|
                 DataFlow.new(optimizer, op_rand, instruction)
@@ -1137,10 +1144,10 @@ module Rubinius
                 DataFlow.new(optimizer, instruction, op_rand)
               end
             when :pop
-              DataFlow.new(optimizer, instruction, DataFlow::Void.new)
+              DataFlow.new(optimizer, instruction, DataFlow::Void.new(instruction))
             else
               if instruction.flow_type == :return or instruction.flow_type == :raise
-                DataFlow.new(optimizer, instruction, DataFlow::Exit.new)
+                DataFlow.new(optimizer, instruction, DataFlow::Exit.new(instruction))
               end
             end
 
@@ -2466,7 +2473,18 @@ module Rubinius
                 opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined")
                 opt.run
                 if opt.signature == instruction.signature
+                  requred, _post, _total, _splat, _block_index = opt.signature
                   optimizer.merge(opt)
+
+                  required.times do
+                    inst = Inst.new(nil)
+                    bytecode = InstructionSet.opcodes_map[:set_loccal]
+                    op_code = InstructionSet.opcodes[bytecode]
+                    inst.instruction_width = op_code.width
+                    inst.bytecoe = bytecode
+                    inst.op_rands = [Local.new(0)]
+                    inst.flow_type = op_code.control_flow_type
+                  end
 
                   p code.local_names
                   send_stack = instruction
@@ -2522,17 +2540,12 @@ class M
   end
 end
 
-def loo
-  b = M.new
-  i = 0
-  while i < 100000
-    b[0] = i
-    i += 1
-  end
+def loo(aa)
+  ((true) ? self : aa).hello
 end
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-#code = method(:loo).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -2544,7 +2557,7 @@ end
 #code = [].method(:cycle).executable
 #code = ARGF.method(:each_line).executable
 #code = IO::StreamCopier.instance_method(:run).executable
-code = "".method(:+).executable
+#code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
