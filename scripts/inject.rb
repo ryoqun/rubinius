@@ -203,7 +203,7 @@ module Rubinius
       end
 
       def entry_inst?
-        @previous.src.is_a?(EntryInst)
+        @previous.src_inst.is_a?(EntryInst)
       end
 
       def next_flow
@@ -248,9 +248,10 @@ module Rubinius
         inst.preceeding_instruction = self
       end
 
+      attr_writer :op_code
       def op_code
-        if @instruction
-          @instruction.instruction.opcode
+        if @op_code || @instruction
+          @op_code || @instruction.instruction.opcode
         else
           if entry_inst?
             :entry
@@ -285,11 +286,14 @@ module Rubinius
 
       attr_writer :flow_type
       def flow_type
+        return @flow_type if @flow_type
         @instruction.instruction.control_flow
-        @flow_type || @instruction.instruction.control_flow
       end
 
+      attr_writer :label
       def to_label(optimizer)
+        return @label if @label
+
         if @generation.zero?
           "#{"#{@line}: " if @line}#{instruction.to_s}"
         else
@@ -2488,8 +2492,9 @@ module Rubinius
         optimizer.each_instruction do |instruction|
           case instruction.op_code
           when :send_stack
-            if instruction.call_site.is_a?(MonoInlineCache)
-              code = instruction.call_site.method
+            send_stack = instruction
+            if send_stack.call_site.is_a?(MonoInlineCache)
+              code = send_stack.call_site.method
               if code.name == :StringValue
                 p code.name
 
@@ -2499,24 +2504,51 @@ module Rubinius
                 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined")
                 opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined")
                 opt.run
-                if opt.signature == instruction.signature
+                if opt.signature == send_stack.signature
                   required, _post, _total, _splat, _block_index = opt.signature
+                  offset = optimizer.compiled_code.local_count
                   optimizer.merge(opt)
 
-                  required.times do
+                  prologue = opt.first_instruction
+                  prev_inst = nil
+
+                  arg_entry = nil
+                  inst = nil
+                  required.times do |index|
+                    arg_entry ||= old_inst = inst = Inst.new(nil)
+                    bytecode = InstructionSet.opcodes_map[:set_local]
+                    op_code = InstructionSet.opcodes[bytecode]
+                    inst.instruction_width = op_code.width
+                    inst.bytecode = bytecode
+                    inst.op_rands = [Local.new(offset +  index)]
+                    inst.op_code = :set_local
+                    inst.flow_type = op_code.control_flow
+                    inst.label = "set local"
+
                     inst = Inst.new(nil)
-                    #bytecode = InstructionSet.opcodes_map[:set_loccal]
-                    #op_code = InstructionSet.opcodes[bytecode]
-                    #inst.instruction_width = op_code.width
-                    #inst.bytecoe = bytecode
-                    #inst.op_rands = [Local.new(0)]
-                    #inst.flow_type = op_code.control_flow_type
+                    bytecode = InstructionSet.opcodes_map[:pop]
+                    op_code = InstructionSet.opcodes[bytecode]
+                    inst.instruction_width = op_code.width
+                    inst.bytecode = bytecode
+                    inst.op_rands = []
+                    inst.op_code = :pop
+                    inst.flow_type = op_code.control_flow
+                    inst.label = "pop local"
+                    NextFlow.new(optimizer, old_inst, inst)
+
+                    if prev_inst
+                      NextFlow.new(optimizer, prev_inst, inst)
+                    end
+                    prev_inst = inst
+                  end
+                  if inst
+                    NextFlow.new(optimizer, inst, prologue)
+                    prologue = arg_entry
                   end
 
                   p code.local_names
-                  send_stack = instruction
                   send_stack.incoming_flows.each do |flow|
-                    flow.change_dst_inst(opt.first_instruction)
+                    flow.change_dst_inst(prologue)
                   end
                   opt.exit_flows.each do |exit_flow|
                     exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
@@ -2599,14 +2631,14 @@ puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Inliner)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::Prune)
