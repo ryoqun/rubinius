@@ -327,7 +327,7 @@ module Rubinius
     end
 
     attr_reader :compiled_code, :flows, :data_flows, :basic_blocks, :exit_flows
-    attr_reader :local_names, :literals
+    attr_reader :local_names, :literals, :local_count
     attr_reader :local_op_codes, :literal_op_codes
     attr_reader :source_data_flows, :sink_data_flows
     attr_accessor :entry_inst, :max_stack_size
@@ -343,6 +343,7 @@ module Rubinius
       @exit_flows = []
       @local_names = compiled_code.local_names.to_a
       @literals = compiled_code.literals.to_a
+      @local_count = compiled_code.local_count
       decode
     end
 
@@ -358,9 +359,7 @@ module Rubinius
       end
 
       optimizer.local_op_codes.values.each do |local|
-        p local.to_label(self)
         local.bytecode += offset
-        p local.to_label(self)
       end
 
       offset = @literals.size
@@ -648,7 +647,7 @@ module Rubinius
       opted.total_args = @compiled_code.total_args
       opted.splat = @compiled_code.splat
       opted.block_index = @compiled_code.block_index
-      opted.local_count = @compiled_code.local_count
+      opted.local_count = local_count
       opted.local_names = local_names.to_tuple
       #opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
 
@@ -2506,7 +2505,7 @@ module Rubinius
                 opt.run
                 if opt.signature == send_stack.signature
                   required, _post, _total, _splat, _block_index = opt.signature
-                  offset = optimizer.compiled_code.local_count
+                  offset = optimizer.local_count
                   optimizer.merge(opt)
 
                   prologue = opt.first_instruction
@@ -2668,6 +2667,10 @@ puts un_code.decode.size
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
