@@ -12,7 +12,7 @@ end
 module Rubinius
   class Optimizer
     class OpRand
-      attr_reader :bytecode
+      attr_accessor :bytecode
       def initialize(bytecode)
         @bytecode = bytecode
       end
@@ -324,8 +324,9 @@ module Rubinius
 
     attr_reader :compiled_code, :flows, :data_flows, :basic_blocks, :exit_flows
     attr_reader :local_names, :literals
+    attr_reader :local_op_codes, :literal_op_codes
     attr_reader :source_data_flows, :sink_data_flows
-    attr_accessor :entry_inst
+    attr_accessor :entry_inst, :max_stack_size
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
@@ -336,13 +337,36 @@ module Rubinius
       @basic_blocks = []
       @definition_line = nil
       @exit_flows = []
-      @local_names = compiled_code.local_names.dup
-      @literals = compiled_code.literals.dup
+      @local_names = compiled_code.local_names.to_a
+      @literals = compiled_code.literals.to_a
       decode
     end
 
     def merge(optimizer)
       @flows.concat(optimizer.flows.reject{|flow| flow.src_inst.is_a?(EntryInst)})
+
+      offset = @local_names.size
+      optimizer.local_names.to_a.each.with_index do |local_name, index|
+        if @local_names.include?(local_name)
+          local_name = :"#{local_name}#{rand(1024)}"
+        end
+        @local_names << local_name
+      end
+
+      optimizer.local_op_codes.values.each do |local|
+        p local.to_label(self)
+        local.bytecode += offset
+        p local.to_label(self)
+      end
+
+      offset = @literals.size
+      optimizer.literals.to_a.each.with_index do |literal, index|
+        @literals << literal
+      end
+
+      optimizer.literal_op_codes.values.each do |local|
+        local.bytecode += offset
+      end
     end
 
     def signature
@@ -443,8 +467,8 @@ module Rubinius
       #ap ip_to_inst
 
       ip = 0
-      locals = {}
-      literals = {}
+      @local_op_codes = {}
+      @literal_op_codes = {}
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
                                    decode.
                                    each do |stream|
@@ -460,7 +484,7 @@ module Rubinius
               Count.new(bytecode)
             end
           when :local
-            locals[bytecode] ||= Local.new(bytecode)
+            @local_op_codes[bytecode] ||= Local.new(bytecode)
           when :which
             StackLocal.new(bytecode)
           when :type
@@ -468,7 +492,7 @@ module Rubinius
           when :location, :ip
             BranchFlow.new(self, inst, ip_to_inst[bytecode], bytecode)
           when :literal, :number
-            literals[bytecode] ||= Literal.new(bytecode)
+            @literal_op_codes[bytecode] ||= Literal.new(bytecode)
           when :serial
             Serial.new(bytecode)
           else
@@ -612,7 +636,7 @@ module Rubinius
       #opted = OptimizedCode.new
       opted = CompiledCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
-      opted.literals = literals
+      opted.literals = literals.to_tuple
       opted.lines = lines.to_tuple
 
       opted.required_args = @compiled_code.required_args
@@ -621,7 +645,7 @@ module Rubinius
       opted.splat = @compiled_code.splat
       opted.block_index = @compiled_code.block_index
       opted.local_count = @compiled_code.local_count
-      opted.local_names = local_names
+      opted.local_names = local_names.to_tuple
       #opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
 
       opted.stack_size = @compiled_code.stack_size
@@ -943,7 +967,9 @@ module Rubinius
 
     class StackAnalyzer < Analysis
       def optimize
-        @max_stack = 0
+        optimizer.basic_blocks.clear
+        optimizer.max_stack_size = @max_stack = 0
+
         pending_flows = [optimizer.first_flow]
         blocks = {}
 
@@ -1016,6 +1042,7 @@ module Rubinius
 
         validate_stack
         #puts ["max stack", @max_stack].inspect
+        optimizer.max_stack_size = @max_stack
       end
 
       def validate_stack
@@ -2473,17 +2500,17 @@ module Rubinius
                 opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined")
                 opt.run
                 if opt.signature == instruction.signature
-                  requred, _post, _total, _splat, _block_index = opt.signature
+                  required, _post, _total, _splat, _block_index = opt.signature
                   optimizer.merge(opt)
 
                   required.times do
                     inst = Inst.new(nil)
-                    bytecode = InstructionSet.opcodes_map[:set_loccal]
-                    op_code = InstructionSet.opcodes[bytecode]
-                    inst.instruction_width = op_code.width
-                    inst.bytecoe = bytecode
-                    inst.op_rands = [Local.new(0)]
-                    inst.flow_type = op_code.control_flow_type
+                    #bytecode = InstructionSet.opcodes_map[:set_loccal]
+                    #op_code = InstructionSet.opcodes[bytecode]
+                    #inst.instruction_width = op_code.width
+                    #inst.bytecoe = bytecode
+                    #inst.op_rands = [Local.new(0)]
+                    #inst.flow_type = op_code.control_flow_type
                   end
 
                   p code.local_names
@@ -2545,7 +2572,7 @@ def loo(aa)
 end
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-code = method(:loo).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -2557,7 +2584,7 @@ code = method(:loo).executable
 #code = [].method(:cycle).executable
 #code = ARGF.method(:each_line).executable
 #code = IO::StreamCopier.instance_method(:run).executable
-#code = "".method(:+).executable
+code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
@@ -2578,6 +2605,8 @@ opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Inliner)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::Prune)
