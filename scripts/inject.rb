@@ -357,6 +357,7 @@ module Rubinius
         end
         @local_names << local_name
       end
+      @local_count += optimizer.local_count
 
       optimizer.local_op_codes.values.each do |local|
         local.bytecode += offset
@@ -402,6 +403,15 @@ module Rubinius
 
     def find_sink_data_flows(end_point)
       @sink_data_flows[end_point]
+    end
+
+    def find_receiver(send_inst)
+      raise send_inst.op_code.inspect unless send_inst.op_code == :send_stack
+      sources = find_sink_data_flows(send_inst)
+      pp sources
+      sources.select do |source|
+        source.sink.is_a?(DataFlow::Receiver)
+      end
     end
 
     def find_source_data_flows(end_point)
@@ -618,21 +628,6 @@ module Rubinius
     end
 
     def encode
-      ip = 0
-      each_instruction do |inst|
-        #p inst.to_label(self)
-        inst.ip = ip
-        ip += inst.instruction_width
-      end
-
-      bytecodes = []
-      each_instruction do |inst|
-        bytecodes << inst.bytecode
-        inst.op_rands.each do |op_rand|
-          bytecodes << op_rand.to_bytecode(inst)
-        end
-      end
-
       bytecodes, lines = generate_bytecode
       raise "too small, is there call flow analysis???" if bytecodes.size == 1
 
@@ -901,7 +896,8 @@ module Rubinius
           ["#{closed? ? "CLOSED " : ""}#{@exit_size ? "exit_size: #{@exit_size} " : ""}enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
           (@instructions.collect do |instruction|
             instruction.to_label(optimizer)
-          end)
+          end) +
+          [@invalid_messages.to_a.join("\n")]
         ).join("\n")
       end
 
@@ -949,7 +945,7 @@ module Rubinius
       def check_stack(stack_size)
         if defined?(@enter_size)
           unless stack_size == @enter_size
-            invalid "unbalanced stack at stack_size != enter_size: #{stack_size} != #{@enter_size}"
+            invalid "unbalanced stack (stack_size != enter_size): #{stack_size} != #{@enter_size}"
           end
         else
           if not closed?
@@ -964,7 +960,9 @@ module Rubinius
         puts
         puts "INVALID:"
         puts to_label(nil)
-        raise message
+        @invalid_messages ||= []
+        @invalid_messages << "INVALID: #{message}"
+        #raise message
       end
     end
 
@@ -2492,18 +2490,37 @@ module Rubinius
           case instruction.op_code
           when :send_stack
             send_stack = instruction
-            sources = optimier.find_soure_data_flows(send_stack)
-            raise sources.inspect
-            if send_stack.call_site.is_a?(MonoInlineCache)
+            sources = optimizer.find_receiver(send_stack)
+            if send_stack.call_site.is_a?(MonoInlineCache) and
+               sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+               (sources.first.source.op_code == :push_self)
+
+              push_self = sources.first.source
+              push_self.incoming_flows.each do |incoming_flow|
+                incoming_flow.change_dst_inst(push_self.next_flow.dst_inst)
+              end
+              push_self.next_flow.mark_remove
+              push_self.mark_raw_remove
+              send_stack.mark_raw_remove
+
+              send_stack.incoming_flows.each do |pre_send_stack|
+                if pre_send_stack.src_inst.op_code == :allow_private
+                  pre_send_stack.src_inst.incoming_flows.each do |pre_allow_private|
+                    pre_allow_private.change_dst_inst(send_stack)
+                  end
+                  pre_send_stack.mark_remove
+                  pre_send_stack.src_inst.mark_raw_remove
+                end
+              end
+
               code = send_stack.call_site.method
-              if code.name == :StringValue
-                p code.name
+              p code.name
 
                 opt = Rubinius::Optimizer.new(code)
                 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
                 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-                opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined")
-                opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined")
+                opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined_#{code.name}")
+                opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined_#{code.name}")
                 opt.run
                 if opt.signature == send_stack.signature
                   required, _post, _total, _splat, _block_index = opt.signature
@@ -2515,8 +2532,12 @@ module Rubinius
 
                   arg_entry = nil
                   inst = nil
-                  required.times do |index|
-                    arg_entry ||= old_inst = inst = Inst.new(nil)
+                  required.times.to_a.reverse.each do |index|
+                    inst = Inst.new(nil)
+                    arg_entry ||= inst
+                    if prev_inst
+                      NextFlow.new(optimizer, prev_inst, inst)
+                    end
                     bytecode = InstructionSet.opcodes_map[:set_local]
                     op_code = InstructionSet.opcodes[bytecode]
                     inst.instruction_width = op_code.width
@@ -2524,9 +2545,11 @@ module Rubinius
                     inst.op_rands = [Local.new(offset +  index)]
                     inst.op_code = :set_local
                     inst.flow_type = op_code.control_flow
-                    inst.label = "set local"
+                    inst.label = "set local #{code.name} #{index}"
+                    prev_inst = inst
 
                     inst = Inst.new(nil)
+                    NextFlow.new(optimizer, prev_inst, inst)
                     bytecode = InstructionSet.opcodes_map[:pop]
                     op_code = InstructionSet.opcodes[bytecode]
                     inst.instruction_width = op_code.width
@@ -2534,12 +2557,7 @@ module Rubinius
                     inst.op_rands = []
                     inst.op_code = :pop
                     inst.flow_type = op_code.control_flow
-                    inst.label = "pop local"
-                    NextFlow.new(optimizer, old_inst, inst)
-
-                    if prev_inst
-                      NextFlow.new(optimizer, prev_inst, inst)
-                    end
+                    inst.label = "pop local #{code.name} #{index}"
                     prev_inst = inst
                   end
                   if inst
@@ -2554,7 +2572,12 @@ module Rubinius
                   opt.exit_flows.each do |exit_flow|
                     exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
                   end
-                end
+
+                  removed_flow = send_stack.next_flow
+                  removed_flow.mark_remove
+                  removed_flow.uninstall
+                  optimizer.remove_flow(removed_flow)
+                  send_stack.raw_remove
               end
             end
           end
@@ -2600,12 +2623,18 @@ class M
   end
 end
 
-def loo(aa)
-  ((true) ? self : aa).hello
+def hello(a, b, c)
+  "aaa"
 end
+
+def loo(aa)
+  hello(1, 2, 3)
+end
+
+loo(3)
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-#code = method(:loo).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -2617,7 +2646,7 @@ end
 #code = [].method(:cycle).executable
 #code = ARGF.method(:each_line).executable
 #code = IO::StreamCopier.instance_method(:run).executable
-code = "".method(:+).executable
+#code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
@@ -2633,13 +2662,15 @@ opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Inliner)
+#opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
-opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
+#opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::Prune)
@@ -2669,10 +2700,6 @@ puts un_code.decode.size
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
-opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
