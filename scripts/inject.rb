@@ -2492,6 +2492,8 @@ module Rubinius
           case instruction.op_code
           when :send_stack
             send_stack = instruction
+            sources = optimier.find_soure_data_flows(send_stack)
+            raise sources.inspect
             if send_stack.call_site.is_a?(MonoInlineCache)
               code = send_stack.call_site.method
               if code.name == :StringValue
