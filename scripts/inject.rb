@@ -2545,19 +2545,12 @@ module Rubinius
         arg_entry = nil
         inst = nil
         required.times.to_a.reverse.each do |index|
-          inst = Inst.new(nil)
+          inst = create_instruction(:set_local, [Local.new(offset +  index)])
+          inst.label = "set local #{code.name} #{index}"
           arg_entry ||= inst
           if prev_inst
             NextFlow.new(optimizer, prev_inst, inst)
           end
-          bytecode = InstructionSet.opcodes_map[:set_local]
-          op_code = InstructionSet.opcodes[bytecode]
-          inst.instruction_width = op_code.width
-          inst.bytecode = bytecode
-          inst.op_rands = [Local.new(offset +  index)]
-          inst.op_code = :set_local
-          inst.flow_type = op_code.control_flow
-          inst.label = "set local #{code.name} #{index}"
           prev_inst = inst
 
           inst = create_instruction(:pop, [])
