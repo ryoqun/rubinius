@@ -2563,11 +2563,20 @@ module Rubinius
           prologue = arg_entry
         end
 
+
+        if following_instruction
+          following_instruction.preceeding_instruction = preceeding_instruction
+        end
+        if preceeding_instruction
+          preceeding_instruction.following_instruction = following_instruction
+        end
+
         send_stack.incoming_flows.each do |flow|
           flow.change_dst_inst(prologue)
         end
+        post_send_stack = send_stack.next_flow.dst_inst
         opt.exit_flows.each do |exit_flow|
-          exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
+          exit_flow.change_dst_inst(post_send_stack)
         end
 
         removed_flow = send_stack.next_flow
