@@ -2563,7 +2563,6 @@ module Rubinius
           prologue = arg_entry
         end
 
-        p code.local_names
         send_stack.incoming_flows.each do |flow|
           flow.change_dst_inst(prologue)
         end
