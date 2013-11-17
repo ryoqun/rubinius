@@ -2494,32 +2494,34 @@ module Rubinius
                sources.size == 1 and sources.first.source.respond_to?(:op_code) and
                (sources.first.source.op_code == :push_self)
 
-              push_self = sources.first.source
-              push_self.incoming_flows.each do |incoming_flow|
-                incoming_flow.change_dst_inst(push_self.next_flow.dst_inst)
-              end
-              push_self.next_flow.mark_remove
-              push_self.mark_raw_remove
-              send_stack.mark_raw_remove
-
-              send_stack.incoming_flows.each do |pre_send_stack|
-                if pre_send_stack.src_inst.op_code == :allow_private
-                  pre_send_stack.src_inst.incoming_flows.each do |pre_allow_private|
-                    pre_allow_private.change_dst_inst(send_stack)
-                  end
-                  pre_send_stack.mark_remove
-                  pre_send_stack.src_inst.mark_raw_remove
-                end
-              end
-
               code = send_stack.call_site.method
-              p code.name
 
               opt = decode_inlined_code(code)
               if opt.signature == send_stack.signature
+                remove_send_prologue(send_stack, sources)
                 do_inline(send_stack, opt, code)
               end
             end
+          end
+        end
+      end
+
+      def remove_send_prologue(send_stack, sources)
+        push_self = sources.first.source
+        push_self.incoming_flows.each do |incoming_flow|
+          incoming_flow.change_dst_inst(push_self.next_flow.dst_inst)
+        end
+        push_self.next_flow.mark_remove
+        push_self.mark_raw_remove
+        send_stack.mark_raw_remove
+
+        send_stack.incoming_flows.each do |pre_send_stack|
+          if pre_send_stack.src_inst.op_code == :allow_private
+            pre_send_stack.src_inst.incoming_flows.each do |pre_allow_private|
+              pre_allow_private.change_dst_inst(send_stack)
+            end
+            pre_send_stack.mark_remove
+            pre_send_stack.src_inst.mark_raw_remove
           end
         end
       end
