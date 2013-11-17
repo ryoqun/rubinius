@@ -334,11 +334,15 @@ module Rubinius
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
+
       @flows = []
+
       @data_flows = []
       @source_data_flows = Hash.new{|hash, key| hash[key] = [] }
       @sink_data_flows = Hash.new{|hash, key| hash[key] = [] }
+
       @basic_blocks = []
+
       @definition_line = nil
       @exit_flows = []
       @local_names = compiled_code.local_names.to_a
@@ -1099,6 +1103,10 @@ module Rubinius
 
     class DataFlowAnalyzer < Analysis
       def optimize
+        optimizer.data_flows.clear
+        optimizer.source_data_flows.clear
+        optimizer.sink_data_flows.clear
+
         goto_to_stack = {}
         main_stack = []
         stacks = [main_stack]
@@ -2552,16 +2560,9 @@ module Rubinius
           inst.label = "set local #{code.name} #{index}"
           prev_inst = inst
 
-          inst = Inst.new(nil)
-          NextFlow.new(optimizer, prev_inst, inst)
-          bytecode = InstructionSet.opcodes_map[:pop]
-          op_code = InstructionSet.opcodes[bytecode]
-          inst.instruction_width = op_code.width
-          inst.bytecode = bytecode
-          inst.op_rands = []
-          inst.op_code = :pop
-          inst.flow_type = op_code.control_flow
+          inst = create_instruction(:pop, [])
           inst.label = "pop local #{code.name} #{index}"
+          NextFlow.new(optimizer, prev_inst, inst)
           prev_inst = inst
         end
         if inst
@@ -2582,6 +2583,18 @@ module Rubinius
         removed_flow.uninstall
         optimizer.remove_flow(removed_flow)
         send_stack.raw_remove
+      end
+
+      def create_instruction(op_code, op_rands)
+        inst = Inst.new(nil)
+        bytecode = InstructionSet.opcodes_map[op_code]
+        op_code2 = InstructionSet.opcodes[bytecode]
+        inst.instruction_width = op_code2.width
+        inst.bytecode = bytecode
+        inst.op_rands = op_rands
+        inst.op_code = op_code
+        inst.flow_type = op_code2.control_flow
+        inst
       end
 
       def decode_inlined_code(code)
@@ -2674,18 +2687,19 @@ code = method(:loo).executable
 opt = Rubinius::Optimizer.new(code)
 puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
-#opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::Prune)
