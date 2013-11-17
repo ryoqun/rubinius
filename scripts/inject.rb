@@ -408,7 +408,6 @@ module Rubinius
     def find_receiver(send_inst)
       raise send_inst.op_code.inspect unless send_inst.op_code == :send_stack
       sources = find_sink_data_flows(send_inst)
-      pp sources
       sources.select do |source|
         source.sink.is_a?(DataFlow::Receiver)
       end
@@ -2516,72 +2515,77 @@ module Rubinius
               code = send_stack.call_site.method
               p code.name
 
-                opt = Rubinius::Optimizer.new(code)
-                opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-                opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-                opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined_#{code.name}")
-                opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined_#{code.name}")
-                opt.run
-                if opt.signature == send_stack.signature
-                  required, _post, _total, _splat, _block_index = opt.signature
-                  offset = optimizer.local_count
-                  optimizer.merge(opt)
+              opt = decode_inlined_code(code)
+              if opt.signature == send_stack.signature
+                required, _post, _total, _splat, _block_index = opt.signature
+                offset = optimizer.local_count
+                optimizer.merge(opt)
 
-                  prologue = opt.first_instruction
-                  prev_inst = nil
+                prologue = opt.first_instruction
+                prev_inst = nil
 
-                  arg_entry = nil
-                  inst = nil
-                  required.times.to_a.reverse.each do |index|
-                  inst = Inst.new(nil)
-                  arg_entry ||= inst
-                  if prev_inst
-                    NextFlow.new(optimizer, prev_inst, inst)
-                  end
-                  bytecode = InstructionSet.opcodes_map[:set_local]
-                  op_code = InstructionSet.opcodes[bytecode]
-                  inst.instruction_width = op_code.width
-                  inst.bytecode = bytecode
-                  inst.op_rands = [Local.new(offset +  index)]
-                  inst.op_code = :set_local
-                  inst.flow_type = op_code.control_flow
-                  inst.label = "set local #{code.name} #{index}"
-                  prev_inst = inst
-
-                  inst = Inst.new(nil)
+                arg_entry = nil
+                inst = nil
+                required.times.to_a.reverse.each do |index|
+                inst = Inst.new(nil)
+                arg_entry ||= inst
+                if prev_inst
                   NextFlow.new(optimizer, prev_inst, inst)
-                  bytecode = InstructionSet.opcodes_map[:pop]
-                  op_code = InstructionSet.opcodes[bytecode]
-                  inst.instruction_width = op_code.width
-                  inst.bytecode = bytecode
-                  inst.op_rands = []
-                  inst.op_code = :pop
-                  inst.flow_type = op_code.control_flow
-                  inst.label = "pop local #{code.name} #{index}"
-                  prev_inst = inst
                 end
-                if inst
-                  NextFlow.new(optimizer, inst, prologue)
-                  prologue = arg_entry
-                end
+                bytecode = InstructionSet.opcodes_map[:set_local]
+                op_code = InstructionSet.opcodes[bytecode]
+                inst.instruction_width = op_code.width
+                inst.bytecode = bytecode
+                inst.op_rands = [Local.new(offset +  index)]
+                inst.op_code = :set_local
+                inst.flow_type = op_code.control_flow
+                inst.label = "set local #{code.name} #{index}"
+                prev_inst = inst
 
-                p code.local_names
-                send_stack.incoming_flows.each do |flow|
-                  flow.change_dst_inst(prologue)
-                end
-                opt.exit_flows.each do |exit_flow|
-                  exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
-                end
-
-                removed_flow = send_stack.next_flow
-                removed_flow.mark_remove
-                removed_flow.uninstall
-                optimizer.remove_flow(removed_flow)
-                send_stack.raw_remove
+                inst = Inst.new(nil)
+                NextFlow.new(optimizer, prev_inst, inst)
+                bytecode = InstructionSet.opcodes_map[:pop]
+                op_code = InstructionSet.opcodes[bytecode]
+                inst.instruction_width = op_code.width
+                inst.bytecode = bytecode
+                inst.op_rands = []
+                inst.op_code = :pop
+                inst.flow_type = op_code.control_flow
+                inst.label = "pop local #{code.name} #{index}"
+                prev_inst = inst
               end
+              if inst
+                NextFlow.new(optimizer, inst, prologue)
+                prologue = arg_entry
+              end
+
+              p code.local_names
+              send_stack.incoming_flows.each do |flow|
+                flow.change_dst_inst(prologue)
+              end
+              opt.exit_flows.each do |exit_flow|
+                exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
+              end
+
+              removed_flow = send_stack.next_flow
+              removed_flow.mark_remove
+              removed_flow.uninstall
+              optimizer.remove_flow(removed_flow)
+              send_stack.raw_remove
             end
           end
+          end
         end
+      end
+
+      def decode_inlined_code(code)
+        opt = Rubinius::Optimizer.new(code)
+        opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+        opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+        opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined_#{code.name}")
+        opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined_#{code.name}")
+        opt.run
+        opt
       end
     end
 
