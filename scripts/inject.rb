@@ -631,8 +631,8 @@ module Rubinius
       bytecodes, lines = generate_bytecode
       raise "too small, is there call flow analysis???" if bytecodes.size == 1
 
-      #opted = OptimizedCode.new
-      opted = CompiledCode.new
+      opted = OptimizedCode.new
+      #opted = CompiledCode.new
       opted.iseq = Rubinius::InstructionSequence.new(bytecodes.to_tuple)
       opted.literals = literals.to_tuple
       opted.lines = lines.to_tuple
@@ -644,7 +644,7 @@ module Rubinius
       opted.block_index = @compiled_code.block_index
       opted.local_count = local_count
       opted.local_names = local_names.to_tuple
-      #opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
+      opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
 
       opted.stack_size = @compiled_code.stack_size
       opted.file = @compiled_code.file
@@ -659,7 +659,7 @@ module Rubinius
         opted.add_metadata :for_module_body, true
       end
 
-      #opted.original_code = @compiled_code
+      opted.original_code = @compiled_code
       opted
     end
 
@@ -2533,51 +2533,51 @@ module Rubinius
                   arg_entry = nil
                   inst = nil
                   required.times.to_a.reverse.each do |index|
-                    inst = Inst.new(nil)
-                    arg_entry ||= inst
-                    if prev_inst
-                      NextFlow.new(optimizer, prev_inst, inst)
-                    end
-                    bytecode = InstructionSet.opcodes_map[:set_local]
-                    op_code = InstructionSet.opcodes[bytecode]
-                    inst.instruction_width = op_code.width
-                    inst.bytecode = bytecode
-                    inst.op_rands = [Local.new(offset +  index)]
-                    inst.op_code = :set_local
-                    inst.flow_type = op_code.control_flow
-                    inst.label = "set local #{code.name} #{index}"
-                    prev_inst = inst
-
-                    inst = Inst.new(nil)
+                  inst = Inst.new(nil)
+                  arg_entry ||= inst
+                  if prev_inst
                     NextFlow.new(optimizer, prev_inst, inst)
-                    bytecode = InstructionSet.opcodes_map[:pop]
-                    op_code = InstructionSet.opcodes[bytecode]
-                    inst.instruction_width = op_code.width
-                    inst.bytecode = bytecode
-                    inst.op_rands = []
-                    inst.op_code = :pop
-                    inst.flow_type = op_code.control_flow
-                    inst.label = "pop local #{code.name} #{index}"
-                    prev_inst = inst
                   end
-                  if inst
-                    NextFlow.new(optimizer, inst, prologue)
-                    prologue = arg_entry
-                  end
+                  bytecode = InstructionSet.opcodes_map[:set_local]
+                  op_code = InstructionSet.opcodes[bytecode]
+                  inst.instruction_width = op_code.width
+                  inst.bytecode = bytecode
+                  inst.op_rands = [Local.new(offset +  index)]
+                  inst.op_code = :set_local
+                  inst.flow_type = op_code.control_flow
+                  inst.label = "set local #{code.name} #{index}"
+                  prev_inst = inst
 
-                  p code.local_names
-                  send_stack.incoming_flows.each do |flow|
-                    flow.change_dst_inst(prologue)
-                  end
-                  opt.exit_flows.each do |exit_flow|
-                    exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
-                  end
+                  inst = Inst.new(nil)
+                  NextFlow.new(optimizer, prev_inst, inst)
+                  bytecode = InstructionSet.opcodes_map[:pop]
+                  op_code = InstructionSet.opcodes[bytecode]
+                  inst.instruction_width = op_code.width
+                  inst.bytecode = bytecode
+                  inst.op_rands = []
+                  inst.op_code = :pop
+                  inst.flow_type = op_code.control_flow
+                  inst.label = "pop local #{code.name} #{index}"
+                  prev_inst = inst
+                end
+                if inst
+                  NextFlow.new(optimizer, inst, prologue)
+                  prologue = arg_entry
+                end
 
-                  removed_flow = send_stack.next_flow
-                  removed_flow.mark_remove
-                  removed_flow.uninstall
-                  optimizer.remove_flow(removed_flow)
-                  send_stack.raw_remove
+                p code.local_names
+                send_stack.incoming_flows.each do |flow|
+                  flow.change_dst_inst(prologue)
+                end
+                opt.exit_flows.each do |exit_flow|
+                  exit_flow.change_dst_inst(send_stack.next_flow.dst_inst)
+                end
+
+                removed_flow = send_stack.next_flow
+                removed_flow.mark_remove
+                removed_flow.uninstall
+                optimizer.remove_flow(removed_flow)
+                send_stack.raw_remove
               end
             end
           end
@@ -2623,15 +2623,20 @@ class M
   end
 end
 
-def hello(a, b, c)
+def hello(a, b ,c, d,e,f)
   "aaa"
 end
 
-def loo(aa)
-  hello(1, 2, 3)
+def loo
+  i = 0
+  while i < 1000
+    hello(0, 1, 2, 0, 0, 0)
+    3.zero?
+    i += 1
+  end
 end
 
-loo(3)
+loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
 code = method(:loo).executable
