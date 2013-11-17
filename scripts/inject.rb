@@ -2521,20 +2521,26 @@ module Rubinius
         end
         push_self.next_flow.mark_remove
         push_self.mark_raw_remove
+        push_self.raw_remove
         send_stack.mark_raw_remove
+        send_stack.raw_remove
 
         send_stack.incoming_flows.each do |pre_send_stack|
           if pre_send_stack.src_inst.op_code == :allow_private
-            pre_send_stack.src_inst.incoming_flows.each do |pre_allow_private|
+            pre_send_stack.mark_remove
+            allow_private = pre_send_stack.src_inst
+
+            allow_private.incoming_flows.each do |pre_allow_private|
               pre_allow_private.change_dst_inst(send_stack)
             end
-            pre_send_stack.mark_remove
-            pre_send_stack.src_inst.mark_raw_remove
+            allow_private.mark_raw_remove
+            allow_private.raw_remove
           end
         end
       end
 
       def do_inline(send_stack, opt, code)
+        post_send_stack = send_stack.next_flow.dst_inst
         required, _post, _total, _splat, _block_index = opt.signature
         offset = optimizer.local_count
         optimizer.merge(opt)
@@ -2563,21 +2569,20 @@ module Rubinius
           prologue = arg_entry
         end
 
-
-        if following_instruction
-          following_instruction.preceeding_instruction = preceeding_instruction
-        end
-        if preceeding_instruction
-          preceeding_instruction.following_instruction = following_instruction
-        end
-
         send_stack.incoming_flows.each do |flow|
           flow.change_dst_inst(prologue)
         end
-        post_send_stack = send_stack.next_flow.dst_inst
         opt.exit_flows.each do |exit_flow|
           exit_flow.change_dst_inst(post_send_stack)
         end
+
+        #if following_instruction
+        #  following_instruction.preceeding_instruction = preceeding_instruction
+        #end
+        #if preceeding_instruction
+        #  preceeding_instruction.following_instruction = following_instruction
+        #end
+
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
@@ -2601,6 +2606,7 @@ module Rubinius
       def decode_inlined_code(code)
         opt = Rubinius::Optimizer.new(code)
         opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+        opt.add_pass(Rubinius::Optimizer::PruneUnused)
         opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
         opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined_#{code.name}")
         opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined_#{code.name}")
@@ -2648,7 +2654,11 @@ class M
 end
 
 def hello(a, b ,c, d,e,f)
-  "aaa"
+  if true
+   return "aaa"
+  else
+    return "bbb"
+  end
 end
 
 def loo
@@ -2695,7 +2705,7 @@ opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
