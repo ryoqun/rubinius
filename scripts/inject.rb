@@ -538,9 +538,14 @@ module Rubinius
       end
     end
 
+    def emit(instruction)
+      @sequence << instruction
+      @emitted[instruction] = true
+    end
+
     def generate_bytecode
-      sequence = []
-      emitted = {}
+      @sequence = []
+      @emitted = {}
 
       pending = [first_instruction]
       until pending.empty?
@@ -555,7 +560,7 @@ module Rubinius
           if instruction.previous_flow && instruction != first_instruction
             rewinds = []
             previous = instruction.previous_inst
-            while not emitted.include?(previous) and not previous.incoming_flows.empty? # remove empty future
+            while not @emitted.include?(previous) and not previous.incoming_flows.empty? # remove empty future
               if rewinds.include?(previous)
                 raise "detected recursive"
               end
@@ -565,13 +570,11 @@ module Rubinius
               previous = previous.previous_inst
             end
             rewinds.reverse.each do |rewind|
-              sequence << rewind
-              emitted[rewind] = true
+              emit(rewinds)
             end
           end
-          if not emitted.include?(instruction)
-            sequence << instruction
-            emitted[instruction] = true
+          if not @emitted.include?(instruction)
+            emit(instruction)
           end
         end
 
@@ -585,9 +588,8 @@ module Rubinius
             end
 
             if instruction
-              break if emitted.include?(instruction)
-              sequence << instruction
-              emitted[instruction] = true
+              break if @emitted.include?(instruction)
+              emit(instruction)
             end
           elsif instruction.op_code == :goto
             goto_branch = pending.last
@@ -608,7 +610,7 @@ module Rubinius
       line = first_instruction.line
       lines << ip
       lines << line
-      sequence.each do |inst|
+      @sequence.each do |inst|
         inst.ip = ip
         if line != inst.line
           lines << ip
@@ -620,7 +622,7 @@ module Rubinius
       lines << ip
 
       bytecodes = []
-      sequence.each do |inst|
+      @sequence.each do |inst|
         bytecodes << inst.bytecode
         inst.op_rands.each do |op_rand|
           bytecodes << op_rand.to_bytecode(inst)
