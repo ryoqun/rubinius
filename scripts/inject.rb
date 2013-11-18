@@ -583,18 +583,18 @@ module Rubinius
                                      branch_flow.dst_inst
               pending.push(branch_instruction)
             end
+
+            if instruction
+              break if emitted.include?(instruction)
+              sequence << instruction
+              emitted[instruction] = true
+            end
           elsif instruction.op_code == :goto
             goto_branch = pending.last
             pending.push(pending.delete(goto_branch))
             break
           else
-            instruction = nil
-          end
-
-          if instruction
-            break if emitted.include?(instruction)
-            sequence << instruction
-            emitted[instruction] = true
+            break
           end
         end
       end
