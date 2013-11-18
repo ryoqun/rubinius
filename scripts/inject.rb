@@ -331,6 +331,7 @@ module Rubinius
     attr_reader :local_op_codes, :literal_op_codes
     attr_reader :source_data_flows, :sink_data_flows
     attr_accessor :entry_inst, :max_stack_size
+    attr_accessor :last_instruction
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
@@ -348,6 +349,7 @@ module Rubinius
       @local_names = compiled_code.local_names.to_a
       @literals = compiled_code.literals.to_a
       @local_count = compiled_code.local_count
+      @last_instruction = nil
       decode
     end
 
@@ -440,7 +442,6 @@ module Rubinius
         @definition_line = lines[1]
         line += 2
       end
-      #p lines
       call_sites = @compiled_code.call_sites.to_a
       call_site_index = 0
       Rubinius::InstructionDecoder.new(@compiled_code.iseq).
@@ -477,10 +478,8 @@ module Rubinius
         end
 
         ip += instruction.size
-        # ap inst.to_label(self)
         previous = inst
       end
-      #ap ip_to_inst
 
       ip = 0
       @local_op_codes = {}
@@ -514,13 +513,9 @@ module Rubinius
           else
             raise "unsupported: #{op_code.args[index].inspect}"
           end
-          #p bytecodes[index]
-          #p op_code.args[index]
-          #p arg.class
         end
         inst.op_rands = op_rands
         ip += inst.instruction.size
-        #p op_rands
       end
     end
 
