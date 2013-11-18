@@ -178,11 +178,11 @@ module Rubinius
       def signature
         raise "not send instruction" if op_code != :send_stack
         [
-         op_rands[1].to_i,
-         0,
-         op_rands[1].to_i,
-         nil,
-         nil,
+          op_rands[1].to_i,
+          0,
+          op_rands[1].to_i,
+          nil,
+          nil,
         ]
       end
 
@@ -540,22 +540,22 @@ module Rubinius
 
     def generate_bytecode
       sequence = []
-      used = {}
+      emitted = {}
 
-      stacks = [first_instruction]
-      until stacks.empty?
-        instruction = stacks.shift
+      pending = [first_instruction]
+      until pending.empty?
+        instruction = pending.shift
         if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
-          branch_instruction = stacks.delete(branch_flow.dst_inst) ||
+          branch_instruction = pending.delete(branch_flow.dst_inst) ||
                                  branch_flow.dst_inst
-          stacks.push(branch_instruction)
+          pending.push(branch_instruction)
         end
 
         if instruction
           if instruction.previous_flow && instruction != first_instruction
             rewinds = []
             previous = instruction.previous_inst
-            while not used.include?(previous) and not previous.incoming_flows.empty? # remove empty future
+            while not emitted.include?(previous) and not previous.incoming_flows.empty? # remove empty future
               if rewinds.include?(previous)
                 raise "detected recursive"
               end
@@ -566,12 +566,12 @@ module Rubinius
             end
             rewinds.reverse.each do |rewind|
               sequence << rewind
-              used[rewind] = true
+              emitted[rewind] = true
             end
           end
-          if not used.include?(instruction)
+          if not emitted.include?(instruction)
             sequence << instruction
-            used[instruction] = true
+            emitted[instruction] = true
           end
         end
 
@@ -579,22 +579,22 @@ module Rubinius
           if next_flow = instruction.next_flow
             instruction = next_flow.dst_inst
             if instruction.branch_flow? and (branch_flow = instruction.branch_flow)
-              branch_instruction = stacks.delete(branch_flow.dst_inst) ||
+              branch_instruction = pending.delete(branch_flow.dst_inst) ||
                                      branch_flow.dst_inst
-              stacks.push(branch_instruction)
+              pending.push(branch_instruction)
             end
           elsif instruction.op_code == :goto
-            goto_branch = stacks.last
-            stacks.push(stacks.delete(goto_branch))
+            goto_branch = pending.last
+            pending.push(pending.delete(goto_branch))
             break
           else
             instruction = nil
           end
 
           if instruction
-            break if used.include?(instruction)
+            break if emitted.include?(instruction)
             sequence << instruction
-            used[instruction] = true
+            emitted[instruction] = true
           end
         end
       end
