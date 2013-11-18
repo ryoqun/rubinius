@@ -1456,8 +1456,7 @@ module Rubinius
         @spots = []
         @previous_spots = []
         @metadata = {}
-        @optimizer = optimizer
-        install
+        install(optimizer)
       end
 
       def add_flow(flow)
@@ -1498,27 +1497,27 @@ module Rubinius
         !dynamic_dst?
       end
 
-      def install
+      def install(optimizer)
         raise "double installation" if @installed
-        @optimizer.flows.push(self)
+        optimizer.flows.push(self)
         @installed = true
         self
       end
 
-      def uninstall
+      def uninstall(optimizer)
         raise "double uninstallation" if not @installed
-        @optimizer.flows.delete(self)
+        optimizer.flows.delete(self)
         @installed = false
         self
       end
 
-      def reinstall
-        uninstall
+      def reinstall(optimizer)
+        uninstall(optimizer)
 
         begin
           yield if block_given?
         ensure
-          install
+          install(optimizer)
         end
       end
 
@@ -1577,20 +1576,20 @@ module Rubinius
         end
       end
 
-      def change_src_dst(src_inst, dst_inst)
+      def change_src_dst(optimizer, src_inst, dst_inst)
         raise "src_inst or dst_inst is nil" if src_inst.nil? or dst_inst.nil?
-        reinstall do
+        reinstall(optimizer) do
           @src_inst = src_inst
           @dst_inst = dst_inst
         end
       end
 
-      def change_src_inst(src_inst)
-        change_src_dst(src_inst, dst_inst)
+      def change_src_inst(optimizer, src_inst)
+        change_src_dst(optimizer, src_inst, dst_inst)
       end
 
-      def change_dst_inst(dst_inst)
-        change_src_dst(src_inst, dst_inst)
+      def change_dst_inst(optimizer, dst_inst)
+        change_src_dst(optimizer, src_inst, dst_inst)
       end
     end
 
@@ -1607,14 +1606,14 @@ module Rubinius
         end
       end
 
-      def install
+      def install(optimizer)
         super.tap do
           @src_inst.next_flow = self
           @dst_inst.previous_flow = self
         end
       end
 
-      def uninstall
+      def uninstall(optimizer)
         super.tap do
           @src_inst.next_flow = nil
           @dst_inst.previous_flow = nil
@@ -1651,7 +1650,7 @@ module Rubinius
         :branch
       end
 
-      def install
+      def install(optimizer)
         super.tap do
           #@src_inst.branch_flow = self
           @dst_inst.incoming_branch_flows.push(self)
@@ -1659,7 +1658,7 @@ module Rubinius
         end
       end
 
-      def uninstall
+      def uninstall(optimizer)
         super.tap do
           #@src_inst.branch_flow = nil
           @dst_inst.incoming_branch_flows.delete(self)
@@ -2522,7 +2521,7 @@ module Rubinius
       def remove_send_prologue(send_stack, sources)
         push_self = sources.first.source
         push_self.incoming_flows.each do |incoming_flow|
-          incoming_flow.change_dst_inst(push_self.next_flow.dst_inst)
+          incoming_flow.change_dst_inst(optimizer, push_self.next_flow.dst_inst)
         end
         push_self.next_flow.mark_remove
         push_self.mark_raw_remove
@@ -2536,7 +2535,7 @@ module Rubinius
             allow_private = pre_send_stack.src_inst
 
             allow_private.incoming_flows.each do |pre_allow_private|
-              pre_allow_private.change_dst_inst(send_stack)
+              pre_allow_private.change_dst_inst(optimizer, send_stack)
             end
             allow_private.mark_raw_remove
             allow_private.raw_remove
@@ -2575,17 +2574,17 @@ module Rubinius
         end
 
         send_stack.incoming_flows.each do |flow|
-          flow.change_dst_inst(prologue)
+          flow.change_dst_inst(optimizer, prologue)
         end
         repeated = false
         opt.exit_flows.each.with_index do |exit_flow, index|
           if repeated and exit_flow.is_a?(NextFlow)
             goto = create_instruction(:goto, nil)
             goto.label = "exit flow goto #{code.name} #{index}"
-            exit_flow.change_dst_inst(goto)
+            exit_flow.change_dst_inst(optimizer, goto)
             goto.op_rands = [BranchFlow.new(optimizer, goto, post_send_stack, "dummy bytecode")]
           else
-            exit_flow.change_dst_inst(post_send_stack)
+            exit_flow.change_dst_inst(optimizer, post_send_stack)
           end
           repeated = true
         end
@@ -2600,7 +2599,7 @@ module Rubinius
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
-        removed_flow.uninstall
+        removed_flow.uninstall(optimizer)
         optimizer.remove_flow(removed_flow)
         send_stack.raw_remove
       end
@@ -2643,7 +2642,7 @@ module Rubinius
             if flow.src_inst.incoming_flows.empty?
               found = true
               flow.mark_remove
-              flow.uninstall
+              flow.uninstall(optimizer)
               optimizer.remove_flow(flow)
               flow.src_inst.raw_remove
             end
