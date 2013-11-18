@@ -2577,8 +2577,17 @@ module Rubinius
         send_stack.incoming_flows.each do |flow|
           flow.change_dst_inst(prologue)
         end
-        opt.exit_flows.each do |exit_flow|
-          exit_flow.change_dst_inst(post_send_stack)
+        repeated = false
+        opt.exit_flows.each.with_index do |exit_flow, index|
+          if repeated and exit_flow.is_a?(NextFlow)
+            goto = create_instruction(:goto, nil)
+            goto.label = "exit flow goto #{code.name} #{index}"
+            exit_flow.change_dst_inst(goto)
+            goto.op_rands = [BranchFlow.new(optimizer, goto, post_send_stack, "dummy bytecode")]
+          else
+            exit_flow.change_dst_inst(post_send_stack)
+          end
+          repeated = true
         end
 
         #if following_instruction
