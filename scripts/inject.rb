@@ -539,8 +539,10 @@ module Rubinius
     end
 
     def emit(instruction)
-      @sequence << instruction
-      @emitted[instruction] = true
+      if not @emitted.include?(instruction)
+        @sequence << instruction
+        @emitted[instruction] = true
+      end
     end
 
     def generate_bytecode
@@ -565,7 +567,6 @@ module Rubinius
                 raise "detected recursive"
               end
               rewinds << previous
-              #p previous.to_label(self)
               break if previous.previous_flow.nil?
               previous = previous.previous_inst
             end
@@ -573,9 +574,7 @@ module Rubinius
               emit(rewinds)
             end
           end
-          if not @emitted.include?(instruction)
-            emit(instruction)
-          end
+          emit(instruction)
         end
 
         while instruction
@@ -588,8 +587,12 @@ module Rubinius
             end
 
             if instruction
-              break if @emitted.include?(instruction)
-              emit(instruction)
+              if @emitted.include?(instruction)
+                emit(instruction)
+                break
+              else
+                emit(instruction)
+              end
             end
           elsif instruction.op_code == :goto
             goto_branch = pending.last
