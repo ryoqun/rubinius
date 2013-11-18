@@ -506,7 +506,7 @@ module Rubinius
           when :type
             Type.new(bytecode)
           when :location, :ip
-            BranchFlow.new(self, inst, ip_to_inst[bytecode], bytecode)
+            BranchFlow.new(self, inst, ip_to_inst[bytecode])
           when :literal, :number
             @literal_op_codes[bytecode] ||= Literal.new(bytecode)
           when :serial
@@ -1636,10 +1636,9 @@ module Rubinius
     end
 
     class BranchFlow < Flow
-      def initialize(optimizer, src_inst, dst_inst, bytecode)
+      def initialize(optimizer, src_inst, dst_inst)
         raise "not branch instruction" if src_inst.flow_type == :next
         super(optimizer, src_inst, dst_inst)
-        @bytecode = bytecode
       end
 
       def dynamic_dst?
@@ -2582,7 +2581,7 @@ module Rubinius
             goto = create_instruction(:goto, nil)
             goto.label = "exit flow goto #{code.name} #{index}"
             exit_flow.change_dst_inst(optimizer, goto)
-            goto.op_rands = [BranchFlow.new(optimizer, goto, post_send_stack, "dummy bytecode")]
+            goto.op_rands = [BranchFlow.new(optimizer, goto, post_send_stack)]
           else
             exit_flow.change_dst_inst(optimizer, post_send_stack)
           end
