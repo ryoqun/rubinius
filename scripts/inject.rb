@@ -331,7 +331,7 @@ module Rubinius
     attr_reader :local_op_codes, :literal_op_codes
     attr_reader :source_data_flows, :sink_data_flows
     attr_accessor :entry_inst, :max_stack_size
-    attr_accessor :last_instruction
+    attr_reader :terminal_instruction
     def initialize(compiled_code)
       @compiled_code = compiled_code
       @passes = []
@@ -349,7 +349,7 @@ module Rubinius
       @local_names = compiled_code.local_names.to_a
       @literals = compiled_code.literals.to_a
       @local_count = compiled_code.local_count
-      @last_instruction = nil
+      @terminal_instruction = nil
       decode
     end
 
@@ -480,6 +480,10 @@ module Rubinius
         ip += instruction.size
         previous = inst
       end
+      terminal_inst = TerminalInst.new
+      terminal_inst.preceeding_instruction = inst
+      inst.following_instruction = terminal_inst
+      @terminal_instruction = terminal_inst
 
       ip = 0
       @local_op_codes = {}
@@ -526,7 +530,7 @@ module Rubinius
 
     def each_instruction
       instruction = first_instruction
-      while instruction
+      until instruction.is_a?(TerminalInst)
         following_instruction = instruction.following_instruction
         yield instruction
         instruction = following_instruction
@@ -1630,6 +1634,16 @@ module Rubinius
       end
     end
 
+    class TerminalInst < Inst
+      def initialize
+        super(nil)
+      end
+
+      def to_label(optimizer)
+        "last"
+      end
+    end
+
     class BranchFlow < Flow
       def initialize(optimizer, src_inst, dst_inst)
         raise "not branch instruction" if src_inst.flow_type == :next
@@ -2583,12 +2597,9 @@ module Rubinius
           repeated = true
         end
 
-        #if following_instruction
-        #  following_instruction.preceeding_instruction = preceeding_instruction
-        #end
-        #if preceeding_instruction
-        #  preceeding_instruction.following_instruction = following_instruction
-        #end
+        p opt.terminal_instruction.preceeding_instruction.to_label(nil)
+        #following_instruction.preceeding_instruction = preceeding_instruction
+        #preceeding_instruction.following_instruction = following_instruction
 
 
         removed_flow = send_stack.next_flow
