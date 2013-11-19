@@ -2605,23 +2605,30 @@ module Rubinius
 
         @prev_inst.following_instruction = opt.first_instruction
         opt.first_instruction.preceeding_instruction = @rev_inst
-        @prev_inst = opt.last_instruction
 
-        repeated = false
+        prev_flow = nil
         exit_insts = []
         opt.exit_flows.each.with_index do |exit_flow, index|
           raise "unsupported" if exit_flow.dst_inst.op_code != :ret
           exit_insts << exit_flow.dst_inst
 
-          if repeated and exit_flow.is_a?(NextFlow)
+          if prev_flow and exit_flow.is_a?(NextFlow)
+            @prev_inst = exit_flow.dst_inst
+            following_instruction = @prev_inst.following_instruction
             goto = create_instruction(:goto, nil)
+
+            prev_flow.src_inst.following_instruction = goto
+            goto.preceeding_instruction = prev_flow.src_inst
+            goto.following_instruction = following_instruction
+            following_instruction.preceeding_instruction = goto
+
             goto.label = "exit flow goto #{code.name} #{index}"
             exit_flow.change_dst_inst(optimizer, goto)
             goto.op_rands = [BranchFlow.new(optimizer, goto, post_send_stack)]
           else
             exit_flow.change_dst_inst(optimizer, post_send_stack)
           end
-          repeated = true
+          prev_flow = exit_flow
         end
 
         pre_send_stack = post_send_stack.preceeding_instruction
@@ -2629,8 +2636,8 @@ module Rubinius
         pre_send_stack.following_instruction = prologue
         prologue.preceeding_instruction = pre_send_stack
 
-        @prev_inst.following_instruction = post_send_stack
-        post_send_stack.preceeding_instruction = @prev_inst
+        opt.last_instruction.following_instruction = post_send_stack
+        post_send_stack.preceeding_instruction = opt.last_instruction
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
@@ -2641,6 +2648,12 @@ module Rubinius
           inst.mark_raw_remove
           inst.raw_remove
         end
+
+        #i = optimizer.first_instruction
+        #while i
+        #  p i.to_label(optimizer)
+        #  i = i.following_instruction
+        #end
       end
 
       def create_instruction(op_code, op_rands)
