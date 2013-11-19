@@ -2624,25 +2624,16 @@ module Rubinius
 
         @prev_inst.following_instruction = post_send_stack
         post_send_stack.preceeding_instruction = @prev_inst
-        #opt.last_instruction.following_instruction = post_send_stack
-        #post_send_stack.preceeding_instruction = opt.last_instruction
-        i = optimizer.first_instruction
-        while i
-          p i.to_label(nil)
-          i = i.following_instruction
-        end
-
-        exit_insts.uniq.each do |inst|
-          #p inst.to_label(nil)
-          inst.mark_raw_remove
-          inst.raw_remove
-        end
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
         removed_flow.uninstall(optimizer)
         optimizer.remove_flow(removed_flow)
         send_stack.raw_remove
+        exit_insts.uniq.each do |inst|
+          inst.mark_raw_remove
+          inst.raw_remove
+        end
       end
 
       def create_instruction(op_code, op_rands)
