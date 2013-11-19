@@ -9,6 +9,14 @@ if RUBY_DESCRIPTION !~ /rubinius/i or
   require './scripts/generator_methods'
 end
 
+def hello(a, b ,c, d,e,f)
+  if true
+   return "aaa"
+  else
+    return "bbb"
+  end
+end
+
 module Rubinius
   class Optimizer
     class OpRand
@@ -401,6 +409,10 @@ module Rubinius
 
     def first_instruction
       first_flow.dst_inst
+    end
+
+    def last_instruction
+      terminal_instruction.preceeding_instruction
     end
 
     def receiver_data(send_inst)
@@ -1116,7 +1128,6 @@ module Rubinius
         stacks = [main_stack]
         previous = nil
         optimizer.each_instruction do |instruction|
-          #p instruction.to_label(optimizer)
           branch_target_found = false
           if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
             #puts stacks.size
@@ -2584,8 +2595,17 @@ module Rubinius
         send_stack.incoming_flows.each do |flow|
           flow.change_dst_inst(optimizer, prologue)
         end
+
+        @prev_inst.following_instruction = opt.first_instruction
+        opt.first_instruction.preceeding_instruction = @rev_inst
+        @prev_inst = opt.last_instruction
+
         repeated = false
+        exit_insts = []
         opt.exit_flows.each.with_index do |exit_flow, index|
+          raise "unsupported" if exit_flow.dst_inst.op_code != :ret
+          exit_insts << exit_flow.dst_inst
+
           if repeated and exit_flow.is_a?(NextFlow)
             goto = create_instruction(:goto, nil)
             goto.label = "exit flow goto #{code.name} #{index}"
@@ -2597,10 +2617,26 @@ module Rubinius
           repeated = true
         end
 
-        p opt.terminal_instruction.preceeding_instruction.to_label(nil)
-        #following_instruction.preceeding_instruction = preceeding_instruction
-        #preceeding_instruction.following_instruction = following_instruction
+        pre_send_stack = post_send_stack.preceeding_instruction
 
+        pre_send_stack.following_instruction = prologue
+        prologue.preceeding_instruction = pre_send_stack
+
+        @prev_inst.following_instruction = post_send_stack
+        post_send_stack.preceeding_instruction = @prev_inst
+        #opt.last_instruction.following_instruction = post_send_stack
+        #post_send_stack.preceeding_instruction = opt.last_instruction
+        i = optimizer.first_instruction
+        while i
+          p i.to_label(nil)
+          i = i.following_instruction
+        end
+
+        exit_insts.uniq.each do |inst|
+          #p inst.to_label(nil)
+          inst.mark_raw_remove
+          inst.raw_remove
+        end
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
@@ -2618,6 +2654,13 @@ module Rubinius
         inst.op_rands = op_rands
         inst.op_code = op_code
         inst.flow_type = op_code2.control_flow
+
+        if @prev_inst
+          @prev_inst.following_instruction = inst
+          inst.preceeding_instruction = @prev_inst
+        end
+        @prev_inst = inst
+
         inst
       end
 
@@ -2671,13 +2714,6 @@ class M
   end
 end
 
-def hello(a, b ,c, d,e,f)
-  if true
-   return "aaa"
-  else
-    return "bbb"
-  end
-end
 
 def loo
   i = 0
@@ -2716,7 +2752,7 @@ code = method(:loo).executable
 opt = Rubinius::Optimizer.new(code)
 puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
