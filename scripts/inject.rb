@@ -9,7 +9,11 @@ if RUBY_DESCRIPTION !~ /rubinius/i or
   require './scripts/generator_methods'
 end
 
+def call_me(aaa)
+end
+
 def hello(a, b ,c, d,e,f)
+  call_me(3)
   if true
    return "aaa"
   else
@@ -1128,6 +1132,9 @@ module Rubinius
         stacks = [main_stack]
         previous = nil
         optimizer.each_instruction do |instruction|
+          instruction.imports.clear
+          instruction.exports.clear
+
           branch_target_found = false
           if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
             #puts stacks.size
