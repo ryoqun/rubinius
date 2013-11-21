@@ -16,6 +16,8 @@ def hello(a, b ,c, d,e,f)
   call_me(3)
   if true
    return "aaa"
+  elsif false
+    return "ccc"
   else
     return "bbb"
   end
@@ -544,8 +546,8 @@ module Rubinius
       encode
     end
 
-    def each_instruction
-      instruction = first_instruction
+    def each_instruction(instruction=nil)
+      instruction ||= first_instruction
       until instruction.is_a?(TerminalInst)
         following_instruction = instruction.following_instruction
         yield instruction
@@ -1122,18 +1124,44 @@ module Rubinius
     end
 
     class DataFlowAnalyzer < Analysis
-      def optimize
-        optimizer.data_flows.clear
-        optimizer.source_data_flows.clear
-        optimizer.sink_data_flows.clear
+      def optimize(start=nil, stacks=nil)
+        if start.nil?
+          optimizer.data_flows.clear
+          optimizer.source_data_flows.clear
+          optimizer.sink_data_flows.clear
+        end
+
+        main_stack = []
+        stacks ||= [main_stack]
+        seen_insts = {}
 
         goto_to_stack = {}
-        main_stack = []
-        stacks = [main_stack]
         previous = nil
-        optimizer.each_instruction do |instruction|
+        optimizer.each_instruction(start) do |instruction|
+          #pp stacks if previous && previous.to_label(nil) =~ /exit flow/
+          #puts "aaaa"
+          #pp instruction.to_label(nil)
+          #p "previ" + previous.to_label(nil) if previous
+          #p "previous flow#{instruction.previous_flow.to_label(nil)}" if instruction.previous_flow
+          #p "incoming #{instruction.incoming_flows.inspect}"
+          #p "src inst" + instruction.previous_flow.src_inst.to_label(nil) if instruction.previous_flow and instruction.previous_flow.src_inst
+          #p instruction.previous_flow.inspect
+          #puts "bbbbb"
+          #p instruction.to_label(nil)
+          #puts
+          #raise "aah" if instruction.previous_flow && previous && instruction.previous_flow.src_inst != previous
+          seen_insts[instruction] = true
           instruction.imports.clear
           instruction.exports.clear
+
+          if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
+            if goto_to_stack.has_key?(instruction.previous_flow.src_inst)
+              puts "prev #{goto_to_stack[instruction.previous_flow.src_inst]}"
+            end
+            puts instruction.to_label(optimizer)
+            stacks.clear
+            stacks = [goto_to_stack[instruction.previous_flow.src_inst]]
+          end
 
           branch_target_found = false
           if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
@@ -1156,7 +1184,11 @@ module Rubinius
               branch_target_found = true
               #puts "aadding stack"
               #puts goto.src_inst.to_label(optimizer)
-              stacks << goto_to_stack[goto.src_inst] if goto_to_stack.has_key?(goto.src_inst)
+              if goto_to_stack.has_key?(goto.src_inst)
+                stacks << goto_to_stack[goto.src_inst]
+              else
+                puts goto.to_label(optimizer)
+              end
             end
           end
           if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
@@ -1348,8 +1380,20 @@ module Rubinius
               end
             end
           end
+          if instruction.next_flow && instruction.following_instruction != instruction.next_flow.dst_inst
+            puts "next"
+            puts instruction.to_label(optimizer)
+            goto_to_stack[instruction] = stacks.first
+            stacks.clear
+          end
           previous = instruction
         end
+
+        first_inst = stacks.first.first
+        #if stacks.size == 2 && stacks.all? {|stack| stack.first == first_inst}
+        #  optimize(first_inst, stacks)
+        #end
+        p stacks
       end
     end
 
@@ -1632,6 +1676,12 @@ module Rubinius
 
       def uninstall(optimizer)
         super.tap do
+          #if @src_inst.next_flow != self
+          #  puts "different"
+          #end
+          #if @dst_inst.next_flow != self
+          #  puts "different #{self.to_label(nil)}     #{@dst_inst.next_flow.to_label(nil)}" if @dst_inst and @dst_inst.next_flow
+          #end
           @src_inst.next_flow = nil
           @dst_inst.previous_flow = nil
         end
@@ -2608,6 +2658,10 @@ module Rubinius
 
         prev_flow = nil
         exit_insts = []
+        positions = []
+        opt.exit_flows.sort_by do |f|
+          #s f.dst_inst.ip
+        end  ####  XXX do method chain with following line
         opt.exit_flows.each.with_index do |exit_flow, index|
           raise "unsupported" if exit_flow.dst_inst.op_code != :ret
           exit_insts << exit_flow.dst_inst
@@ -2627,6 +2681,8 @@ module Rubinius
             goto.op_rands = [BranchFlow.new(optimizer, goto, post_send_stack)]
           else
             exit_flow.change_dst_inst(optimizer, post_send_stack)
+            #p "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            #p post_send_stack.previous_flow.inspect
           end
           prev_flow = exit_flow
         end
@@ -2641,13 +2697,15 @@ module Rubinius
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
-        removed_flow.uninstall(optimizer)
+        #removed_flow.uninstall(optimizer)
         optimizer.remove_flow(removed_flow)
         send_stack.raw_remove
         exit_insts.uniq.each do |inst|
           inst.mark_raw_remove
           inst.raw_remove
         end
+        #p "hello"
+        #p post_send_stack.previous_flow.inspect
 
         #i = optimizer.first_instruction
         #while i
@@ -2806,8 +2864,8 @@ puts un_code.decode.size
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "generated")
 optimized_code = opt.run
