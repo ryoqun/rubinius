@@ -1080,21 +1080,21 @@ module Rubinius
         current_code_path = current_code_path.dup
         current_code_path << block
         recursive = false
-        puts
-        puts
-        puts
+        #puts
+        #puts
+        #puts
 
-        puts :bbb
+        #puts :bbb
         code_path = current_code_path[-2, 2]
         current_code_path.reverse.each do |previous_block|
           previous_code_path = current_code_path[-(code_path.size * 2), code_path.size].to_a
-          puts :cccc
-          p current_code_path.map(&:object_id)
+          #puts :cccc
+          #p current_code_path.map(&:object_id)
 
-          puts
-          p code_path.map(&:object_id)
-          p previous_code_path.map(&:object_id)
-          puts
+          #puts
+          #p code_path.map(&:object_id)
+          #p previous_code_path.map(&:object_id)
+          #puts
           if code_path == previous_code_path
             recursive = true
             break
@@ -1119,13 +1119,14 @@ module Rubinius
               code_path << block
               pending_flows.pop
             #  raise
+              p :recursive
               break
             else
               code_path << block
             end
 
             if block.next_block and block.branch_block
-              pending_flows << [code_path.dup, block.branch_block]
+              pending_flows << [code_path.dup + [block.branch_block], block.branch_block]
             end
 
             block = block.next_block || block.branch_block
