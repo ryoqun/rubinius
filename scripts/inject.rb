@@ -873,7 +873,7 @@ module Rubinius
     W = GeneratorWrapper.new
 
     class BasicBlock
-      attr_accessor :branch_block, :next_block
+      attr_accessor :branch_block, :next_block, :instructions
       attr_reader :stack, :min_size, :max_size
       def initialize(analyzer)
         @analyzer = analyzer
@@ -1067,12 +1067,79 @@ module Rubinius
         end
 
         validate_stack
+        print_all_code_path
         #puts ["max stack", @max_stack].inspect
         optimizer.max_stack_size = @max_stack
       end
 
       def validate_stack
         optimizer.basic_blocks.first.validate_stack
+      end
+
+      def recursive_code_path?(current_code_path, block)
+        current_code_path = current_code_path.dup
+        current_code_path << block
+        recursive = false
+        puts
+        puts
+        puts
+
+        puts :bbb
+        code_path = current_code_path[-2, 2]
+        current_code_path.reverse.each do |previous_block|
+          previous_code_path = current_code_path[-(code_path.size * 2), code_path.size].to_a
+          puts :cccc
+          p current_code_path.map(&:object_id)
+
+          puts
+          p code_path.map(&:object_id)
+          p previous_code_path.map(&:object_id)
+          puts
+          if code_path == previous_code_path
+            recursive = true
+            break
+          end
+          code_path.unshift(previous_block)
+        end
+
+        recursive
+      end
+
+      def print_all_code_path
+        code_pathes = []
+        block = optimizer.basic_blocks.first
+        pending_flows = [
+          [[], block],
+        ]
+
+        until pending_flows.empty?
+          code_path, block = pending_flows.pop
+          until block.next_block.nil? and block.branch_block.nil?
+            if not code_path.empty? and (code_path.last == block or recursive_code_path?(code_path, block))
+              code_path << block
+              pending_flows.pop
+            #  raise
+              break
+            else
+              code_path << block
+            end
+
+            if block.next_block and block.branch_block
+              pending_flows << [code_path.dup, block.branch_block]
+            end
+
+            block = block.next_block || block.branch_block
+          end
+          puts "aba"
+          code_pathes << code_path
+        end
+
+        code_pathes.each.with_index do |path, index|
+          puts "path #{index}"
+          path.each do |block|
+            puts block.instructions.first.to_label(optimizer)
+          end
+        end
       end
 
       def create_block
@@ -1156,9 +1223,9 @@ module Rubinius
 
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
             if goto_to_stack.has_key?(instruction.previous_flow.src_inst)
-              puts "prev #{goto_to_stack[instruction.previous_flow.src_inst]}"
+              #puts "prev #{goto_to_stack[instruction.previous_flow.src_inst]}"
             end
-            puts instruction.to_label(optimizer)
+            #puts instruction.to_label(optimizer)
             stacks.clear
             stacks = [goto_to_stack[instruction.previous_flow.src_inst]]
           end
@@ -1187,7 +1254,7 @@ module Rubinius
               if goto_to_stack.has_key?(goto.src_inst)
                 stacks << goto_to_stack[goto.src_inst]
               else
-                puts goto.to_label(optimizer)
+               # puts goto.to_label(optimizer)
               end
             end
           end
@@ -1381,8 +1448,8 @@ module Rubinius
             end
           end
           if instruction.next_flow && instruction.following_instruction != instruction.next_flow.dst_inst
-            puts "next"
-            puts instruction.to_label(optimizer)
+            #puts "next"
+            #puts instruction.to_label(optimizer)
             goto_to_stack[instruction] = stacks.first
             stacks.clear
           end
@@ -1393,7 +1460,7 @@ module Rubinius
         #if stacks.size == 2 && stacks.all? {|stack| stack.first == first_inst}
         #  optimize(first_inst, stacks)
         #end
-        p stacks
+        #p stacks
       end
     end
 
@@ -2823,13 +2890,13 @@ puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
-opt.add_pass(Rubinius::Optimizer::Inliner)
+#opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
-opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
@@ -2864,8 +2931,8 @@ puts un_code.decode.size
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "generated")
 optimized_code = opt.run
