@@ -100,6 +100,10 @@ module Rubinius
       def to_label(optimizer)
         "<param: #{optimizer.local_names[bytecode] || bytecode}>"
       end
+
+      def to_inst
+        "param"
+      end
     end
 
     class StackLocal < OpRand
@@ -1114,23 +1118,30 @@ module Rubinius
 
         until pending_flows.empty?
           code_path, block = pending_flows.pop
+          recursive = false
           until block.next_block.nil? and block.branch_block.nil?
-            if not code_path.empty? and (code_path.last == block or recursive_code_path?(code_path, block))
+            if not code_path.empty? and recursive_code_path?(code_path, block)
               code_path << block
-              pending_flows.pop
-            #  raise
-              p :recursive
+              recursive = true
               break
             else
               code_path << block
             end
 
             if block.next_block and block.branch_block
-              pending_flows << [code_path.dup + [block.branch_block], block.branch_block]
+              pending_flows << [code_path.dup, block.branch_block]
             end
 
             block = block.next_block || block.branch_block
           end
+
+          if recursive
+            code_path << :loop
+          else
+            code_path << block
+            code_path << :exit
+          end
+
           puts "aba"
           code_pathes << code_path
         end
@@ -1138,8 +1149,13 @@ module Rubinius
         code_pathes.each.with_index do |path, index|
           puts "path #{index}"
           path.each do |block|
-            puts block.instructions.first.to_label(optimizer)
+            if block.respond_to?(:instructions)
+              puts block.instructions.first.to_label(optimizer)
+            else
+              puts block.inspect
+            end
           end
+          puts
         end
       end
 
@@ -2864,7 +2880,7 @@ end
 loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-code = method(:loo).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = "".method(:start_with?).executable
@@ -2874,7 +2890,7 @@ code = method(:loo).executable
 #code = [].method(:|).executable
 #code = [].method(:equal?).executable
 #code = [].method(:cycle).executable
-#code = ARGF.method(:each_line).executable
+code = ARGF.method(:each_line).executable
 #code = IO::StreamCopier.instance_method(:run).executable
 #code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
