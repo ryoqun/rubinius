@@ -561,6 +561,7 @@ module Rubinius
 
     def emit(instruction)
       if not @emitted.include?(instruction)
+        raise instruction.inspect unless instruction.respond_to?(:ip=)
         @sequence << instruction
         @emitted[instruction] = true
       end
@@ -592,7 +593,7 @@ module Rubinius
               previous = previous.previous_inst
             end
             rewinds.reverse.each do |rewind|
-              emit(rewinds)
+              emit(rewind)
             end
           end
           emit(instruction)
@@ -2890,14 +2891,14 @@ loo
 #code = [].method(:|).executable
 #code = [].method(:equal?).executable
 #code = [].method(:cycle).executable
-code = ARGF.method(:each_line).executable
+#code = ARGF.method(:each_line).executable
 #code = IO::StreamCopier.instance_method(:run).executable
 #code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
 #code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
 #code = Integer.instance_method(:upto).executable
-#code = Integer.instance_method(:round).executable
+code = Integer.instance_method(:round).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
