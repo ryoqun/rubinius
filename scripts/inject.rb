@@ -1130,10 +1130,12 @@ module Rubinius
 
           if @next_node
             @read = [@read, @block.read - @block.write + @next_node.read].max
+            @write = [@write, @block.write + @next_node.write - @next_node.read].max
           end
 
           if @branch_node
             @read = [@read, @block.read - @block.write + @branch_node.read].max
+            @write = [@write, @block.write + @branch_node.write - @branch_node.read].max
           end
 
           if @next_node.nil? and @branch_node.nil?
