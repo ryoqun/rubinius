@@ -878,7 +878,7 @@ module Rubinius
     W = GeneratorWrapper.new
 
     class BasicBlock
-      attr_accessor :branch_block, :next_block, :instructions
+      attr_accessor :branch_block, :next_block, :instructions, :termination
       attr_reader :stack, :min_size, :max_size
       def initialize(analyzer)
         @analyzer = analyzer
@@ -888,6 +888,7 @@ module Rubinius
         @closed = false
         @visited = false
         @exit_size = nil
+        @termination = nil
       end
 
       def close(record_exit=false)
@@ -921,9 +922,19 @@ module Rubinius
         @max_size = @stack if @stack > @max_size
       end
 
+      def read
+        -@min_size
+      end
+
+      def write
+        #@max_size > 0 ? @max_size : 0
+        @stack + read
+      end
+
       def to_label(optimizer)
         (
-          ["#{closed? ? "CLOSED " : ""}#{@exit_size ? "exit_size: #{@exit_size} " : ""}enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size}"] +
+          ["#{closed? ? "CLOSED " : ""}#{@exit_size ? "exit_size: #{@exit_size} " : ""}enter_size: #{@enter_size}, stack: #{@stack}, min: #{@min_size}, max: #{@max_size} - READ: #{read} WRITE: #{write}"] +
+          ["#{@termination ? "terminated: read: #{@termination.first} write: #{@termination.last}" : ""}"] +
           (@instructions.collect do |instruction|
             instruction.to_label(optimizer)
           end) +
@@ -1098,23 +1109,96 @@ module Rubinius
         recursive
       end
 
+      class CodePathNode
+        attr_reader :read, :write, :block
+        attr_accessor :branch_node, :next_node
+        def initialize(block)
+          raise "nil block" if block.nil?
+          @block = block
+          @branch_node = @next_node = nil
+          @terminate = false
+          @read = @write = 0
+        end
+
+        def to_label(optimizer)
+          "#{@block.instructions.first.to_label(optimizer)} (terminated: #{terminated?})"
+        end
+
+        def terminate
+          raise "not terminated" if (@next_node and not @next_node.terminated?) or (@branch_node and not @branch_node.terminated?)
+          raise "terminated" if terminated?
+
+          if @next_node
+            @read = [@read, @block.read - @block.write + @next_node.read].max
+          end
+
+          if @branch_node
+            @read = [@read, @block.read - @block.write + @branch_node.read].max
+          end
+
+          if @next_node.nil? and @branch_node.nil?
+            @read = @block.read
+            @write = @block.write
+          end
+          @block.termination = [@read, @write]
+
+          @terminate = true
+        end
+
+        def terminated?
+          @terminate
+        end
+
+        def to_s
+        end
+      end
+
+      def map_to_node(block)
+        terminatable = true
+        node = @block_to_node[block] ||= CodePathNode.new(block)
+        if block.branch_block
+          branch_node = @block_to_node[block.branch_block] ||= CodePathNode.new(block.branch_block)
+          node.branch_node = branch_node
+          terminatable = false unless branch_node.terminated?
+        end
+        if block.next_block
+          next_node = @block_to_node[block.next_block] ||= CodePathNode.new(block.next_block)
+          node.next_node = next_node
+          terminatable = false unless next_node.terminated?
+        end
+
+        if terminatable
+          node.terminate unless node.terminated?
+        end
+        node
+      end
+
       def print_all_code_path
+        @block_to_node = {}
         code_pathes = []
+
         block = optimizer.basic_blocks.first
+        code_path =[]
         pending_flows = [
-          [[], block],
+          [code_path, block],
         ]
 
         until pending_flows.empty?
-          recursive = false
           code_path, block = pending_flows.pop
+
+          recursive = false
           until block.next_block.nil? and block.branch_block.nil?
             if not code_path.empty? and recursive_code_path?(code_path, block)
-              code_path << block
+              node = map_to_node(block)
+              code_path << node
               recursive = true
               break
             else
-              code_path << block
+              node = map_to_node(block)
+              if node.terminated?
+                puts "can be skipped.... #{node.read}"
+              end
+              code_path << node
             end
 
             if block.next_block and block.branch_block
@@ -1127,7 +1211,8 @@ module Rubinius
           if recursive
             code_path << :loop
           else
-            code_path << block
+            node = map_to_node(block)
+            code_path << node
             code_path << :exit
           end
 
@@ -1140,11 +1225,11 @@ module Rubinius
       def print_code_pathes(code_pathes)
         code_pathes.each.with_index do |path, index|
           puts "path #{index}"
-          path.each do |block|
-            if block.respond_to?(:instructions)
-              puts block.instructions.first.to_label(optimizer)
+          path.each do |node|
+            if node.respond_to?(:to_label)
+              puts node.to_label(optimizer)
             else
-              puts block.inspect
+              puts node.inspect
             end
           end
           puts
@@ -2886,10 +2971,10 @@ loo
 #code = IO::StreamCopier.instance_method(:run).executable
 #code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
-#code = IO.method(:binwrite).executable
+code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
 #code = Integer.instance_method(:upto).executable
-code = Integer.instance_method(:round).executable
+#code = Integer.instance_method(:round).executable
 #code = Regexp.method(:escape).executable
 #code = Rational.instance_method(:/).executable
 #code = Rubinius::Loader.instance_method(:script).executable
