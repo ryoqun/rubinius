@@ -1196,7 +1196,7 @@ module Rubinius
             else
               node = map_to_node(block)
               if node.terminated?
-                puts "can be skipped.... #{node.read}"
+                puts "can be skipped.... #{node.read} #{node.write}"
               end
               code_path << node
             end
