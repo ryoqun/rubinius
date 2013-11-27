@@ -800,6 +800,8 @@ module Rubinius
 
       attr :source, :sink
       def initialize(optimizer, source, sink)
+        raise "source is nil" if source.nil?
+        raise "sink is nil" if sink.nil?
         @source = source
         @sink = sink
         install(optimizer)
@@ -1197,8 +1199,10 @@ module Rubinius
               break
             else
               node = map_to_node(block)
-              if node.terminated?
-                puts "can be skipped.... #{node.read} #{node.write}"
+              if current_node = code_path.last
+                if node.terminated? and current_node.block.write >= node.read
+                  break
+                end
               end
               code_path << node
             end
@@ -1220,6 +1224,8 @@ module Rubinius
 
           code_pathes << code_path
         end
+
+        code_pathes.uniq!
 
         print_code_pathes(code_pathes)
       end
@@ -2962,6 +2968,7 @@ loo
 #code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
+code = [].method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Enumerable.instance_method(:minmax).executable
@@ -2973,7 +2980,7 @@ loo
 #code = IO::StreamCopier.instance_method(:run).executable
 #code = "".method(:+).executable
 #code = IO.instance_method(:each).executable
-code = IO.method(:binwrite).executable
+#code = IO.method(:binwrite).executable
 #code = Hash.instance_method(:reject).executable
 #code = Integer.instance_method(:upto).executable
 #code = Integer.instance_method(:round).executable
