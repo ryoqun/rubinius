@@ -2903,9 +2903,9 @@ module Rubinius
         prev_flow = nil
         exit_insts = []
         positions = []
-        opt.exit_flows.sort_by do |f|
-          #s f.dst_inst.ip
-        end  ####  XXX do method chain with following line
+        #opt.exit_flows.sort_by do |f|
+        #  f.dst_inst.ip
+        #end.reverse. ####  XXX do method chain with following line
         opt.exit_flows.each.with_index do |exit_flow, index|
           raise "unsupported" if exit_flow.dst_inst.op_code != :ret
           exit_insts << exit_flow.dst_inst
@@ -3071,18 +3071,18 @@ opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
-#opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::Inliner)
+#opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
-opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-opt.add_pass(Rubinius::Optimizer::Prune)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
+#opt.add_pass(Rubinius::Optimizer::PruneUnused)
+#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+#opt.add_pass(Rubinius::Optimizer::Prune)
 #opt.add_pass(Rubinius::Optimizer::GotoRet)
 #opt.add_pass(Rubinius::Optimizer::GoToRemover)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
@@ -3106,6 +3106,8 @@ puts un_code.decode.size
 #else
 #  code = un_code
 #end
+
+puts :GENERATED
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
