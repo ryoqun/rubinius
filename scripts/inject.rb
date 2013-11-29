@@ -1195,6 +1195,7 @@ module Rubinius
 
         if terminatable
           node.terminate unless node.terminated?
+          node.block.incoming_blocks.map(&:class)
         end
         node
       end
