@@ -2387,6 +2387,7 @@ module Rubinius
       def not_isolated?
         if not defined?(@isolation_calculated)
           # this is bad
+          raise
           true
         else
           not @isolation
@@ -2398,13 +2399,15 @@ module Rubinius
         @isolation ||= do_isolated?
       end
 
+      def partially_isolated?
+        @partially_isolated
+      end
+
       def do_isolated?
         @results[1..-1].each do |previous_flow, flow, match|
-          unless @matcher.class.translator.include?(match)
+          if not @matcher.class.translator.include?(match)
             if flow.dst_inst.incoming_flows.size > 1
               comparison = flow.dst_inst.incoming_flows.collect do |incoming_flow|
-                return false if incoming_flow !=flow and incoming_flow.spots.any?(&:not_isolated?)
-
                 [
                 incoming_flow.spots.map(&:type),
                 incoming_flow.spots.map{|s| s.position(incoming_flow) },
@@ -2412,6 +2415,12 @@ module Rubinius
               end
               if comparison.uniq.size > 1
                 return false
+              end
+              @partially_isolated = true
+              flow.dst_inst.incoming_flows.each do |incoming_flow|
+                next if incoming_flow == flow
+                next if incoming_flow.spots.all?(&:partially_isolated?)
+                return false if not incoming_flow.spots.all?(&:isolated?)
               end
             end
           else
