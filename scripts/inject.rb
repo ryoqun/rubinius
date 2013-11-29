@@ -1312,13 +1312,106 @@ module Rubinius
     end
 
     class DataFlowAnalyzer < Analysis
+      def setup_import_and_export(instruction)
+        case instruction.op_code
+        when :send_stack
+          instruction.stack_consumed.times.to_a.reverse.each do |index|
+            if index.zero?
+              receiver = DataFlow::Receiver.new(instruction)
+              instruction.imports.unshift(receiver)
+            else
+              arg = DataFlow::Argument.new(index, instruction)
+              instruction.imports.unshift(arg)
+            end
+          end
+        when :swap_stack
+          shuffle1 = DataFlow::Shuffle.new(1, instruction, :import)
+          shuffle2 = DataFlow::Shuffle.new(0, instruction, :import)
+          instruction.imports.unshift(shuffle1)
+          instruction.imports.unshift(shuffle2)
+        when :kind_of
+          shuffle = DataFlow::Class.new(instruction)
+          instruction.imports.unshift(shuffle)
+          shuffle = DataFlow::Object.new(instruction)
+          instruction.imports.unshift(shuffle)
+        when :move_down
+          (instruction.stack_consumed + 1).times.to_a.reverse.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+            instruction.imports.unshift(shuffle)
+          end
+        when :rotate
+          instruction.stack_consumed.times.to_a.reverse.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+            instruction.imports.unshift(shuffle)
+          end
+        when :dup_many
+          instruction.stack_consumed.times.to_a.reverse.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+            instruction.imports.unshift(shuffle)
+          end
+        when :make_array
+          instruction.stack_consumed.times.to_a.reverse.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :import)
+            instruction.imports.unshift(shuffle)
+          end
+        when :send_stack_with_block
+          instruction.stack_consumed.times.to_a.reverse.each do |index|
+            if index == 0
+              receiver = DataFlow::Receiver.new(instruction)
+              instruction.imports.unshift(receiver)
+            elsif index == instruction.stack_consumed - 1
+              receiver = DataFlow::Block.new(instruction)
+              instruction.imports.unshift(receiver)
+            else
+              arg = DataFlow::Argument.new(index, instruction)
+              instruction.imports.unshift(arg)
+            end
+          end
+        end
+        if instruction.op_code == :move_down
+          exports = Array.new(instruction.stack_produced)
+          i = 0
+          (instruction.stack_produced + 1).times.to_a.rotate(-1).each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :export)
+            exports[i] = shuffle
+            i += 1
+          end
+          #p exports.size
+          exports.each do |export|
+            instruction.exports.push(export)
+          end
+        elsif instruction.op_code == :dup_many
+          2.times.to_a.each do |repeat|
+            (instruction.stack_produced / 2).times.to_a.each do |index|
+              label = "#{index}_#{"abcdefg"[repeat]}"
+              shuffle = DataFlow::Shuffle.new(label, instruction, :export)
+              instruction.exports.push(shuffle)
+            end
+          end
+        elsif instruction.op_code == :rotate
+          instruction.stack_produced.times.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :export)
+            instruction.exports.unshift(shuffle)
+          end
+        elsif instruction.op_code == :swap_stack
+          instruction.stack_produced.times.to_a.reverse.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :export)
+            instruction.exports.unshift(shuffle)
+          end
+        elsif instruction.op_code == :dup_top
+          instruction.stack_produced.times.each do |index|
+            shuffle = DataFlow::Shuffle.new(index, instruction, :export)
+            instruction.exports.push(shuffle)
+          end
+        end
+      end
+
       def optimize(start=nil, stacks=nil)
         if start.nil?
           optimizer.data_flows.clear
           optimizer.source_data_flows.clear
           optimizer.sink_data_flows.clear
         end
-
         main_stack = []
         stacks ||= [main_stack]
         seen_insts = {}
@@ -1326,6 +1419,9 @@ module Rubinius
         goto_to_stack = {}
         previous = nil
         optimizer.each_instruction(start) do |instruction|
+          instruction.imports.clear
+          instruction.exports.clear
+          setup_import_and_export(instruction)
           #pp stacks if previous && previous.to_label(nil) =~ /exit flow/
           #puts "aaaa"
           #pp instruction.to_label(nil)
@@ -1339,8 +1435,6 @@ module Rubinius
           #puts
           #raise "aah" if instruction.previous_flow && previous && instruction.previous_flow.src_inst != previous
           seen_insts[instruction] = true
-          instruction.imports.clear
-          instruction.exports.clear
 
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
             if goto_to_stack.has_key?(instruction.previous_flow.src_inst)
@@ -1397,7 +1491,7 @@ module Rubinius
           stacks.uniq!
           #p instruction.to_label(nil)
           #ap stacks.map{|s| s.map{|m| m.to_label(optimizer) } }
-          stacks.each.with_index do |stack, stack_index|
+          stacks.each do |stack|
             case instruction.op_code
             when :goto_if_true, :goto_if_false, :goto, :setup_unwind
               stk = stack.dup
@@ -1434,12 +1528,10 @@ module Rubinius
                 if index.zero?
                   source = stack.pop
                   receiver = DataFlow::Receiver.new(instruction)
-                  instruction.imports.unshift(receiver) if stack_index.zero?
                   DataFlow.new(optimizer, source, receiver)
                 else
                   source = stack.pop
                   arg = DataFlow::Argument.new(index, instruction)
-                  instruction.imports.unshift(arg) if stack_index.zero?
                   DataFlow.new(optimizer, source, arg)
                 end
               end
@@ -1452,44 +1544,36 @@ module Rubinius
               shuffle2 = DataFlow::Shuffle.new(0, instruction, :import)
               DataFlow.new(optimizer, source, shuffle2)
 
-              instruction.imports.unshift(shuffle1) if stack_index.zero?
-              instruction.imports.unshift(shuffle2) if stack_index.zero?
             when :kind_of
               source = stack.pop
               shuffle = DataFlow::Class.new(instruction)
-              instruction.imports.unshift(shuffle) if stack_index.zero?
               DataFlow.new(optimizer, source, shuffle)
 
               source = stack.pop
               shuffle = DataFlow::Object.new(instruction)
-              instruction.imports.unshift(shuffle) if stack_index.zero?
               DataFlow.new(optimizer, source, shuffle)
             when :move_down
               (instruction.stack_consumed + 1).times.to_a.reverse.each do |index|
                 source = stack.pop
                 shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-                instruction.imports.unshift(shuffle) if stack_index.zero?
                 DataFlow.new(optimizer, source, shuffle)
               end
             when :rotate
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 source = stack.pop
                 shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-                instruction.imports.unshift(shuffle) if stack_index.zero?
                 DataFlow.new(optimizer, source, shuffle)
               end
             when :dup_many
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 source = stack.pop
                 shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-                instruction.imports.unshift(shuffle) if stack_index.zero?
                 DataFlow.new(optimizer, source, shuffle)
               end
             when :make_array
               instruction.stack_consumed.times.to_a.reverse.each do |index|
                 source = stack.pop
                 shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-                instruction.imports.unshift(shuffle) if stack_index.zero?
                 DataFlow.new(optimizer, source, shuffle)
               end
             when :send_stack_with_block
@@ -1497,17 +1581,14 @@ module Rubinius
                 if index == 0
                   source = stack.pop
                   receiver = DataFlow::Receiver.new(instruction)
-                  instruction.imports.unshift(receiver) if stack_index.zero?
                   DataFlow.new(optimizer, source, receiver)
                 elsif index == instruction.stack_consumed - 1
                   source = stack.pop
                   receiver = DataFlow::Block.new(instruction)
-                  instruction.imports.unshift(receiver) if stack_index.zero?
                   DataFlow.new(optimizer, source, receiver)
                 else
                   source = stack.pop
                   arg = DataFlow::Argument.new(index, instruction)
-                  instruction.imports.unshift(arg) if stack_index.zero?
                   DataFlow.new(optimizer, source, arg)
                 end
               end
@@ -1532,7 +1613,6 @@ module Rubinius
               end
               #p exports.size
               exports.each do |export|
-                instruction.exports.push(export) if stack_index.zero?
                 stack.push(export)
               end
             elsif instruction.op_code == :dup_many
@@ -1540,26 +1620,22 @@ module Rubinius
                 (instruction.stack_produced / 2).times.to_a.each do |index|
                   label = "#{index}_#{"abcdefg"[repeat]}"
                   shuffle = DataFlow::Shuffle.new(label, instruction, :export)
-                  instruction.exports.push(shuffle) if stack_index.zero?
                   stack.push(shuffle)
                 end
               end
             elsif instruction.op_code == :rotate
               instruction.stack_produced.times.each do |index|
                 shuffle = DataFlow::Shuffle.new(index, instruction, :export)
-                instruction.exports.unshift(shuffle) if stack_index.zero?
                 stack.push(shuffle)
               end
             elsif instruction.op_code == :swap_stack
               instruction.stack_produced.times.to_a.reverse.each do |index|
                 shuffle = DataFlow::Shuffle.new(index, instruction, :export)
-                instruction.exports.unshift(shuffle) if stack_index.zero?
                 stack.push(shuffle)
               end
             elsif instruction.op_code == :dup_top
               instruction.stack_produced.times.each do |index|
                 shuffle = DataFlow::Shuffle.new(index, instruction, :export)
-                instruction.exports.push(shuffle) if stack_index.zero?
                 stack.push(shuffle)
               end
             else
