@@ -1425,6 +1425,7 @@ module Rubinius
         stacks ||= [main_stack]
 
         @goto_to_stack = {}
+        @data_flows = {}
         previous = nil
         optimizer.each_instruction(start) do |instruction|
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
@@ -1472,6 +1473,11 @@ module Rubinius
         end
       end
 
+      def create_data_flow(from, to)
+        key = [from, to]
+        @data_flows[key] ||= DataFlow.new(optimizer, from, to)
+      end
+
       def pop_from_stack(stack, instruction)
         case instruction.op_code
         when :goto_if_true, :goto_if_false, :goto, :setup_unwind
@@ -1486,20 +1492,20 @@ module Rubinius
           end
           @goto_to_stack[instruction] = stk unless stk.empty?
         when :push_self
-          DataFlow.new(optimizer, DataFlow::Self.new(instruction), instruction)
+          create_data_flow(DataFlow::Self.new(instruction), instruction)
         when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
           instruction.op_rands.each do |op_rand|
-            DataFlow.new(optimizer, op_rand, instruction)
+            create_data_flow(op_rand, instruction)
           end
         when :set_local, :set_literal, :set_const_fast, :set_ivar
           instruction.op_rands.each do |op_rand|
-            DataFlow.new(optimizer, instruction, op_rand)
+            create_data_flow(instruction, op_rand)
           end
         when :pop
-          DataFlow.new(optimizer, instruction, DataFlow::Void.new(instruction))
+          create_data_flow(instruction, DataFlow::Void.new(instruction))
         else
           if instruction.flow_type == :return or instruction.flow_type == :raise
-            DataFlow.new(optimizer, instruction, DataFlow::Exit.new(instruction))
+            create_data_flow(instruction, DataFlow::Exit.new(instruction))
           end
         end
 
@@ -1509,75 +1515,75 @@ module Rubinius
             if index.zero?
               source = stack.pop
               receiver = DataFlow::Receiver.new(instruction)
-              DataFlow.new(optimizer, source, receiver)
+              create_data_flow(source, receiver)
             else
               source = stack.pop
               arg = DataFlow::Argument.new(index, instruction)
-              DataFlow.new(optimizer, source, arg)
+              create_data_flow(source, arg)
             end
           end
         when :swap_stack
           source = stack.pop
           shuffle1 = DataFlow::Shuffle.new(1, instruction, :import)
-          DataFlow.new(optimizer, source, shuffle1)
+          create_data_flow(source, shuffle1)
 
           source = stack.pop
           shuffle2 = DataFlow::Shuffle.new(0, instruction, :import)
-          DataFlow.new(optimizer, source, shuffle2)
+          create_data_flow(source, shuffle2)
 
         when :kind_of
           source = stack.pop
           shuffle = DataFlow::Class.new(instruction)
-          DataFlow.new(optimizer, source, shuffle)
+          create_data_flow(source, shuffle)
 
           source = stack.pop
           shuffle = DataFlow::Object.new(instruction)
-          DataFlow.new(optimizer, source, shuffle)
+          create_data_flow(source, shuffle)
         when :move_down
           (instruction.stack_consumed + 1).times.to_a.reverse.each do |index|
             source = stack.pop
             shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-            DataFlow.new(optimizer, source, shuffle)
+            create_data_flow(source, shuffle)
           end
         when :rotate
           instruction.stack_consumed.times.to_a.reverse.each do |index|
             source = stack.pop
             shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-            DataFlow.new(optimizer, source, shuffle)
+            create_data_flow(source, shuffle)
           end
         when :dup_many
           instruction.stack_consumed.times.to_a.reverse.each do |index|
             source = stack.pop
             shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-            DataFlow.new(optimizer, source, shuffle)
+            create_data_flow(source, shuffle)
           end
         when :make_array
           instruction.stack_consumed.times.to_a.reverse.each do |index|
             source = stack.pop
             shuffle = DataFlow::Shuffle.new(index, instruction, :import)
-            DataFlow.new(optimizer, source, shuffle)
+            create_data_flow(source, shuffle)
           end
         when :send_stack_with_block
           instruction.stack_consumed.times.to_a.reverse.each do |index|
             if index == 0
               source = stack.pop
               receiver = DataFlow::Receiver.new(instruction)
-              DataFlow.new(optimizer, source, receiver)
+              create_data_flow(source, receiver)
             elsif index == instruction.stack_consumed - 1
               source = stack.pop
               receiver = DataFlow::Block.new(instruction)
-              DataFlow.new(optimizer, source, receiver)
+              create_data_flow(source, receiver)
             else
               source = stack.pop
               arg = DataFlow::Argument.new(index, instruction)
-              DataFlow.new(optimizer, source, arg)
+              create_data_flow(source, arg)
             end
           end
         else
           #puts stacks.size
           #puts instruction.to_label(nil)
           instruction.stack_consumed.times do
-            DataFlow.new(optimizer, stack.pop, instruction)
+            create_data_flow(stack.pop, instruction)
           end
         end
       end
