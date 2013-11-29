@@ -1422,41 +1422,18 @@ module Rubinius
           instruction.imports.clear
           instruction.exports.clear
           setup_import_and_export(instruction)
-          #pp stacks if previous && previous.to_label(nil) =~ /exit flow/
-          #puts "aaaa"
-          #pp instruction.to_label(nil)
-          #p "previ" + previous.to_label(nil) if previous
-          #p "previous flow#{instruction.previous_flow.to_label(nil)}" if instruction.previous_flow
-          #p "incoming #{instruction.incoming_flows.inspect}"
-          #p "src inst" + instruction.previous_flow.src_inst.to_label(nil) if instruction.previous_flow and instruction.previous_flow.src_inst
-          #p instruction.previous_flow.inspect
-          #puts "bbbbb"
-          #p instruction.to_label(nil)
-          #puts
-          #raise "aah" if instruction.previous_flow && previous && instruction.previous_flow.src_inst != previous
+        end
+
+        optimizer.each_instruction(start) do |instruction|
           seen_insts[instruction] = true
 
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
-            if @goto_to_stack.has_key?(instruction.previous_flow.src_inst)
-              #puts "prev #{@goto_to_stack[instruction.previous_flow.src_inst]}"
-            end
-            #puts instruction.to_label(optimizer)
             stacks.clear
             stacks = [@goto_to_stack[instruction.previous_flow.src_inst]]
           end
 
           branch_target_found = false
           if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
-            #puts stacks.size
-            #puts previous.to_label(nil)
-            #puts main_stack.map{|a| a.to_label(optimizer) }
-            if(instruction.incoming_flows.all? do |goto|
-              goto.src_inst != previous
-            end)
-              #stacks.clear
-            end
-            #stacks.reject!{|s| s.equal?(main_stack)}
-            #puts stacks.size
           end
           instruction.incoming_branch_flows.each do |goto|
             if goto.src_inst.op_code == :goto or
@@ -1464,12 +1441,8 @@ module Rubinius
                goto.src_inst.op_code == :goto_if_false or
                goto.src_inst.op_code == :setup_unwind
               branch_target_found = true
-              #puts "aadding stack"
-              #puts goto.src_inst.to_label(optimizer)
               if @goto_to_stack.has_key?(goto.src_inst)
                 stacks << @goto_to_stack[goto.src_inst]
-              else
-               # puts goto.to_label(optimizer)
               end
             end
           end
@@ -1489,30 +1462,16 @@ module Rubinius
             stacks = [main_stack]
           end
           stacks.uniq!
-          #p instruction.to_label(nil)
-          #ap stacks.map{|s| s.map{|m| m.to_label(optimizer) } }
           stacks.each do |stack|
             pop_from_stack(stack, instruction)
-            #puts
-            #p instruction
-            #p instruction.stack_produced
-            #  p instruction.op_code
             push_to_stack(stack, instruction)
           end
           if instruction.next_flow && instruction.following_instruction != instruction.next_flow.dst_inst
-            #puts "next"
-            #puts instruction.to_label(optimizer)
             @goto_to_stack[instruction] = stacks.first
             stacks.clear
           end
           previous = instruction
         end
-
-        first_inst = stacks.first.first
-        #if stacks.size == 2 && stacks.all? {|stack| stack.first == first_inst}
-        #  optimize(first_inst, stacks)
-        #end
-        #p stacks
       end
 
       def pop_from_stack(stack, instruction)
