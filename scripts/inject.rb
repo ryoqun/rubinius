@@ -1412,29 +1412,24 @@ module Rubinius
           optimizer.source_data_flows.clear
           optimizer.sink_data_flows.clear
         end
-        main_stack = []
-        stacks ||= [main_stack]
-        seen_insts = {}
-
-        @goto_to_stack = {}
-        previous = nil
         optimizer.each_instruction(start) do |instruction|
           instruction.imports.clear
           instruction.exports.clear
           setup_import_and_export(instruction)
         end
 
-        optimizer.each_instruction(start) do |instruction|
-          seen_insts[instruction] = true
+        main_stack = []
+        stacks ||= [main_stack]
 
+        @goto_to_stack = {}
+        previous = nil
+        optimizer.each_instruction(start) do |instruction|
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
             stacks.clear
             stacks = [@goto_to_stack[instruction.previous_flow.src_inst]]
           end
 
           branch_target_found = false
-          if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
-          end
           instruction.incoming_branch_flows.each do |goto|
             if goto.src_inst.op_code == :goto or
                goto.src_inst.op_code == :goto_if_true or
