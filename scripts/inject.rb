@@ -1849,8 +1849,8 @@ module Rubinius
         end
       end
 
-      def point_to_next_instruction
-        reinstall do
+      def point_to_next_instruction(optimizer)
+        reinstall(optimizer) do
           if @dst_inst.op_code == :goto
             @dst_inst = @dst_inst.branch_flow.dst_inst
             raise "dst_inst is nil" if @dst_inst.nil?
@@ -2353,11 +2353,11 @@ module Rubinius
             #ap flow.to_label(nil)
             #ap flows.last.to_label(nil)
             until next_flow == flows.last
-              flow.point_to_next_instruction
+              flow.point_to_next_instruction(optimizer)
               next_flow = flow.next_flow
             end
-            flow.point_to_next_instruction
-            flow.point_to_next_instruction
+            flow.point_to_next_instruction(optimizer)
+            flow.point_to_next_instruction(optimizer)
           else
             flows.each do |flow|
               flow.metadata(self)[:cover] = false
@@ -2527,7 +2527,7 @@ module Rubinius
             end
             if removable
               #p :ok_removala
-              check_interrupts.previous_inst.next_flow.point_to_next_instruction
+              check_interrupts.previous_inst.next_flow.point_to_next_instruction(optimizer)
             end
           end
         end
@@ -2565,9 +2565,9 @@ module Rubinius
               if incoming_flow.src_inst.op_code == :goto_if_true
                 #puts "goto / goto if true"
                 #puts incoming_flow.src_inst.incoming_flows.size
-                #incoming_flow.point_to_next_instruction
+                #incoming_flow.point_to_next_instruction(optimizer)
               elsif incoming_flow.src_inst.op_code == :goto_if_false
-                #incoming_flow.point_to_next_instruction
+                #incoming_flow.point_to_next_instruction(optimizer)
                 #p inst.previous
                 if incoming_flow.src_inst.next_flow == inst.previous_flow and
                    inst.incoming_flows.size == 1
@@ -2578,7 +2578,7 @@ module Rubinius
                     next
                   end
 
-                  goto_if_false.next_flow.point_to_next_instruction
+                  goto_if_false.next_flow.point_to_next_instruction(optimizer)
                   #goto.branch_flow.uninstall
                   #goto.branch_flow.mark_remove
                   #optimizer.remove_flow(.mark_remove)
@@ -2590,7 +2590,7 @@ module Rubinius
                   #incoming_flow.reinstall do
                     #incoming_flow.instance_variable_set(:@dst_inst, inst.next_flow)
                   #end
-                  ##incoming_flow.src_inst.next_flow.point_to_next_instruction
+                  ##incoming_flow.src_inst.next_flow.point_to_next_instruction(optimizer)
                   #puts inst.incoming_flows.size
                   #optimizer.remove_flow(inst.branch_flow.mark_remove)
                   #p incoming_flow.src_inst.branch_flow
@@ -2615,7 +2615,7 @@ module Rubinius
                 #puts inst
                 #puts incoming_flow.src_inst.incoming_flows.size
                 #next = incoming_flow.next_flow.raw_remove
-                #incoming_flow.point_to_next_instruction
+                #incoming_flow.point_to_next_instruction(optimizer)
                 #inst.raw_remove
               end
             end
@@ -2638,14 +2638,14 @@ module Rubinius
               used_spots = flow.spots.dup
 
               next_flow = flow.next_flow
-              flow.point_to_next_instruction
+              flow.point_to_next_instruction(optimizer)
               #flow.add_spots(next_flow.spots)
               if next_flow.src_inst.incoming_flows.all?(&:mark_removed?)
                 optimizer.remove_flow(next_flow)
               end
               if next_flow.mark_removed?
                 next_flow = flow.next_flow
-                flow.point_to_next_instruction
+                flow.point_to_next_instruction(optimizer)
                 #flow.add_spots(next_flow.spots)
                 if next_flow.src_inst.incoming_flows.all?(&:mark_removed?)
                   optimizer.remove_flow(next_flow)
@@ -2664,14 +2664,14 @@ module Rubinius
             if next_flow.nil? or not next_flow.mark_removed?
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
                 next if not branch_flow.mark_removed?
-                branch_flow.point_to_next_instruction
+                branch_flow.point_to_next_instruction(optimizer)
                 branch_flow.unmark_remove
               end
             else
               inst = next_flow.dst_inst
               flows.dup.select(&:dynamic_dst?).each do |branch_flow|
                 if branch_flow.mark_removed?
-                  branch_flow.point_to_next_instruction
+                  branch_flow.point_to_next_instruction(optimizer)
                   branch_flow.unmark_remove
                 else
                   raise "recently untested"
@@ -2681,7 +2681,7 @@ module Rubinius
                   after_inst = branch_flow.src_inst
                   after_inst.previous_flow.change_src_dst(after_inst.previous_flow.src_inst, new_inst)
 
-                  branch_flow.point_to_next_instruction
+                  branch_flow.point_to_next_instruction(optimizer)
                   branch_flow.unmark_remove
                   NextFlow.new(optimizer, new_inst, after_inst)
                 end
@@ -3051,22 +3051,23 @@ code = method(:loo).executable
 opt = Rubinius::Optimizer.new(code)
 puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+#opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
+#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
-#opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::ScalarTransform)
-#opt.add_pass(Rubinius::Optimizer::Prune)
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::GotoRet)
 #opt.add_pass(Rubinius::Optimizer::GoToRemover)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
