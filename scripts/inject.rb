@@ -348,7 +348,7 @@ module Rubinius
     attr_reader :local_names, :literals, :local_count
     attr_reader :local_op_codes, :literal_op_codes
     attr_reader :source_data_flows, :sink_data_flows
-    attr_accessor :entry_inst, :max_stack_size
+    attr_accessor :entry_inst, :max_stack_size, :data_pathes
     attr_reader :terminal_instruction
     def initialize(compiled_code)
       @compiled_code = compiled_code
@@ -1103,6 +1103,7 @@ module Rubinius
         scan_data_path
         #puts ["max stack", @max_stack].inspect
         optimizer.max_stack_size = @max_stack
+        optimizer.data_pathes = @data_pathes
       end
 
       def validate_stack
@@ -1113,14 +1114,14 @@ module Rubinius
         current_code_path = current_code_path.dup
         current_code_path << block
         recursive = false
-        code_path = current_code_path[-2, 2]
+        data_path = current_code_path[-2, 2]
         current_code_path.reverse.each do |previous_block|
-          previous_code_path = current_code_path[-(code_path.size * 2), code_path.size].to_a
-          if code_path == previous_code_path
+          previous_code_path = current_code_path[-(data_path.size * 2), data_path.size].to_a
+          if data_path == previous_code_path
             recursive = true
             break
           end
-          code_path.unshift(previous_block)
+          data_path.unshift(previous_block)
         end
 
         recursive
@@ -1199,53 +1200,53 @@ module Rubinius
 
       def scan_data_path
         @block_to_node = {}
-        code_pathes = []
+        data_pathes = []
 
         block = optimizer.basic_blocks.first
-        code_path =[]
+        data_path =[]
         pending_flows = [
-          [code_path, block],
+          [data_path, block],
         ]
 
         until pending_flows.empty?
-          code_path, block = pending_flows.pop
+          data_path, block = pending_flows.pop
 
           recursive = false
           until block.next_block.nil? and block.branch_block.nil?
-            if not code_path.empty? and recursive_code_path?(code_path, block)
+            if not data_path.empty? and recursive_code_path?(data_path, block)
               node = map_to_node(block)
-              code_path << node
+              data_path << node
               recursive = true
               break
             else
               node = map_to_node(block)
-              if current_node = code_path.last
+              if current_node = data_path.last
                 if node.terminated? and current_node.block.write >= node.read
                   break
                 end
               end
-              code_path << node
+              data_path << node
             end
 
             if block.next_block and block.branch_block
-              pending_flows << [code_path.dup, block.branch_block]
+              pending_flows << [data_path.dup, block.branch_block]
             end
 
             block = block.next_block || block.branch_block
           end
 
           if recursive
-            code_path << :loop
+            data_path << :loop
           else
             node = map_to_node(block)
-            code_path << node
-            code_path << :exit
+            data_path << node
+            data_path << :exit
           end
 
-          code_pathes << code_path
+          data_pathes << data_path
         end
 
-        code_pathes
+        @data_pathes
       end
 
       def print_code_pathes(code_pathes)
