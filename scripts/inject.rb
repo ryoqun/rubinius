@@ -1245,7 +1245,7 @@ module Rubinius
           code_pathes << code_path
         end
 
-        code_pathes.sort.uniq!
+        code_pathes
       end
 
       def print_code_pathes(code_pathes)
