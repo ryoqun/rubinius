@@ -1110,9 +1110,10 @@ module Rubinius
         optimizer.basic_blocks.first.validate_stack(self)
       end
 
-      def recursive_code_path?(current_code_path, block)
+      def recursive_data_path?(current_code_path, block)
+        node = map_to_node(block)
         current_code_path = current_code_path.dup
-        current_code_path << block
+        current_code_path << node
         recursive = false
         data_path = current_code_path[-2, 2]
         current_code_path.reverse.each do |previous_block|
@@ -1213,7 +1214,7 @@ module Rubinius
 
           recursive = false
           until block.next_block.nil? and block.branch_block.nil?
-            if not data_path.empty? and recursive_code_path?(data_path, block)
+            if not data_path.empty? and recursive_data_path?(data_path, block)
               node = map_to_node(block)
               data_path << node
               recursive = true
@@ -1245,12 +1246,13 @@ module Rubinius
 
           data_pathes << data_path
         end
+        print_data_pathes(data_pathes)
 
         @data_pathes
       end
 
-      def print_code_pathes(code_pathes)
-        code_pathes.each.with_index do |path, index|
+      def print_data_pathes(data_pathes)
+        data_pathes.each.with_index do |path, index|
           puts "path #{index}"
           path.each do |node|
             if node.respond_to?(:to_label)
@@ -1261,6 +1263,7 @@ module Rubinius
           end
           puts
         end
+        puts data_pathes
       end
 
       def create_block
@@ -3022,10 +3025,10 @@ end
 loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-#code = method(:loo).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
-code = [].method(:[]).executable
+#code = [].method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Enumerable.instance_method(:minmax).executable
@@ -3050,9 +3053,9 @@ puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
