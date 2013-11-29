@@ -890,6 +890,29 @@ module Rubinius
         @visited = false
         @exit_size = nil
         @termination = nil
+        @incoming_blocks = []
+      end
+
+      def branch_block=(block)
+        block.remove_incoming_block(@branch_block)
+        block.add_incoming_block(block)
+        @branch_block = block
+      end
+
+      def next_block=(block)
+        block.remove_incoming_block(@next_block)
+        block.add_incoming_block(block)
+        @next_block = block
+      end
+
+      def add_incoming_block(block)
+        return if block.nil?
+        @incoming_blocks.push(block)
+      end
+
+      def remove_incoming_block(block)
+        return if block.nil?
+        @incoming_blocks.delete(block)
       end
 
       def close(record_exit=false)
