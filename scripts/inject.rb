@@ -882,8 +882,7 @@ module Rubinius
     class BasicBlock
       attr_accessor :branch_block, :next_block, :instructions, :termination
       attr_reader :stack, :min_size, :max_size
-      def initialize(analyzer)
-        @analyzer = analyzer
+      def initialize
         @instructions = []
         @branch_block = @next_block = nil
         @max_size = @min_size = @stack = 0
@@ -944,20 +943,20 @@ module Rubinius
         ).join("\n")
       end
 
-      def validate_stack
+      def validate_stack(analyzer)
         @enter_size = 0
         stack = [self]
         until stack.empty?
           bb = stack.shift
-          bb.flow_stack_size stack
+          bb.flow_stack_size(analyzer, stack)
         end
       end
 
-      def flow_stack_size(stack)
+      def flow_stack_size(analyzer, stack)
         unless @visited
           @visited = true
 
-          @analyzer.accumulate_stack(@enter_size + @max_size)
+          analyzer.accumulate_stack(@enter_size + @max_size)
 
           net_size = @enter_size + @stack
 
@@ -1091,7 +1090,7 @@ module Rubinius
       end
 
       def validate_stack
-        optimizer.basic_blocks.first.validate_stack
+        optimizer.basic_blocks.first.validate_stack(self)
       end
 
       def recursive_code_path?(current_code_path, block)
@@ -1245,7 +1244,7 @@ module Rubinius
       end
 
       def create_block
-        optimizer.add_basic_block(BasicBlock.new(self))
+        optimizer.add_basic_block(BasicBlock.new)
       end
 
       def accumulate_stack(size)
