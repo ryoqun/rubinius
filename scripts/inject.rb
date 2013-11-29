@@ -881,7 +881,7 @@ module Rubinius
 
     class BasicBlock
       attr_accessor :branch_block, :next_block, :instructions, :termination
-      attr_reader :stack, :min_size, :max_size
+      attr_reader :stack, :min_size, :max_size, :incoming_blocks
       def initialize
         @instructions = []
         @branch_block = @next_block = nil
@@ -894,25 +894,18 @@ module Rubinius
       end
 
       def branch_block=(block)
-        block.remove_incoming_block(@branch_block)
-        block.add_incoming_block(block)
         @branch_block = block
+        @branch_block.add_incoming_block(self)
       end
 
       def next_block=(block)
-        block.remove_incoming_block(@next_block)
-        block.add_incoming_block(block)
         @next_block = block
+        @next_block.add_incoming_block(self)
       end
 
       def add_incoming_block(block)
         return if block.nil?
         @incoming_blocks.push(block)
-      end
-
-      def remove_incoming_block(block)
-        return if block.nil?
-        @incoming_blocks.delete(block)
       end
 
       def close(record_exit=false)
@@ -1194,8 +1187,12 @@ module Rubinius
         end
 
         if terminatable
-          node.terminate unless node.terminated?
-          node.block.incoming_blocks.map(&:class)
+          if not node.terminated?
+            node.terminate
+            node.block.incoming_blocks.each do |block|
+              map_to_node(block)
+            end
+          end
         end
         node
       end
