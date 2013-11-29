@@ -1100,7 +1100,7 @@ module Rubinius
         end
 
         validate_stack
-        print_all_code_path
+        scan_data_path
         #puts ["max stack", @max_stack].inspect
         optimizer.max_stack_size = @max_stack
       end
@@ -1197,7 +1197,7 @@ module Rubinius
         node
       end
 
-      def print_all_code_path
+      def scan_data_path
         @block_to_node = {}
         code_pathes = []
 
@@ -1245,9 +1245,7 @@ module Rubinius
           code_pathes << code_path
         end
 
-        code_pathes.uniq!
-
-        print_code_pathes(code_pathes)
+        code_pathes.sort.uniq!
       end
 
       def print_code_pathes(code_pathes)
