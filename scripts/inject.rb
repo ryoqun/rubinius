@@ -1112,20 +1112,7 @@ module Rubinius
 
       def recursive_data_path?(current_code_path, block)
         node = map_to_node(block)
-        current_code_path = current_code_path.dup
-        current_code_path << node
-        recursive = false
-        data_path = current_code_path[-2, 2]
-        current_code_path.reverse.each do |previous_block|
-          previous_code_path = current_code_path[-(data_path.size * 2), data_path.size].to_a
-          if data_path == previous_code_path
-            recursive = true
-            break
-          end
-          data_path.unshift(previous_block)
-        end
-
-        recursive
+        current_code_path.count(node) > 1
       end
 
       class CodePathNode
@@ -1248,7 +1235,7 @@ module Rubinius
         end
         print_data_pathes(data_pathes)
 
-        @data_pathes
+        @data_pathes = data_pathes
       end
 
       def print_data_pathes(data_pathes)
@@ -1427,6 +1414,11 @@ module Rubinius
         @goto_to_stack = {}
         @data_flows = {}
         previous = nil
+
+        optimizer.data_pathes.each do ||
+        end
+
+
         optimizer.each_instruction(start) do |instruction|
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
             stacks.clear
@@ -3066,7 +3058,7 @@ code = method(:loo).executable
 opt = Rubinius::Optimizer.new(code)
 puts code.decode.size
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
-#opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
@@ -3078,8 +3070,8 @@ opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 #opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
+#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 #opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 #opt.add_pass(Rubinius::Optimizer::Prune)
@@ -3112,10 +3104,10 @@ puts :GENERATED
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "generated")
-opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "generated")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "generated")
 optimized_code = opt.run
 #opt = Rubinius::Optimizer.new(code)
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
