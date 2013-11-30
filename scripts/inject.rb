@@ -1427,15 +1427,15 @@ module Rubinius
           data_path.each do |node|
             if not node.is_a?(Symbol)
               node.block.each do |instruction|
-                p instruction.to_label(optimizer)
+                #p instruction.to_label(optimizer)
                 pop_from_stack(stack, instruction)
                 push_to_stack(stack, instruction)
               end
             else
-              p node
+              #p node
             end
           end
-          puts
+          #puts
         end
         return
 
