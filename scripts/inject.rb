@@ -1493,10 +1493,8 @@ module Rubinius
       end
 
       def create_oprand(oprand_class, *args)
-        p oprand_class
         key = [oprand_class, *args]
-        #@oprands[key] ||= oprand_class.new(*args)
-        oprand_class.new(*args)
+        @oprands[key] ||= oprand_class.new(*args)
       end
 
       def pop_from_stack(stack, instruction)
@@ -3061,10 +3059,10 @@ end
 loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-#code = method(:loo).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
-code = [].method(:[]).executable
+#code = [].method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Enumerable.instance_method(:minmax).executable
@@ -3094,7 +3092,7 @@ opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::Inliner)
+opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
