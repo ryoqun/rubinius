@@ -886,7 +886,7 @@ module Rubinius
       def initialize
         @instructions = []
         @branch_block = @next_block = nil
-        @max_size = @min_size = @stack = 0
+        @max_size = @actual_min_size = @min_size = @stack = 0
         @closed = false
         @visited = false
         @exit_size = nil
@@ -931,8 +931,17 @@ module Rubinius
 
       def add_instruction(instruction)
         read, write = W.send(instruction.op_code, *instruction.op_rands)
+        add_stack_actual(instruction, read, write)
         add_stack(read.to_i, write.to_i)
         @instructions.push(instruction)
+      end
+
+      def add_stack_actual(instruction, read, write)
+        read_change = @stack - read
+        if [:set_literal, :set_local, :set_local_depth, :set_ivar, :set_const, :set_stack_local, :check_frozen].include?(instruction.op_code)
+          read_change = 0
+        end
+        @actual_min_size = read_change if read_change < @actual_min_size
       end
 
       def add_stack(read, write)
@@ -945,7 +954,7 @@ module Rubinius
       end
 
       def read
-        -@min_size
+        -@actual_min_size
       end
 
       def write
@@ -1184,9 +1193,9 @@ module Rubinius
         if terminatable
           if not node.terminated?
             node.terminate
-            node.block.incoming_blocks.each do |block|
-              map_to_node(block)
-            end
+            #node.block.incoming_blocks.each do |block|
+            #  map_to_node(block)
+            #end
           end
         end
         node
@@ -1543,13 +1552,12 @@ module Rubinius
           end
         when :swap_stack
           source = stack.pop
-          shuffle1 = create_oprand(DataFlow::Shuffle, 0, instruction, :import)
+          shuffle1 = create_oprand(DataFlow::Shuffle, 1, instruction, :import)
           create_data_flow(source, shuffle1)
 
           source = stack.pop
-          shuffle2 = create_oprand(DataFlow::Shuffle, 1, instruction, :import)
+          shuffle2 = create_oprand(DataFlow::Shuffle, 0, instruction, :import)
           create_data_flow(source, shuffle2)
-
         when :kind_of
           source = stack.pop
           shuffle = create_oprand(DataFlow::Object, instruction)
