@@ -361,6 +361,7 @@ module Rubinius
       @sink_data_flows = Hash.new{|hash, key| hash[key] = [] }
 
       @basic_blocks = []
+      @data_pathes = []
 
       @definition_line = nil
       @exit_flows = []
@@ -903,6 +904,10 @@ module Rubinius
         @next_block.add_incoming_block(self)
       end
 
+      def each(*args, &block)
+        @instructions.each(*args, &block)
+      end
+
       def add_incoming_block(block)
         return if block.nil?
         @incoming_blocks.push(block)
@@ -1027,6 +1032,7 @@ module Rubinius
     class StackAnalyzer < Analysis
       def optimize
         optimizer.basic_blocks.clear
+        optimizer.data_pathes.clear
         optimizer.max_stack_size = @max_stack = 0
 
         pending_flows = [optimizer.first_flow]
@@ -1233,7 +1239,7 @@ module Rubinius
 
           data_pathes << data_path
         end
-        print_data_pathes(data_pathes)
+        #print_data_pathes(data_pathes)
 
         @data_pathes = data_pathes
       end
@@ -1415,9 +1421,22 @@ module Rubinius
         @data_flows = {}
         previous = nil
 
-        optimizer.data_pathes.each do ||
+        optimizer.data_pathes.each do |data_path|
+          stack = []
+          data_path.each do |node|
+            if not node.is_a?(Symbol)
+              node.block.each do |instruction|
+                p instruction.to_label(optimizer)
+                pop_from_stack(stack, instruction)
+                push_to_stack(stack, instruction)
+              end
+            else
+              p node
+            end
+          end
+          puts
         end
-
+        return
 
         optimizer.each_instruction(start) do |instruction|
           if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
@@ -1466,7 +1485,8 @@ module Rubinius
       end
 
       def create_data_flow(from, to)
-        key = [from, to]
+        #XXX don't relay on label..
+        key = [from.to_label(optimizer), to.to_label(optimizer)]
         @data_flows[key] ||= DataFlow.new(optimizer, from, to)
       end
 
@@ -3062,7 +3082,8 @@ opt.add_pass(Rubinius::Optimizer::FlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
@@ -3087,6 +3108,7 @@ opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
 
 optimized_code = opt.run
+#raise
 
 opt = Rubinius::Optimizer.new(code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
