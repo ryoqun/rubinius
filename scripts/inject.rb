@@ -1390,7 +1390,7 @@ module Rubinius
             instruction.exports.unshift(shuffle)
           end
         elsif instruction.op_code == :swap_stack
-          instruction.stack_produced.times.to_a.reverse.each do |index|
+          instruction.stack_produced.times.to_a.each do |index|
             shuffle = create_oprand(DataFlow::Shuffle, index, instruction, :export)
             instruction.exports.unshift(shuffle)
           end
@@ -1543,20 +1543,20 @@ module Rubinius
           end
         when :swap_stack
           source = stack.pop
-          shuffle1 = create_oprand(DataFlow::Shuffle, 1, instruction, :import)
+          shuffle1 = create_oprand(DataFlow::Shuffle, 0, instruction, :import)
           create_data_flow(source, shuffle1)
 
           source = stack.pop
-          shuffle2 = create_oprand(DataFlow::Shuffle, 0, instruction, :import)
+          shuffle2 = create_oprand(DataFlow::Shuffle, 1, instruction, :import)
           create_data_flow(source, shuffle2)
 
         when :kind_of
           source = stack.pop
-          shuffle = create_oprand(DataFlow::Class, instruction)
+          shuffle = create_oprand(DataFlow::Object, instruction)
           create_data_flow(source, shuffle)
 
           source = stack.pop
-          shuffle = create_oprand(DataFlow::Object, instruction)
+          shuffle = create_oprand(DataFlow::Class, instruction)
           create_data_flow(source, shuffle)
         when :move_down
           (instruction.stack_consumed + 1).times.to_a.reverse.each do |index|
@@ -3059,10 +3059,10 @@ end
 loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-code = method(:loo).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
-#code = [].method(:[]).executable
+code = [].method(:[]).executable
 #code = "".method(:start_with?).executable
 #code = "".method(:start_with?).executable
 #code = Enumerable.instance_method(:minmax).executable
@@ -3092,7 +3092,7 @@ opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-opt.add_pass(Rubinius::Optimizer::Inliner)
+#opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
