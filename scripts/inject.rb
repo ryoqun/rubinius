@@ -12,9 +12,13 @@ end
 def call_me(aaa)
 end
 
+def helop_me
+end
+
 def hello(a, b ,c, d,e,f)
   call_me(3)
   if true
+   helop_me()
    return "aaa"
   elsif false
     return "ccc"
@@ -2848,10 +2852,11 @@ module Rubinius
         while inlined
           p :inline
           inlined = false
-          reset_state
           optimizer.each_instruction do |instruction|
+            p instruction.to_label(optimizer)
             case instruction.op_code
             when :send_stack
+              reset_state
               send_stack = instruction
               sources = optimizer.find_receiver(send_stack)
               if send_stack.call_site.is_a?(MonoInlineCache) and
@@ -2860,10 +2865,10 @@ module Rubinius
 
                 code = send_stack.call_site.method
 
-                opt = decode_inlined_code(code)
-                if opt.signature == send_stack.signature
+                inlined_opt = decode_inlined_code(code)
+                if inlined_opt.signature == send_stack.signature
                   remove_send_prologue(send_stack, sources)
-                  do_inline(send_stack, opt, code)
+                  do_inline(send_stack, inlined_opt, code)
                   inlined = true
                 end
               end
@@ -2903,13 +2908,13 @@ module Rubinius
         end
       end
 
-      def do_inline(send_stack, opt, code)
+      def do_inline(send_stack, inlined_opt, code)
         post_send_stack = send_stack.next_flow.dst_inst
-        required, _post, _total, _splat, _block_index = opt.signature
+        required, _post, _total, _splat, _block_index = inlined_opt.signature
         offset = optimizer.local_count
-        optimizer.merge(opt)
+        optimizer.merge(inlined_opt)
 
-        prologue = opt.first_instruction
+        prologue = inlined_opt.first_instruction
         prev_inst = nil
 
         arg_entry = nil
@@ -2931,22 +2936,21 @@ module Rubinius
         if inst
           NextFlow.new(optimizer, inst, prologue)
           prologue = arg_entry
+          @prev_inst.following_instruction = inlined_opt.first_instruction
+          inlined_opt.first_instruction.preceeding_instruction = @rev_inst
         end
 
         send_stack.incoming_flows.each do |flow|
           flow.change_dst_inst(optimizer, prologue)
         end
 
-        @prev_inst.following_instruction = opt.first_instruction
-        opt.first_instruction.preceeding_instruction = @rev_inst
-
         prev_flow = nil
         exit_insts = []
         positions = []
-        #opt.exit_flows.sort_by do |f|
+        #inlined_opt.exit_flows.sort_by do |f|
         #  f.dst_inst.ip
         #end.reverse. ####  XXX do method chain with following line
-        opt.exit_flows.each.with_index do |exit_flow, index|
+        inlined_opt.exit_flows.each.with_index do |exit_flow, index|
           raise "unsupported" if exit_flow.dst_inst.op_code != :ret
           exit_insts << exit_flow.dst_inst
 
@@ -2976,8 +2980,8 @@ module Rubinius
         pre_send_stack.following_instruction = prologue
         prologue.preceeding_instruction = pre_send_stack
 
-        opt.last_instruction.following_instruction = post_send_stack
-        post_send_stack.preceeding_instruction = opt.last_instruction
+        inlined_opt.last_instruction.following_instruction = post_send_stack
+        post_send_stack.preceeding_instruction = inlined_opt.last_instruction
 
         removed_flow = send_stack.next_flow
         removed_flow.mark_remove
