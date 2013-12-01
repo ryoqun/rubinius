@@ -2880,7 +2880,7 @@ module Rubinius
       end
 
       def reset_state
-        @prev_inst = nil
+        @last_created_inst = nil
       end
 
       def remove_send_prologue(send_stack, sources)
@@ -2936,7 +2936,7 @@ module Rubinius
         if inst
           NextFlow.new(optimizer, inst, prologue)
           prologue = arg_entry
-          @prev_inst.following_instruction = inlined_opt.first_instruction
+          @last_created_inst.following_instruction = inlined_opt.first_instruction
           inlined_opt.first_instruction.preceeding_instruction = @rev_inst
         end
 
@@ -2955,8 +2955,8 @@ module Rubinius
           exit_insts << exit_flow.dst_inst
 
           if prev_flow and exit_flow.is_a?(NextFlow)
-            @prev_inst = exit_flow.dst_inst
-            following_instruction = @prev_inst.following_instruction
+            @last_created_inst = exit_flow.dst_inst
+            following_instruction = @last_created_inst.following_instruction
             goto = create_instruction(:goto, nil)
 
             prev_flow.src_inst.following_instruction = goto
@@ -3012,11 +3012,11 @@ module Rubinius
         inst.op_code = op_code
         inst.flow_type = op_code2.control_flow
 
-        if @prev_inst
-          @prev_inst.following_instruction = inst
-          inst.preceeding_instruction = @prev_inst
+        if @last_created_inst
+          @last_created_inst.following_instruction = inst
+          inst.preceeding_instruction = @last_created_inst
         end
-        @prev_inst = inst
+        @last_created_inst = inst
 
         inst
       end
