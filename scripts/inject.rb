@@ -2848,6 +2848,7 @@ module Rubinius
         while inlined
           p :inline
           inlined = false
+          reset_state
           optimizer.each_instruction do |instruction|
             case instruction.op_code
             when :send_stack
@@ -2868,7 +2869,13 @@ module Rubinius
               end
             end
           end
+          Rubinius::Optimizer::StackAnalyzer.new(optimizer).optimize
+          Rubinius::Optimizer::DataFlowAnalyzer.new(optimizer).optimize
         end
+      end
+
+      def reset_state
+        @prev_inst = nil
       end
 
       def remove_send_prologue(send_stack, sources)
@@ -3109,11 +3116,11 @@ opt.add_pass(Rubinius::Optimizer::StackPrinter, "original")
 opt.add_pass(Rubinius::Optimizer::Inliner)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::FlowPrinter, "after")
-#opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+opt.add_pass(Rubinius::Optimizer::StackPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
-#opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
-#opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "after")
 #opt.add_pass(Rubinius::Optimizer::GotoRet)
 #opt.add_pass(Rubinius::Optimizer::GoToRemover)
 #opt.add_pass(Rubinius::Optimizer::PruneUnused)
