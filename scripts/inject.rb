@@ -2844,21 +2844,27 @@ module Rubinius
 
     class Inliner < Optimization
       def optimize
-        optimizer.each_instruction do |instruction|
-          case instruction.op_code
-          when :send_stack
-            send_stack = instruction
-            sources = optimizer.find_receiver(send_stack)
-            if send_stack.call_site.is_a?(MonoInlineCache) and
-               sources.size == 1 and sources.first.source.respond_to?(:op_code) and
-               (sources.first.source.op_code == :push_self)
+        inlined = true
+        while inlined
+          p :inline
+          inlined = false
+          optimizer.each_instruction do |instruction|
+            case instruction.op_code
+            when :send_stack
+              send_stack = instruction
+              sources = optimizer.find_receiver(send_stack)
+              if send_stack.call_site.is_a?(MonoInlineCache) and
+                 sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+                 (sources.first.source.op_code == :push_self)
 
-              code = send_stack.call_site.method
+                code = send_stack.call_site.method
 
-              opt = decode_inlined_code(code)
-              if opt.signature == send_stack.signature
-                remove_send_prologue(send_stack, sources)
-                do_inline(send_stack, opt, code)
+                opt = decode_inlined_code(code)
+                if opt.signature == send_stack.signature
+                  remove_send_prologue(send_stack, sources)
+                  do_inline(send_stack, opt, code)
+                  inlined = true
+                end
               end
             end
           end
