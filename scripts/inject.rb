@@ -17,16 +17,7 @@ def helop_me
 end
 
 def hello(a, b ,c, d,e,f)
-  b = 5
-  call_me(3)
-  if true
-   helop_me()
-   return "aaa"
-  elsif false
-    return "ccc"
-  else
-    return "bbb"
-  end
+  Rubinius::Type.compatible_encoding("aa", "bb")
 end
 
 module Rubinius
@@ -358,6 +349,7 @@ module Rubinius
     attr_reader :terminal_instruction
     def initialize(compiled_code)
       @compiled_code = compiled_code
+      raise "with primitive" if compiled_code.primitive
       @passes = []
 
       @flows = []
@@ -945,7 +937,7 @@ module Rubinius
       end
 
       def add_stack_actual(instruction, read, write)
-        read_change = @stack - read
+        read_change = @stack - read.to_i
         if [:set_literal, :set_local, :set_local_depth, :set_ivar, :set_const, :set_stack_local, :check_frozen].include?(instruction.op_code)
           read_change = 0
         end
@@ -1067,12 +1059,12 @@ module Rubinius
                 new_block = (blocks[instruction] ||= create_block)
                 current.close
                 current.next_block = new_block
-                optimizer.exit_flows << flow
+                #optimizer.exit_flows << flow why?
                 current = new_block
               elsif current != blocks[instruction]
                 current.close
                 current.next_block = blocks[instruction]
-                optimizer.exit_flows << flow
+                #optimizer.exit_flows << flow why?
                 break
               end
             end
@@ -1549,8 +1541,6 @@ module Rubinius
             end
           end
         else
-          #puts stacks.size
-          #puts instruction.to_label(nil)
           instruction.stack_consumed.times do
             create_data_flow(stack.pop, instruction)
           end
@@ -2785,6 +2775,35 @@ module Rubinius
     end
 
     class Inliner < Optimization
+      def each_instruction(optimizer, &translator)
+        visited_blocks = {}
+        block = optimizer.basic_blocks.first
+        pending_blocks = [block]
+
+        until pending_blocks.empty?
+          block = pending_blocks.pop
+
+          visited = false
+          until block.next_block.nil? and block.branch_block.nil?
+            unless visited_blocks[block].nil?
+              visited = true
+              break
+            end
+            block.instructions.each(&translator)
+            visited_blocks[block] = true
+
+            if block.next_block and block.branch_block
+              pending_blocks << block.branch_block
+            end
+
+            block = block.next_block || block.branch_block
+          end
+          if not visited
+            block.instructions.each(&translator)
+          end
+        end
+      end
+
       def optimize
         inlined = true
         count = 0
@@ -2805,6 +2824,26 @@ module Rubinius
                 code = send_stack.call_site.method
 
                 inlined_opt = decode_inlined_code(code)
+                if inlined_opt.signature == send_stack.signature
+                  remove_send_prologue(send_stack, sources)
+                  do_inline(send_stack, inlined_opt, code, count)
+                  inlined = true
+                end
+              end
+
+              if send_stack.call_site.is_a?(MonoInlineCache) and
+                 sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+                 (sources.first.source.op_code == :push_type)
+
+                code = send_stack.call_site.method
+
+                p code
+                inlined_opt = decode_inlined_code(code)
+                each_instruction(inlined_opt) do |inst|
+                  if inst.op_code == :push_self
+                    replace_instruction(inst, :push_type, [])
+                  end
+                end
                 if inlined_opt.signature == send_stack.signature
                   remove_send_prologue(send_stack, sources)
                   do_inline(send_stack, inlined_opt, code, count)
@@ -2891,7 +2930,7 @@ module Rubinius
         #  f.dst_inst.ip
         #end.reverse. ####  XXX do method chain with following line
         inlined_opt.exit_flows.each.with_index do |exit_flow, index|
-          raise "unsupported" if exit_flow.dst_inst.op_code != :ret
+          raise "unsupported: #{exit_flow.dst_inst.to_label(optimizer)}" if exit_flow.dst_inst.op_code != :ret
           exit_insts << exit_flow.dst_inst
 
           if prev_flow and exit_flow.is_a?(NextFlow)
@@ -2940,6 +2979,17 @@ module Rubinius
         #  p i.to_label(optimizer)
         #  i = i.following_instruction
         #end
+      end
+
+      def replace_instruction(inst, op_code, op_rands)
+        bytecode = InstructionSet.opcodes_map[op_code]
+        op_code2 = InstructionSet.opcodes[bytecode]
+        inst.instruction_width = op_code2.width
+        inst.bytecode = bytecode
+        inst.op_rands = op_rands
+        inst.op_code = op_code
+        inst.flow_type = op_code2.control_flow
+        inst
       end
 
       def create_instruction(op_code, op_rands)
