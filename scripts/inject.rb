@@ -13,9 +13,11 @@ def call_me(aaa)
 end
 
 def helop_me
+  a = 999999
 end
 
 def hello(a, b ,c, d,e,f)
+  b = 33300
   call_me(3)
   if true
    helop_me()
@@ -376,13 +378,13 @@ module Rubinius
       decode
     end
 
-    def merge(optimizer)
+    def merge(optimizer, count)
       @flows.concat(optimizer.flows.reject{|flow| flow.src_inst.is_a?(EntryInst)})
 
       offset = @local_names.size
       optimizer.local_names.to_a.each.with_index do |local_name, index|
         if @local_names.include?(local_name)
-          local_name = :"#{local_name}#{rand(1024)}"
+          local_name = :"#{"%" * (count + 1)}#{local_name}"
         end
         @local_names << local_name
       end
@@ -537,7 +539,9 @@ module Rubinius
             Type.new(bytecode)
           when :location, :ip
             BranchFlow.new(self, inst, ip_to_inst[bytecode])
-          when :literal, :number
+          when :number
+            Literal.new(bytecode)
+          when :literal
             @literal_op_codes[bytecode] ||= Literal.new(bytecode)
           when :serial
             Serial.new(bytecode)
@@ -2849,6 +2853,7 @@ module Rubinius
     class Inliner < Optimization
       def optimize
         inlined = true
+        count = 0
         while inlined
           p :inline
           inlined = false
@@ -2868,7 +2873,7 @@ module Rubinius
                 inlined_opt = decode_inlined_code(code)
                 if inlined_opt.signature == send_stack.signature
                   remove_send_prologue(send_stack, sources)
-                  do_inline(send_stack, inlined_opt, code)
+                  do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
               end
@@ -2876,6 +2881,7 @@ module Rubinius
           end
           Rubinius::Optimizer::StackAnalyzer.new(optimizer).optimize
           Rubinius::Optimizer::DataFlowAnalyzer.new(optimizer).optimize
+          count += 1
         end
       end
 
@@ -2908,11 +2914,11 @@ module Rubinius
         end
       end
 
-      def do_inline(send_stack, inlined_opt, code)
+      def do_inline(send_stack, inlined_opt, code, count)
         post_send_stack = send_stack.next_flow.dst_inst
         required, _post, _total, _splat, _block_index = inlined_opt.signature
         offset = optimizer.local_count
-        optimizer.merge(inlined_opt)
+        optimizer.merge(inlined_opt, count)
 
         prologue = inlined_opt.first_instruction
         prev_inst = nil
@@ -3075,6 +3081,7 @@ end
 def loo
   i = 0
   while i < 1000
+    b = "hello"
     hello(0, 1, 2, 0, 0, 0)
     3.zero?
     i += 1
