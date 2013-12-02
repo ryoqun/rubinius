@@ -17,7 +17,7 @@ def helop_me
 end
 
 def hello(a, b ,c, d,e,f)
-  b = 33300
+  b = 5
   call_me(3)
   if true
    helop_me()
