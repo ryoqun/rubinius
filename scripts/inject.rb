@@ -1426,79 +1426,24 @@ module Rubinius
           optimizer.sink_data_flows.clear
         end
         @oprands = {}
+        @data_flows = {}
+
         optimizer.each_instruction(start) do |instruction|
           instruction.imports.clear
           instruction.exports.clear
           setup_import_and_export(instruction)
         end
 
-        main_stack = []
-        stacks ||= [main_stack]
-
-        @goto_to_stack = {}
-        @data_flows = {}
-        previous = nil
-
         optimizer.data_pathes.each do |data_path|
           stack = []
           data_path.each do |node|
             if not node.is_a?(Symbol)
               node.block.each do |instruction|
-                #p instruction.to_label(optimizer)
                 pop_from_stack(stack, instruction)
                 push_to_stack(stack, instruction)
               end
-            else
-              #p node
             end
           end
-          #puts
-        end
-        return
-
-        optimizer.each_instruction(start) do |instruction|
-          if previous && instruction.previous_flow && previous != instruction.previous_flow.src_inst
-            stacks.clear
-            stacks = [@goto_to_stack[instruction.previous_flow.src_inst]]
-          end
-
-          branch_target_found = false
-          instruction.incoming_branch_flows.each do |goto|
-            if goto.src_inst.op_code == :goto or
-               goto.src_inst.op_code == :goto_if_true or
-               goto.src_inst.op_code == :goto_if_false or
-               goto.src_inst.op_code == :setup_unwind
-              branch_target_found = true
-              if @goto_to_stack.has_key?(goto.src_inst)
-                stacks << @goto_to_stack[goto.src_inst]
-              end
-            end
-          end
-          if not previous.nil? and (previous.op_code == :goto or previous.flow_type == :return or previous.flow_type == :raise)
-            if not branch_target_found and stacks.all?(&:empty?)
-              previous = instruction
-              next
-            end
-          end
-
-          stacks.each do |other_stack|
-            stacks.delete(other_stack) if other_stack and other_stack.empty?
-          end
-
-          if stacks.empty?
-            main_stack = []
-            stacks = [main_stack]
-          end
-          stacks.uniq!
-          stacks.each do |stack|
-            pop_from_stack(stack, instruction)
-            push_to_stack(stack, instruction)
-          end
-          if instruction.next_flow && instruction.following_instruction != instruction.next_flow.dst_inst
-            @goto_to_stack[instruction] = stacks.first
-            stacks.clear
-          end
-          previous = instruction
         end
       end
 
@@ -1516,17 +1461,6 @@ module Rubinius
 
       def pop_from_stack(stack, instruction)
         case instruction.op_code
-        when :goto_if_true, :goto_if_false, :goto, :setup_unwind
-          stk = stack.dup
-          if instruction.op_code != :goto and instruction.op_code != :setup_unwind
-            raise "underflow" if stk.empty?
-            stk.pop
-            #p instruction
-            #ap stk, raw: true
-          else
-            #p stk.map{|a| a.to_label(optimizer) }
-          end
-          @goto_to_stack[instruction] = stk unless stk.empty?
         when :push_self
           create_data_flow(create_oprand(DataFlow::Self, instruction), instruction)
         when :push_local, :push_literal, :push_const_fast, :push_ivar, :find_const_fast, :passed_arg
