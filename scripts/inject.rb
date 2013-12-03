@@ -1438,14 +1438,14 @@ module Rubinius
           stack = []
           data_path.each do |node|
             if not node.is_a?(Symbol)
-              p node.to_label(optimizer)
+              #p node.to_label(optimizer)
               node.block.each do |instruction|
-                puts instruction.to_label(optimizer)
+                #puts instruction.to_label(optimizer)
                 pop_from_stack(stack, instruction)
                 push_to_stack(stack, instruction)
               end
             else
-              p node
+              #p node
             end
           end
         end
@@ -2826,10 +2826,10 @@ module Rubinius
         inlined = true
         count = 0
         while inlined
-          p :inline
+          #p :inline
           inlined = false
           optimizer.each_instruction do |instruction|
-            p instruction.to_label(optimizer)
+            #p instruction.to_label(optimizer)
             case instruction.op_code
             when :send_stack
               reset_state
