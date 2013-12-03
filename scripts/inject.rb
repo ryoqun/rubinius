@@ -1337,6 +1337,11 @@ module Rubinius
           shuffle2 = create_oprand(DataFlow::Shuffle, 0, instruction, :import)
           instruction.imports.unshift(shuffle1)
           instruction.imports.unshift(shuffle2)
+        when :string_build
+          instruction.stack_consumed.times do |index|
+            shuffle = create_oprand(DataFlow::Shuffle, index, instruction, :import)
+            instruction.imports.push(shuffle)
+          end
         when :kind_of
           shuffle = create_oprand(DataFlow::Class, instruction)
           instruction.imports.unshift(shuffle)
@@ -1490,6 +1495,12 @@ module Rubinius
               arg = create_oprand(DataFlow::Argument, index, instruction)
               create_data_flow(source, arg)
             end
+          end
+        when :string_build
+          instruction.stack_consumed.times.to_a.reverse.each do |index|
+            source = stack.pop
+            shuffle1 = create_oprand(DataFlow::Shuffle, index, instruction, :import)
+            create_data_flow(source, shuffle1)
           end
         when :swap_stack
           source = stack.pop
