@@ -677,7 +677,8 @@ module Rubinius
       opted.local_names = local_names.to_tuple
       opted.name = :"_Z_#{@compiled_code.name}_#{bytecodes.size}"
 
-      opted.stack_size = @compiled_code.stack_size
+      opted.stack_size = @max_stack_size
+      #opted.stack_size = @compiled_code.stack_size #causes jit assertion failure
       opted.file = @compiled_code.file
       opted.name = @compiled_code.name
       opted.primitive      = @compiled_code.primitive
@@ -2311,7 +2312,7 @@ module Rubinius
         @previous_flows.push(flow) unless @flows.include?(flow) and @previous_flows.include?(flow)
       end
 
-      def transform
+      def transform(optimizer)
         if isolated?
           @results.each do |previous_flow, flow, match|
             unless @matcher.class.translator.include?(match)
@@ -2324,23 +2325,28 @@ module Rubinius
             unless @matcher.class.translator.include?(match)
               flows << flow
               flow.metadata(self)[:isolated] = false
+              flow.metadata(self)[:forwardable] = forwardable?
             end
           end
 
           if forwardable?
             raise "bad" if flows.size != 2
             flow = flows.first
-            return if flow.is_a?(NextFlow)
-            next_flow = flow.next_flow
-            #puts
-            #ap flow.to_label(nil)
-            #ap flows.last.to_label(nil)
-            until next_flow == flows.last
+            if flow.is_a?(NextFlow)
               flow.point_to_next_instruction(optimizer)
+              flows.last.point_to_next_instruction(optimizer)
+            else
               next_flow = flow.next_flow
+              #puts
+              #ap flow.to_label(nil)
+              #ap flows.last.to_label(nil)
+              until next_flow == flows.last
+                flow.point_to_next_instruction(optimizer)
+                next_flow = flow.next_flow
+              end
+              flow.point_to_next_instruction(optimizer)
+              flow.point_to_next_instruction(optimizer)
             end
-            flow.point_to_next_instruction(optimizer)
-            flow.point_to_next_instruction(optimizer)
           else
             flows.each do |flow|
               flow.metadata(self)[:cover] = false
@@ -2718,7 +2724,9 @@ module Rubinius
             end
           end
         end
-        @spots.each(&:transform)
+        @spots.each do |spot|
+          spot.transform(optimizer)
+        end
       end
 
       def reset
@@ -3166,7 +3174,6 @@ opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
 opt.add_pass(Rubinius::Optimizer::PruneUnused)
 opt.add_pass(Rubinius::Optimizer::ScalarTransform)
 opt.add_pass(Rubinius::Optimizer::Prune)
-opt.add_pass(Rubinius::Optimizer::GoToRemover)
 optimized_code = opt.run
 
 opt = Rubinius::Optimizer.new(optimized_code)
@@ -3196,9 +3203,10 @@ def measure
 end
 # invoke(@name, @defined_in, obj, args, block)
 hello = [:world, :invoke, :name, :obj, :args, :block, :sat, :odct]
+hello = "bbbb"
 result = nil
 arg = [3...5, ["world", "haa"]]
-arg = []
+arg = ["aaa"]
 
 #p result
 puts
@@ -3206,10 +3214,11 @@ puts
 5.times do
   puts optimized_code.decode.size
   puts un_code.decode.size
+  puts optimized_code.stack_size
   optimized_time = 0
   5.times do
     optimized_time += measure do
-      10000.times do
+      100000.times do
         optimized_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
@@ -3217,7 +3226,7 @@ puts
   unoptimized_time = 0
   5.times do
     unoptimized_time += measure do
-      10000.times do
+      100000.times do
         un_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
