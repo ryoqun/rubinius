@@ -1222,9 +1222,12 @@ module Rubinius
               recursive = true
               break
             else
+              if @block_to_node[block].nil? or not @block_to_node[block].terminated?
+                first = true
+              end
               node = map_to_node(block)
               if current_node = data_path.last
-                if node.terminated? and current_node.block.write >= node.read
+                if not first and node.terminated? and current_node.block.write >= node.read
                   break
                 end
               end
@@ -1430,10 +1433,14 @@ module Rubinius
           stack = []
           data_path.each do |node|
             if not node.is_a?(Symbol)
+              p node.to_label(optimizer)
               node.block.each do |instruction|
+                puts instruction.to_label(optimizer)
                 pop_from_stack(stack, instruction)
                 push_to_stack(stack, instruction)
               end
+            else
+              p node
             end
           end
         end
@@ -3016,8 +3023,10 @@ module Rubinius
         opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
         opt.add_pass(Rubinius::Optimizer::PruneUnused)
         opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+        opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
         opt.add_pass(Rubinius::Optimizer::FlowPrinter, "inlined_#{code.name}")
         opt.add_pass(Rubinius::Optimizer::StackPrinter, "inlined_#{code.name}")
+        opt.add_pass(Rubinius::Optimizer::DataFlowPrinter, "inlined_#{code.name}")
         opt.run
         opt
       end
@@ -3075,7 +3084,8 @@ end
 loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-code = method(:loo).executable
+code = String.instance_method(:+).executable
+#code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = [].method(:[]).executable
@@ -3137,6 +3147,16 @@ puts un_code.decode.size
 #end
 
 puts :GENERATED
+
+opt = Rubinius::Optimizer.new(optimized_code)
+opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
+opt.add_pass(Rubinius::Optimizer::StackAnalyzer)
+opt.add_pass(Rubinius::Optimizer::DataFlowAnalyzer)
+opt.add_pass(Rubinius::Optimizer::PruneUnused)
+opt.add_pass(Rubinius::Optimizer::ScalarTransform)
+opt.add_pass(Rubinius::Optimizer::Prune)
+opt.add_pass(Rubinius::Optimizer::GoToRemover)
+optimized_code = opt.run
 
 opt = Rubinius::Optimizer.new(optimized_code)
 opt.add_pass(Rubinius::Optimizer::FlowAnalysis)
