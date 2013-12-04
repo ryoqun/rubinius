@@ -2834,17 +2834,25 @@ module Rubinius
         inlined = true
         count = 0
         while inlined
-          #p :inline
+          puts
+          p :inline
           inlined = false
-          optimizer.each_instruction do |instruction|
-            #p instruction.to_label(optimizer)
+          each_instruction(optimizer) do |instruction|
             case instruction.op_code
             when :send_stack
               reset_state
               send_stack = instruction
+              p send_stack.to_label(optimizer)
+              next unless send_stack.call_site.is_a?(MonoInlineCache)
+              code = send_stack.call_site.method
+              if code.primitive
+                p :primitive
+                p code
+                next
+              end
+
               sources = optimizer.find_receiver(send_stack)
-              if send_stack.call_site.is_a?(MonoInlineCache) and
-                 sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+              if sources.size == 1 and sources.first.source.respond_to?(:op_code) and
                  (sources.first.source.op_code == :push_self)
 
                 code = send_stack.call_site.method
@@ -2857,8 +2865,23 @@ module Rubinius
                 end
               end
 
-              if send_stack.call_site.is_a?(MonoInlineCache) and
-                 sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+              if sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+                 (sources.first.source.op_code == :push_local)
+
+                inlined_opt = decode_inlined_code(code)
+                each_instruction(inlined_opt) do |inst|
+                  if inst.op_code == :push_self
+                    replace_instruction(inst, :push_local, sources.first.source.op_rands)
+                  end
+                end
+                if inlined_opt.signature == send_stack.signature
+                  remove_send_prologue(send_stack, sources)
+                  do_inline(send_stack, inlined_opt, code, count)
+                  inlined = true
+                end
+              end
+
+              if sources.size == 1 and sources.first.source.respond_to?(:op_code) and
                  (sources.first.source.op_code == :push_type)
 
                 code = send_stack.call_site.method
@@ -3015,6 +3038,7 @@ module Rubinius
         inst.op_rands = op_rands
         inst.op_code = op_code
         inst.flow_type = op_code2.control_flow
+        inst.label = "#{op_code} #{rand}"
         inst
       end
 
@@ -3091,20 +3115,36 @@ end
 
 
 def loo
+  n = "aaaa"
+  b = "bbb"
   i = 0
-  while i < 1000
-    b = "hello"
-    hello(0, 1, 2, 0, 0, 0)
-    3.zero?
+  while i < 100
+    n += b
     i += 1
   end
+  #p n
 end
+
+class A
+  def hello(h)
+    ha(true)
+  end
+
+  def ha(b)
+  end
+end
+
+def _loo
+  a = A.new
+  a.hello(3)
+end
+
 
 loo
 #code = Array.instance_method(:set_index).executable
 #code = Array.instance_method(:bottom_up_merge).executable
-code = String.instance_method(:+).executable
-#code = method(:loo).executable
+#code = String.instance_method(:+).executable
+code = method(:loo).executable
 #code = "".method(:dump).executable
 #code = "".method(:[]).executable
 #code = [].method(:[]).executable
@@ -3207,6 +3247,7 @@ hello = "bbbb"
 result = nil
 arg = [3...5, ["world", "haa"]]
 arg = ["aaa"]
+arg = []
 
 #p result
 puts
@@ -3218,7 +3259,7 @@ puts
   optimized_time = 0
   5.times do
     optimized_time += measure do
-      100000.times do
+      10000.times do
         optimized_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
@@ -3226,7 +3267,7 @@ puts
   unoptimized_time = 0
   5.times do
     unoptimized_time += measure do
-      100000.times do
+      10000.times do
         un_code.invoke(:loo, Array, hello, arg, nil)
       end
     end
@@ -3247,10 +3288,6 @@ p result
 #puts code.decode
 #puts
 #puts code.decode
-
-def foo
-  "aaa" + "bbbb"
-end
 
 def hello
   code = Rubinius::OptimizedCode.new
