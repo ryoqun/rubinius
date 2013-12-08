@@ -2914,7 +2914,8 @@ module Rubinius
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
-              elsif (sources.size >= 1)
+              elsif sources.size >= 1 and (not sources.first.source.respond_to?(:op_code) or
+                 (sources.first.source.op_code != :move_down))
                 p code.file
                 puts "data source is greater than or equal to 1"
                 inlined_opt = decode_inlined_code(code)
@@ -2924,6 +2925,7 @@ module Rubinius
                   required1, _post1, total1, _splat1, _block_index1 = inlined_opt.signature
                   required2, _post2, total2, _splat2, _block_index2 = send_stack.signature
                   if required1 < required2 and total1 == total2
+                    next
                   else
                     raise "unsupported signature mismatch: #{inlined_opt.signature} #{send_stack.signature}"
                   end
@@ -2974,27 +2976,9 @@ module Rubinius
                     inst.label = "extra push_local #{name} #{rand}"
                   end
                 end
-                extra_pop = create_instruction(:pop, [])
-                extra_pop.label = "extra pop #{name} #{rand}"
-                @last_created_inst = nil
-                incoming_flows = send_stack.incoming_flows.dup
-                raise "not supported" if incoming_flows.size > 1
-                incoming_flows.each do |flow|
-                  if flow.src_inst.op_code == :allow_private
-                    flow = flow.src_inst.prev_flow
-                  end
-                  post_flow = flow.dst_inst
-                  flow.change_dst_inst(optimizer, extra_pop)
-                  NextFlow.new(optimizer, extra_pop, post_flow)
-                end
-                #post_send_flow = send_stack.next_flow
-                #NextFlow.new(optimizer, extra_pop)
-                #post_send_flow.change_src_inst(optimizer, extra_pop)
-                #incoming_flows.each do |flow|
-                #  flow.change_dst_inst(optimizer, extra_pop)
-                #end
+
                 remove_send_prologue(send_stack, nil)
-                do_inline(send_stack, inlined_opt, code, count)
+                do_inline(send_stack, inlined_opt, code, count, true)
                 inlined = true
               end
             end
@@ -3039,7 +3023,7 @@ module Rubinius
         end
       end
 
-      def do_inline(send_stack, inlined_opt, code, count)
+      def do_inline(send_stack, inlined_opt, code, count, remove_self=false)
         post_send_stack = send_stack.next_flow.dst_inst
         required, _post, _total, _splat, _block_index = send_stack.signature
         offset = optimizer.local_count
@@ -3064,6 +3048,29 @@ module Rubinius
           NextFlow.new(optimizer, prev_inst, inst)
           prev_inst = inst
         end
+
+              if remove_self
+                name = :"__#{inlined_opt.compiled_code.name}_self__"
+                #incoming_flows = (inst || send_stack).incoming_flows.dup
+                inst = extra_pop = create_instruction(:pop, [])
+                extra_pop.label = "extra pop #{name} #{rand}"
+                #raise "not supported" if incoming_flows.size > 1
+                #incoming_flows.each do |flow|
+                  #post_flow = flow.dst_inst
+                  #flow.change_dst_inst(optimizer, extra_pop)
+                arg_entry ||= inst
+                if prev_inst
+                  NextFlow.new(optimizer, prev_inst, extra_pop)
+                end
+                #end
+                #post_send_flow = send_stack.next_flow
+                #NextFlow.new(optimizer, extra_pop)
+                #post_send_flow.change_src_inst(optimizer, extra_pop)
+                #incoming_flows.each do |flow|
+                #  flow.change_dst_inst(optimizer, extra_pop)
+                #end
+              end
+
         if inst
           NextFlow.new(optimizer, inst, prologue)
           prologue = arg_entry
@@ -3222,6 +3229,13 @@ class M
   def <<(other)
     3 + 3
   end
+
+  class << self
+    def allocate
+      puts :allocate
+      super
+    end
+  end
 end
 
 
@@ -3232,7 +3246,7 @@ def loo
   #while i < 100
     #n += b
     String.new("aa")
-    #M.new("b") << "aa"
+    #M.new("b")
     #String.new("aa")
   #  i += 1
   #end
