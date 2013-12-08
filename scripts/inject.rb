@@ -1263,6 +1263,7 @@ module Rubinius
           data_pathes << data_path
         end
         #print_data_pathes(data_pathes)
+        puts data_pathes.size
 
         @data_pathes = data_pathes
       end
@@ -1279,7 +1280,6 @@ module Rubinius
           end
           puts
         end
-        puts data_pathes
       end
 
       def create_block
@@ -2843,6 +2843,8 @@ module Rubinius
       def optimize
         inlined = true
         count = 0
+        used = {optimizer.compiled_code => true}
+
         while inlined
           puts
           p :inline
@@ -2852,14 +2854,19 @@ module Rubinius
             when :send_stack
               reset_state
               send_stack = instruction
-              #p send_stack.to_label(optimizer)
               next unless send_stack.call_site.is_a?(MonoInlineCache)
               code = send_stack.call_site.method
-              if code.primitive
+              if used.has_key?(code)
+                puts "already inlined.. support multiple invocation inineing: #{code.inspect}"
+                next
+              end
+              if not code.is_a?(CompiledCode) or code.primitive
                 #p :primitive
                 #p code
                 next
               end
+              p send_stack.to_label(optimizer)
+              #p send_stack.call_site
 
               sources = optimizer.find_receiver(send_stack)
               if sources.size == 1 and sources.first.source.respond_to?(:op_code) and
@@ -2868,17 +2875,17 @@ module Rubinius
                 code = send_stack.call_site.method
 
                 inlined_opt = decode_inlined_code(code)
+                used[code] = true
                 if inlined_opt.signature == send_stack.signature
                   remove_send_prologue(send_stack, sources.first.source)
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
-              end
-
-              if sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+              elsif sources.size == 1 and sources.first.source.respond_to?(:op_code) and
                  (sources.first.source.op_code == :push_local)
 
                 inlined_opt = decode_inlined_code(code)
+                used[code] = true
                 each_instruction(inlined_opt) do |inst|
                   if inst.op_code == :push_self
                     replace_instruction(inst, :push_local, sources.first.source.op_rands)
@@ -2889,68 +2896,14 @@ module Rubinius
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
-              end
-
-              if sources.size > 1
-                inlined_opt = decode_inlined_code(code)
-                name = :"__#{inlined_opt.compiled_code.name}_self__"
-                local = Local.new(optimizer.add_local(name))
-                local = Local.new(optimizer.add_local(name))
-
-                sources.each do |source|
-                  extra_local = create_instruction(:set_local, [local])
-                  extra_pop = create_instruction(:pop, [])
-                  @last_created_inst = nil
-                  NextFlow.new(optimizer, extra_local, extra_pop)
-
-                  puts
-                  #p source.to_label(optimizer)
-                  puts
-
-                  if source.source.is_a?(Inst)
-                    source = source.source
-                  else
-                    source = source.source.instruction
-                  end
-                  #p source.to_label(optimizer)
-
-
-                  next_inst = source.next_flow.dst_inst
-                  raise "not supported" if next_inst.branch_flow?
-                  source.next_flow.change_dst_inst(optimizer, extra_local)
-                  extra_local.label = "extra set_local #{name} #{rand}"
-                  extra_pop.label = "extra pop #{name} #{rand}"
-                  NextFlow.new(optimizer, extra_pop, next_inst)
-
-                  post_source = source.following_instruction
-
-                  source.following_instruction = extra_local
-                  extra_local.preceeding_instruction = source
-
-                  extra_pop.following_instruction = post_source
-                  post_source.preceeding_instruction = extra_pop
-                end
-
-                each_instruction(inlined_opt) do |inst|
-                  if inst.op_code == :push_self
-                    replace_instruction(inst, :push_local, [local])
-                    inst.label = "extra push_local #{name} #{rand}"
-                  end
-                end
-                if inlined_opt.signature == send_stack.signature
-                  remove_send_prologue(send_stack, nil)
-                  do_inline(send_stack, inlined_opt, code, count)
-                  inlined = true
-                end
-              end
-
-              if sources.size == 1 and sources.first.source.respond_to?(:op_code) and
+              elsif sources.size == 1 and sources.first.source.respond_to?(:op_code) and
                  (sources.first.source.op_code == :push_type)
 
                 code = send_stack.call_site.method
 
                 #p code
                 inlined_opt = decode_inlined_code(code)
+                used[code] = true
                 each_instruction(inlined_opt) do |inst|
                   if inst.op_code == :push_self
                     replace_instruction(inst, :push_type, [])
@@ -2961,13 +2914,97 @@ module Rubinius
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
+              elsif (sources.size >= 1)
+                p code.file
+                puts "data source is greater than or equal to 1"
+                inlined_opt = decode_inlined_code(code)
+                used[code] = true
+                if inlined_opt.signature == send_stack.signature
+                else
+                  required1, _post1, total1, _splat1, _block_index1 = inlined_opt.signature
+                  required2, _post2, total2, _splat2, _block_index2 = send_stack.signature
+                  if required1 < required2 and total1 == total2
+                  else
+                    raise "unsupported signature mismatch: #{inlined_opt.signature} #{send_stack.signature}"
+                  end
+                end
+
+                name = :"__#{inlined_opt.compiled_code.name}_self__"
+                local = Local.new(optimizer.add_local(name))
+
+                sources.each do |source|
+                  extra_local = create_instruction(:set_local, [local])
+                  #extra_pop = create_instruction(:pop, [])
+                  @last_created_inst = nil
+                  #NextFlow.new(optimizer, extra_local, extra_pop)
+
+                  #puts
+                  #p source.to_label(optimizer)
+                  #puts
+
+                  if source.source.is_a?(Inst)
+                    source = source.source
+                  else
+                    source = source.source.instruction
+                    raise source.inspect if source.nil?
+                  end
+                  #p source.to_label(optimizer)
+
+
+                  next_inst = source.next_flow.dst_inst
+                  raise "not supported" if next_inst.branch_flow?
+                  source.next_flow.change_dst_inst(optimizer, extra_local)
+                  extra_local.label = "extra set_local #{name} #{rand}"
+                  #extra_pop.label = "extra pop #{name} #{rand}"
+                  extra_pop = extra_local
+                  NextFlow.new(optimizer, extra_pop, next_inst)
+
+                  #post_source = source.following_instruction
+
+                  #source.following_instruction = extra_local
+                  #extra_local.preceeding_instruction = source
+
+                  #extra_pop.following_instruction = post_source
+                  #post_source.preceeding_instruction = extra_pop
+                end
+
+                each_instruction(inlined_opt) do |inst|
+                  if inst.op_code == :push_self
+                    replace_instruction(inst, :push_local, [local])
+                    inst.label = "extra push_local #{name} #{rand}"
+                  end
+                end
+                extra_pop = create_instruction(:pop, [])
+                extra_pop.label = "extra pop #{name} #{rand}"
+                @last_created_inst = nil
+                incoming_flows = send_stack.incoming_flows.dup
+                raise "not supported" if incoming_flows.size > 1
+                incoming_flows.each do |flow|
+                  if flow.src_inst.op_code == :allow_private
+                    flow = flow.src_inst.prev_flow
+                  end
+                  post_flow = flow.dst_inst
+                  flow.change_dst_inst(optimizer, extra_pop)
+                  NextFlow.new(optimizer, extra_pop, post_flow)
+                end
+                #post_send_flow = send_stack.next_flow
+                #NextFlow.new(optimizer, extra_pop)
+                #post_send_flow.change_src_inst(optimizer, extra_pop)
+                #incoming_flows.each do |flow|
+                #  flow.change_dst_inst(optimizer, extra_pop)
+                #end
+                remove_send_prologue(send_stack, nil)
+                do_inline(send_stack, inlined_opt, code, count)
+                inlined = true
               end
             end
           end
+          puts "iteration done"
+          Rubinius::Optimizer::FlowPrinter.new(optimizer, "after").optimize
           Rubinius::Optimizer::StackAnalyzer.new(optimizer).optimize
           Rubinius::Optimizer::DataFlowAnalyzer.new(optimizer).optimize
           count += 1
-          return if count > 1
+          return if count > 1 #XXX
         end
       end
 
@@ -3004,7 +3041,7 @@ module Rubinius
 
       def do_inline(send_stack, inlined_opt, code, count)
         post_send_stack = send_stack.next_flow.dst_inst
-        required, _post, _total, _splat, _block_index = inlined_opt.signature
+        required, _post, _total, _splat, _block_index = send_stack.signature
         offset = optimizer.local_count
         optimizer.merge(inlined_opt, count)
 
@@ -3175,6 +3212,10 @@ require "pp"
 #code = File.method(:absolute_path).executable
 
 class M
+  def initialize(aa=nil)
+   "hello  world"
+  end
+
   def []=(index, other)
   end
 
@@ -3185,13 +3226,17 @@ end
 
 
 def loo
-  n = "aaaa"
-  b = "bbb"
-  i = 0
-  while i < 100
-    n += b
-    i += 1
-  end
+  #n = "aaaa"
+  #b = "bbb"
+  #i = 0
+  #while i < 100
+    #n += b
+    String.new("aa")
+    #M.new("b") << "aa"
+    #String.new("aa")
+  #  i += 1
+  #end
+  #true
  #p n
 end
 
