@@ -370,6 +370,13 @@ module Rubinius
       decode
     end
 
+    def add_local(name)
+      index = @local_count
+      @local_count += 1
+      @local_names << name
+      index
+    end
+
     def merge(optimizer, count)
       @flows.concat(optimizer.flows.reject{|flow| flow.src_inst.is_a?(EntryInst)})
 
@@ -781,7 +788,6 @@ module Rubinius
       end
 
       class Shuffle < OpRand
-        attr_reader :instruction
         def initialize(index, instruction, type)
           super(instruction)
           @index = index
@@ -807,6 +813,10 @@ module Rubinius
         @source = source
         @sink = sink
         install(optimizer)
+      end
+
+      def to_label(optimizer)
+        "#{source.to_label(optimizer)} ==> #{sink.to_label(optimizer)}"
       end
 
       def inst
@@ -1034,7 +1044,7 @@ module Rubinius
         puts "INVALID:"
         puts to_label(nil)
         @invalid_messages ||= []
-        @invalid_messages << "INVALID: #{message}"
+        puts(@invalid_messages << "INVALID: #{message}")
         #raise message
       end
     end
@@ -2842,12 +2852,12 @@ module Rubinius
             when :send_stack
               reset_state
               send_stack = instruction
-              p send_stack.to_label(optimizer)
+              #p send_stack.to_label(optimizer)
               next unless send_stack.call_site.is_a?(MonoInlineCache)
               code = send_stack.call_site.method
               if code.primitive
-                p :primitive
-                p code
+                #p :primitive
+                #p code
                 next
               end
 
@@ -2859,7 +2869,7 @@ module Rubinius
 
                 inlined_opt = decode_inlined_code(code)
                 if inlined_opt.signature == send_stack.signature
-                  remove_send_prologue(send_stack, sources)
+                  remove_send_prologue(send_stack, sources.first.source)
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
@@ -2875,7 +2885,60 @@ module Rubinius
                   end
                 end
                 if inlined_opt.signature == send_stack.signature
-                  remove_send_prologue(send_stack, sources)
+                  remove_send_prologue(send_stack, sources.first.source)
+                  do_inline(send_stack, inlined_opt, code, count)
+                  inlined = true
+                end
+              end
+
+              if sources.size > 1
+                inlined_opt = decode_inlined_code(code)
+                name = :"__#{inlined_opt.compiled_code.name}_self__"
+                local = Local.new(optimizer.add_local(name))
+                local = Local.new(optimizer.add_local(name))
+
+                sources.each do |source|
+                  extra_local = create_instruction(:set_local, [local])
+                  extra_pop = create_instruction(:pop, [])
+                  @last_created_inst = nil
+                  NextFlow.new(optimizer, extra_local, extra_pop)
+
+                  puts
+                  #p source.to_label(optimizer)
+                  puts
+
+                  if source.source.is_a?(Inst)
+                    source = source.source
+                  else
+                    source = source.source.instruction
+                  end
+                  #p source.to_label(optimizer)
+
+
+                  next_inst = source.next_flow.dst_inst
+                  raise "not supported" if next_inst.branch_flow?
+                  source.next_flow.change_dst_inst(optimizer, extra_local)
+                  extra_local.label = "extra set_local #{name} #{rand}"
+                  extra_pop.label = "extra pop #{name} #{rand}"
+                  NextFlow.new(optimizer, extra_pop, next_inst)
+
+                  post_source = source.following_instruction
+
+                  source.following_instruction = extra_local
+                  extra_local.preceeding_instruction = source
+
+                  extra_pop.following_instruction = post_source
+                  post_source.preceeding_instruction = extra_pop
+                end
+
+                each_instruction(inlined_opt) do |inst|
+                  if inst.op_code == :push_self
+                    replace_instruction(inst, :push_local, [local])
+                    inst.label = "extra push_local #{name} #{rand}"
+                  end
+                end
+                if inlined_opt.signature == send_stack.signature
+                  remove_send_prologue(send_stack, nil)
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
@@ -2886,7 +2949,7 @@ module Rubinius
 
                 code = send_stack.call_site.method
 
-                p code
+                #p code
                 inlined_opt = decode_inlined_code(code)
                 each_instruction(inlined_opt) do |inst|
                   if inst.op_code == :push_self
@@ -2894,7 +2957,7 @@ module Rubinius
                   end
                 end
                 if inlined_opt.signature == send_stack.signature
-                  remove_send_prologue(send_stack, sources)
+                  remove_send_prologue(send_stack, sources.first.source)
                   do_inline(send_stack, inlined_opt, code, count)
                   inlined = true
                 end
@@ -2904,6 +2967,7 @@ module Rubinius
           Rubinius::Optimizer::StackAnalyzer.new(optimizer).optimize
           Rubinius::Optimizer::DataFlowAnalyzer.new(optimizer).optimize
           count += 1
+          return if count > 1
         end
       end
 
@@ -2911,14 +2975,16 @@ module Rubinius
         @last_created_inst = nil
       end
 
-      def remove_send_prologue(send_stack, sources)
-        push_self = sources.first.source
-        push_self.incoming_flows.each do |incoming_flow|
-          incoming_flow.change_dst_inst(optimizer, push_self.next_flow.dst_inst)
+      def remove_send_prologue(send_stack, source)
+        if source
+          push_self = source
+          push_self.incoming_flows.each do |incoming_flow|
+            incoming_flow.change_dst_inst(optimizer, push_self.next_flow.dst_inst)
+          end
+          push_self.next_flow.mark_remove
+          push_self.mark_raw_remove
+          push_self.raw_remove
         end
-        push_self.next_flow.mark_remove
-        push_self.mark_raw_remove
-        push_self.raw_remove
         send_stack.mark_raw_remove
         send_stack.raw_remove
 
@@ -2949,7 +3015,7 @@ module Rubinius
         inst = nil
         required.times.to_a.reverse.each do |index|
           inst = create_instruction(:set_local, [Local.new(offset +  index)])
-          inst.label = "set local #{code.name} #{index}"
+          inst.label = "set local #{code.name.inspect} #{index}"
           arg_entry ||= inst
           if prev_inst
             NextFlow.new(optimizer, prev_inst, inst)
@@ -2957,7 +3023,7 @@ module Rubinius
           prev_inst = inst
 
           inst = create_instruction(:pop, [])
-          inst.label = "pop local #{code.name} #{index}"
+          inst.label = "pop #{code.name.inspect} #{index}"
           NextFlow.new(optimizer, prev_inst, inst)
           prev_inst = inst
         end
@@ -3111,6 +3177,10 @@ require "pp"
 class M
   def []=(index, other)
   end
+
+  def <<(other)
+    3 + 3
+  end
 end
 
 
@@ -3122,7 +3192,7 @@ def loo
     n += b
     i += 1
   end
-  #p n
+ #p n
 end
 
 class A
@@ -3250,7 +3320,7 @@ arg = ["aaa"]
 arg = []
 
 #p result
-puts
+puts "BEGIN BENCHMARK"
 
 5.times do
   puts optimized_code.decode.size
